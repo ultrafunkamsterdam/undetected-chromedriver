@@ -12,15 +12,6 @@ d88P"    888 "88b 888P"  d88""88b 888 "888 "88b d8P  Y8b d88" 888 888P"   888 88
 Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y8bd8P  Y8b.     888
  "Y8888P 888  888 888     "Y88P"  888  888  888  "Y8888   "Y88888 888     888   Y88P    "Y8888  888   88888888
 
- 888      d8b      888      888
- 888      Y8P      888      888
- 888               888      888
- 88888b.  888  .d88888  .d88888  .d88b.  88888b.
- 888 "88b 888 d88" 888 d88" 888 d8P  Y8b 888 "88b
- 888  888 888 888  888 888  888 88888888 888  888
- 888  888 888 Y88b 888 Y88b 888 Y8b.     888  888
- 888  888 888  "Y88888  "Y88888  "Y8888  888  888
-
 BY ULTRAFUNKAMSTERDAM (https://github.com/ultrafunkamsterdam)
 
 
@@ -134,6 +125,9 @@ class ChromeOptions:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
         instance = object.__new__(_ChromeOptions)
         instance.__init__()
+        instance.add_argument("start-maximized")
+        instance.add_experimental_option("excludeSwitches", ["enable-automation"])
+        instance.add_experimental_option("useAutomationExtension", False)
         print(f"starting options instance ChromeOptions({args}, {kwargs})")
         return instance
 
@@ -162,28 +156,32 @@ class ChromeDriverManager(object):
         import selenium.webdriver
 
         # Monkeypatching ChromeDriver Service
-        if self_.__class__.selenium_patched:
-            return
+        # if self_.__class__.selenium_patched:
+        #     return
 
-        Service__init__ = selenium.webdriver.chrome.service.Service.__init__
+        # Service__init__ = selenium.webdriver.chrome.service.Service.__init__
+        #
+        # def patched_Service__init__(self, *a, **k):
+        #     logging.warning("Using patched ChromeDriver Service class")
+        #     Service__init__(self, self_.executable_path, **k)
+        #
+        # selenium.webdriver.chrome.service.Service.__init__ = patched_Service__init__
+        #
+        # # monkeypatching ChromeOptions
+        # ChromeOptions__init__ = selenium.webdriver.ChromeOptions.__init__
+        #
+        # def patched_ChromeOptions__init__(self):
+        #     logging.warning("Using patched ChromeOptions class")
+        #     ChromeOptions__init__(self)
+        #     self.add_argument("start-maximized")
+        #     self.add_experimental_option("excludeSwitches", ["enable-automation"])
+        #     self.add_experimental_option("useAutomationExtension", False)
+        #
+        # selenium.webdriver.ChromeOptions.__init__ = patched_ChromeOptions__init__
+        #
+        selenium.webdriver.Chrome = Chrome
+        selenium.webdriver.ChromeOptions = ChromeOptions
 
-        def patched_Service__init__(self, *a, **k):
-            logging.warning("Using patched ChromeDriver Service class")
-            Service__init__(self, self_.executable_path, **k)
-
-        selenium.webdriver.chrome.service.Service.__init__ = patched_Service__init__
-
-        # monkeypatching ChromeOptions
-        ChromeOptions__init__ = selenium.webdriver.ChromeOptions.__init__
-
-        def patched_ChromeOptions__init__(self):
-            logging.warning("Using patched ChromeOptions class")
-            ChromeOptions__init__(self)
-            self.add_argument("start-maximized")
-            self.add_experimental_option("excludeSwitches", ["enable-automation"])
-            self.add_experimental_option("useAutomationExtension", False)
-
-        selenium.webdriver.ChromeOptions.__init__ = patched_ChromeOptions__init__
         logging.warning(
             "Now it is safe to import Chrome and ChromeOptions from selenium"
         )
