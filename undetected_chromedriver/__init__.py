@@ -138,18 +138,17 @@ class ChromeDriverManager(object):
     installed = False
     selenium_patched = False
 
+         
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
         self.executable_path = executable_path or "chromedriver.exe"
         self.platform = sys.platform
         self.target_version = target_version
 
+
     def patch_selenium_webdriver(self_):
         """
-        Patches existing webdriver path on <executable_path> OR if executable_path is None, will download
-        and patch a new webdriver binary for chrome  <version_int> (automatically finds latest release of main version)
+        Patches selenium package Chrome, ChromeOptions classes for current session
 
-        :param str executable_path: OPTIONAL path to existing chromedriver executable to patch
-        :param int version_int: OPTIONAL target chrome main version. default 79
         :return:
         """
         import selenium.webdriver.chrome.service
@@ -160,6 +159,7 @@ class ChromeDriverManager(object):
             "Now it is safe to import Chrome and ChromeOptions from selenium"
         )
         self_.__class__.selenium_patched = True
+
 
     def install(self, patch_selenium=True):
         """
@@ -185,6 +185,7 @@ class ChromeDriverManager(object):
         if patch_selenium:
             self.patch_selenium_webdriver()
 
+                  
     def get_release_version_number(self):
         """
         Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
@@ -197,6 +198,7 @@ class ChromeDriverManager(object):
             else f"LATEST_RELEASE_{self.target_version}"
         )
         return urlopen(_DL_BASE + path).read().decode()
+
 
     def fetch_chromedriver(self):
         """
@@ -216,6 +218,7 @@ class ChromeDriverManager(object):
             zf.extract(exe_name)
         os.remove(zip_name)
         return exe_name
+
 
     def patch_binary(self):
         """
