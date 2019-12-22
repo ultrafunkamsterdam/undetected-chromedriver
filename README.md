@@ -55,6 +55,4 @@ driver.get('https://distilnetworks.com')
 ```
 
 
-#### 4- a combination of function(s) from this module :) ####
-
 
