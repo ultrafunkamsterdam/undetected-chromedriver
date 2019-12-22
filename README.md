@@ -5,7 +5,12 @@ BY ULTRAFUNKAMSTERDAM (https://github.com/ultrafunkamsterdam)
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network.
 Automatically downloads the driver binary and patches it.
 Not tested on Chrome higher than 79!
+Works only on python 3
 
+## Installation ##
+```
+pip install  git+https://github.com/ultrafunkamsterdam/undetected-chromedriver.git
+```
 
 ## USAGE ##
 
