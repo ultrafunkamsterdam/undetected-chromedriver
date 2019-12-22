@@ -10,14 +10,16 @@ Not tested on Chrome higher than 79!
 ## USAGE ##
 
 
-#### 1-  by far the easiest ####
+#### the easy way (recommended) ####
 ```python
 from undetected_chromedriver import Chrome, ChromeOptions
 driver = Chrome()
 driver.get('https://distilnetworks.com')
 ```
 
-#### 2- patches selenium module (before importing from selenium!) ####
+#### patches selenium module  ####
+Needs to be done before importing from selenium package
+
 ```python
 import undetected_chromedriver
 undetected_chromedriver.install()
@@ -26,7 +28,7 @@ driver = Chrome()
 driver.get('https://distilnetworks.com')
 ```` 
 
-#### 3 - Customized ####
+#### the customized way ####
 ```python
 import undetected_chromedriver
 
