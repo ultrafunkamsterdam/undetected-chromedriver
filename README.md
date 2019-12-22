@@ -7,17 +7,17 @@ Automatically downloads the driver binary and patches it.
 Not tested on Chrome higher than 79!
 
 
-## USAGE
+## USAGE ##
 
 
-# 1-  by far the easiest
+#### 1-  by far the easiest ####
 ```python
 from undetected_chromedriver import Chrome, ChromeOptions
 driver = Chrome()
 driver.get('https://distilnetworks.com')
 ```
 
-# 2- patches selenium module (before importing from selenium!)
+#### 2- patches selenium module (before importing from selenium!) ####
 ```python
 import undetected_chromedriver
 undetected_chromedriver.install()
@@ -26,7 +26,7 @@ driver = Chrome()
 driver.get('https://distilnetworks.com')
 ```` 
 
-# 3 - Customized
+#### 3 - Customized ####
 ```python
 import undetected_chromedriver
 
@@ -45,4 +45,4 @@ driver = Chrome(options=opts)
 driver.get('https://distilnetworks.com')
 ```
 
-# 4- a combination of function(s) from this module :)
+#### 4- a combination of function(s) from this module :) ####
