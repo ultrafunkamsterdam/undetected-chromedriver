@@ -154,34 +154,8 @@ class ChromeDriverManager(object):
         """
         import selenium.webdriver.chrome.service
         import selenium.webdriver
-
-        # Monkeypatching ChromeDriver Service
-        # if self_.__class__.selenium_patched:
-        #     return
-
-        # Service__init__ = selenium.webdriver.chrome.service.Service.__init__
-        #
-        # def patched_Service__init__(self, *a, **k):
-        #     logging.warning("Using patched ChromeDriver Service class")
-        #     Service__init__(self, self_.executable_path, **k)
-        #
-        # selenium.webdriver.chrome.service.Service.__init__ = patched_Service__init__
-        #
-        # # monkeypatching ChromeOptions
-        # ChromeOptions__init__ = selenium.webdriver.ChromeOptions.__init__
-        #
-        # def patched_ChromeOptions__init__(self):
-        #     logging.warning("Using patched ChromeOptions class")
-        #     ChromeOptions__init__(self)
-        #     self.add_argument("start-maximized")
-        #     self.add_experimental_option("excludeSwitches", ["enable-automation"])
-        #     self.add_experimental_option("useAutomationExtension", False)
-        #
-        # selenium.webdriver.ChromeOptions.__init__ = patched_ChromeOptions__init__
-        #
         selenium.webdriver.Chrome = Chrome
         selenium.webdriver.ChromeOptions = ChromeOptions
-
         logging.warning(
             "Now it is safe to import Chrome and ChromeOptions from selenium"
         )
