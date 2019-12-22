@@ -12,7 +12,7 @@ Works only on python 3
 pip install  git+https://github.com/ultrafunkamsterdam/undetected-chromedriver.git
 ```
 
-## USAGE ##
+## Usage ##
 
 
 #### the easy way (recommended) ####
@@ -21,6 +21,7 @@ from undetected_chromedriver import Chrome, ChromeOptions
 driver = Chrome()
 driver.get('https://distilnetworks.com')
 ```
+
 
 #### patches selenium module  ####
 Needs to be done before importing from selenium package
@@ -32,6 +33,7 @@ from selenium.webdriver import Chrome
 driver = Chrome()
 driver.get('https://distilnetworks.com')
 ```` 
+
 
 #### the customized way ####
 ```python
@@ -52,4 +54,7 @@ driver = Chrome(options=opts)
 driver.get('https://distilnetworks.com')
 ```
 
+
 #### 4- a combination of function(s) from this module :) ####
+
+
