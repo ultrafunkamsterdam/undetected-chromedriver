@@ -26,6 +26,8 @@ from urllib.request import urlopen, urlretrieve
 from selenium.webdriver import Chrome as _Chrome
 from selenium.webdriver import ChromeOptions as _ChromeOptions
 
+logger = logging.getLogger(__name__)
+
 
 _DL_BASE = "https://chromedriver.storage.googleapis.com/"
 TARGET_VERSION = 79
@@ -60,7 +62,7 @@ class Chrome:
                 "platform": "Windows",
             },
         )
-        print(f"starting webdriver instance Chrome({args}, {kwargs})")
+        logger.warning(f"starting webdriver instance Chrome({args}, {kwargs})")
         return instance
 
 
@@ -75,7 +77,7 @@ class ChromeOptions:
         instance.add_argument("start-maximized")
         instance.add_experimental_option("excludeSwitches", ["enable-automation"])
         instance.add_experimental_option("useAutomationExtension", False)
-        print(f"starting options instance ChromeOptions({args}, {kwargs})")
+        logger.debug(f"starting options instance ChromeOptions({args}, {kwargs})")
         return instance
 
     # return _ChromeOptions()
@@ -102,7 +104,7 @@ class ChromeDriverManager(object):
         import selenium.webdriver
         selenium.webdriver.Chrome = Chrome
         selenium.webdriver.ChromeOptions = ChromeOptions
-        logging.warning(
+        logger.warning(
             "Now it is safe to import Chrome and ChromeOptions from selenium"
         )
         self_.__class__.selenium_patched = True
