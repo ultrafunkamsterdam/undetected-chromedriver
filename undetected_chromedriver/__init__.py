@@ -39,7 +39,7 @@ class Chrome:
         if not ChromeDriverManager.selenium_patched:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
         instance = object.__new__(_Chrome)
-        instance.__init__(*args, **kwargs)
+        instance.__init__(options=ChromeOptions(), *args, **kwargs)
         instance.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
             {
