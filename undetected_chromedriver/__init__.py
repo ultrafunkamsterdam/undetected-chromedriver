@@ -159,6 +159,8 @@ class ChromeDriverManager(object):
         exe_name = base_.format(".exe")
         zip_name = base_.format(".zip")
         ver = self.get_release_version_number()
+        if os.path.exists(exe_name):
+            return exe_name
         urlretrieve(
             f"{_DL_BASE}{ver}/{base_.format(f'_{self.platform}')}.zip",
             filename=zip_name,
