@@ -122,7 +122,7 @@ class ChromeDriverManager(object):
         :param patch_selenium: patch selenium webdriver classes for Chrome and ChromeDriver (for current python session)
         :return:
         """
-        if not os.path.exists(self.executable_path)
+        if not os.path.exists(self.executable_path):
          
 #          if
 #             not self.__class__.installed
