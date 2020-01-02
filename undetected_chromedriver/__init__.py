@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 _DL_BASE = "https://chromedriver.storage.googleapis.com/"
-TARGET_VERSION = 79
+TARGET_VERSION = 80
 __is_patched__ = 0
 
 
