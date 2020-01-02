@@ -28,6 +28,6 @@ setup(
     license='MIT',
     author='UltrafunkAmsterdam',
     author_email='',
-    description='Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network. '
+    description='Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distil Network. '
                 'Automatically downloads the driver binary and patches it.'
 )
