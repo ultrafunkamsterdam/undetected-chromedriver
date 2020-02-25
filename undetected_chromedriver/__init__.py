@@ -203,5 +203,5 @@ class ChromeDriverManager(object):
             return True
 
 
-def install(executable_path=None, target_version=TARGET_VERSION, *args, **kwargs):
+def install(executable_path=None, target_version=None, *args, **kwargs):
     ChromeDriverManager(executable_path, target_version, *args, **kwargs).install()
