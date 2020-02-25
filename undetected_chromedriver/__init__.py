@@ -99,7 +99,7 @@ class ChromeDriverManager(object):
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
         self.executable_path = executable_path or "chromedriver.exe"
         self.platform = sys.platform
-        self.target_version = target_version
+        self.target_version = target_version or TARGET_VERSION
 
 
     def patch_selenium_webdriver(self_):
