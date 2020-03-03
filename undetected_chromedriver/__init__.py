@@ -166,18 +166,20 @@ class ChromeDriverManager(object):
         :return: on success, name of the unpacked executable
         """
         base_ = "chromedriver{}"
-        exe_name = base_.format(".exe")
-        zip_name = base_.format(".zip")
-        ver = self.get_release_version_number()
         _platform = self.platform
+        if _platform in ('win32',):
+            exe_name = base_.format(".exe")
         if _platform in ('linux',):
             _platform+='64'
         if _platform in ('darwin',):
             _platform = 'mac64'
+      
+        zip_name = base_.format(".zip")
+        ver = self.get_release_version_number()
         if os.path.exists(exe_name):
             return exe_name
         urlretrieve(
-            f"{_DL_BASE}{ver}/{base_.format(f'_{self.platform}')}.zip",
+            f"{_DL_BASE}{ver}/{base_.format(f'_{_platform}')}.zip",
             filename=zip_name,
         )
         with zipfile.ZipFile(zip_name) as zf:
