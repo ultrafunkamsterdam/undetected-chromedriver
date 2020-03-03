@@ -196,6 +196,8 @@ class ChromeDriverManager(object):
         with zipfile.ZipFile(zip_name) as zf:
             zf.extract(self._exe_name)
         os.remove(zip_name)
+        if sys.platform != 'win32':
+            os.chmod(self._exe_name, 0o755)
         return self._exe_name
 
 
