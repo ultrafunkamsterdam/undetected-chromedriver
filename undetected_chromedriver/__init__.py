@@ -165,14 +165,16 @@ class ChromeDriverManager(object):
 
         :return: on success, name of the unpacked executable
         """
-        base_ = "chromedriver{}"
+        base_ = exe_name = "chromedriver{}"
         _platform = self.platform
         if _platform in ('win32',):
             exe_name = base_.format(".exe")
         if _platform in ('linux',):
             _platform+='64'
+            exe_name = exe_name.format('')
         if _platform in ('darwin',):
             _platform = 'mac64'
+            exe_name = exe_name.format('')
       
         zip_name = base_.format(".zip")
         ver = self.get_release_version_number()
