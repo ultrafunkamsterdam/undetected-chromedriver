@@ -36,10 +36,14 @@ __is_patched__ = 0
 
 class Chrome:
     def __new__(cls, *args, **kwargs):
+        
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
+        if not kwargs.get('executable_path'):
+            kwargs['executable_path'] = ChromeDriverManager(*args, **kwargs).executable_path
+         
         instance = object.__new__(_Chrome)
         instance.__init__(*args, **kwargs)
         instance.execute_cdp_cmd(
@@ -80,6 +84,7 @@ class ChromeOptions:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
+        
         instance = object.__new__(_ChromeOptions)
         instance.__init__()
         instance.add_argument("start-maximized")
