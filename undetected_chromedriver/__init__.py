@@ -169,6 +169,11 @@ class ChromeDriverManager(object):
         exe_name = base_.format(".exe")
         zip_name = base_.format(".zip")
         ver = self.get_release_version_number()
+        _platform = self.platform
+        if _platform in ('linux',):
+            _platform+='64'
+        if _platform in ('darwin',):
+            _platform = 'mac64'
         if os.path.exists(exe_name):
             return exe_name
         urlretrieve(
