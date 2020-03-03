@@ -42,7 +42,7 @@ class Chrome:
         if not ChromeDriverManager.selenium_patched:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
         if not kwargs.get('executable_path'):
-            kwargs['executable_path'] = ChromeDriverManager(*args, **kwargs).executable_path
+            kwargs['executable_path'] = './{}'.format(ChromeDriverManager(*args, **kwargs).executable_path)
          
         instance = object.__new__(_Chrome)
         instance.__init__(*args, **kwargs)
