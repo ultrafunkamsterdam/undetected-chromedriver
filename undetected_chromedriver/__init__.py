@@ -119,6 +119,7 @@ class ChromeDriverManager(object):
             exe_name = exe_name.format('')
         self.platform = _platform
         self.executable_path = executable_path or exe_name      
+        self._exe_name = exe_name
 
     def patch_selenium_webdriver(self_):
         """
@@ -187,15 +188,15 @@ class ChromeDriverManager(object):
         zip_name = base_.format(".zip")
         ver = self.get_release_version_number()
         if os.path.exists(self.executable_path):
-            return exe_name
+            return self.executable_path
         urlretrieve(
             f"{_DL_BASE}{ver}/{base_.format(f'_{self.platform}')}.zip",
             filename=zip_name,
         )
         with zipfile.ZipFile(zip_name) as zf:
-            zf.extract(exe_name)
+            zf.extract(self._exe_name)
         os.remove(zip_name)
-        return exe_name
+        return self._exe_name
 
 
     def patch_binary(self):
