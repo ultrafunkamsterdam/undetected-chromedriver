@@ -97,7 +97,7 @@ class ChromeDriverManager(object):
 
          
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
-        self.executable_path = executable_path or "chromedriver.exe"
+        self.executable_path = executable_path
         self.platform = sys.platform
         self.target_version = target_version or TARGET_VERSION
 
