@@ -97,10 +97,23 @@ class ChromeDriverManager(object):
 
          
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
-        self.executable_path = executable_path
-        self.platform = sys.platform
+        
+        _platform = sys.platform
         self.target_version = target_version or TARGET_VERSION
-
+        self._base = base_ = "chromedriver{}"
+         
+        exe_name = self._base
+        
+        if _platform in ('win32',):
+            exe_name = base_.format(".exe")
+        if _platform in ('linux',):
+            _platform+='64'
+            exe_name = exe_name.format('')
+        if _platform in ('darwin',):
+            _platform = 'mac64'
+            exe_name = exe_name.format('')
+        self.platform = _platform
+        self.executable_path = executable_path or exe_name      
 
     def patch_selenium_webdriver(self_):
         """
@@ -165,23 +178,13 @@ class ChromeDriverManager(object):
 
         :return: on success, name of the unpacked executable
         """
-        base_ = exe_name = "chromedriver{}"
-        _platform = self.platform
-        if _platform in ('win32',):
-            exe_name = base_.format(".exe")
-        if _platform in ('linux',):
-            _platform+='64'
-            exe_name = exe_name.format('')
-        if _platform in ('darwin',):
-            _platform = 'mac64'
-            exe_name = exe_name.format('')
-      
+        base_ = self._base
         zip_name = base_.format(".zip")
         ver = self.get_release_version_number()
-        if os.path.exists(exe_name):
+        if os.path.exists(self.executable_path):
             return exe_name
         urlretrieve(
-            f"{_DL_BASE}{ver}/{base_.format(f'_{_platform}')}.zip",
+            f"{_DL_BASE}{ver}/{base_.format(f'_{self.platform}')}.zip",
             filename=zip_name,
         )
         with zipfile.ZipFile(zip_name) as zf:
