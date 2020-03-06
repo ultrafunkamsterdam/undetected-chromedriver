@@ -43,7 +43,8 @@ class Chrome:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
         if not kwargs.get('executable_path'):
             kwargs['executable_path'] = './{}'.format(ChromeDriverManager(*args, **kwargs).executable_path)
-         
+        if not kwargs.get('options'):
+            kwargs['options'] = ChromeOptions() 
         instance = object.__new__(_Chrome)
         instance.__init__(*args, **kwargs)
         instance.execute_cdp_cmd(
