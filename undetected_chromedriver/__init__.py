@@ -30,13 +30,14 @@ logger = logging.getLogger(__name__)
 
 
 _DL_BASE = "https://chromedriver.storage.googleapis.com/"
-TARGET_VERSION = 80
+TARGET_VERSION = 81
 __is_patched__ = 0
 
 
 class Chrome:
+         
     def __new__(cls, *args, **kwargs):
-        
+
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
@@ -94,8 +95,6 @@ class ChromeOptions:
         logger.debug(f"starting options instance ChromeOptions({args}, {kwargs})")
         return instance
 
-    # return _ChromeOptions()
-
 
 class ChromeDriverManager(object):
     installed = False
@@ -151,12 +150,6 @@ class ChromeDriverManager(object):
         :return:
         """
         if not os.path.exists(self.executable_path):
-         
-#          if
-#             not self.__class__.installed
-#             or not __is_patched__
-#             or not os.path.exists(self.executable_path)
-#         ):
             self.fetch_chromedriver()
             self.patch_binary()
             self.__class__.installed = True
