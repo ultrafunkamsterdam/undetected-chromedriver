@@ -19,7 +19,7 @@ from setuptools import setup
 
 setup(
     name='undetected-chromedriver',
-    version='1.1',
+    version='1.2',
     packages=['undetected_chromedriver'],
     install_requires=[
         'selenium',
