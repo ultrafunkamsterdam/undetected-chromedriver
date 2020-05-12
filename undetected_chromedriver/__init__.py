@@ -76,7 +76,7 @@ class Chrome:
                 "platform": "Windows",
             },
         )
-        logger.warning(f"starting webdriver instance Chrome({args}, {kwargs})")
+        logger.info(f"starting undetected_chromedriver.Chrome({args}, {kwargs})")
         return instance
 
 
@@ -92,7 +92,7 @@ class ChromeOptions:
         instance.add_argument("start-maximized")
         instance.add_experimental_option("excludeSwitches", ["enable-automation"])
         instance.add_experimental_option("useAutomationExtension", False)
-        logger.debug(f"starting options instance ChromeOptions({args}, {kwargs})")
+        logger.info(f"starting undetected_chromedriver.ChromeOptions({args}, {kwargs})")
         return instance
 
 
@@ -132,7 +132,7 @@ class ChromeDriverManager(object):
         selenium.webdriver.Chrome = Chrome
         selenium.webdriver.ChromeOptions = ChromeOptions
         logger.warning(
-            "Now it is safe to import Chrome and ChromeOptions from selenium"
+            "Selenium patched. Safe to import Chrome / ChromeOptions"
         )
         self_.__class__.selenium_patched = True
 
