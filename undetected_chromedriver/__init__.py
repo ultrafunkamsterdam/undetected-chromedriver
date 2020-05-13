@@ -99,12 +99,13 @@ class ChromeOptions:
 class ChromeDriverManager(object):
     installed = False
     selenium_patched = False
-
+    target_version = TARGET_VERSION
          
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
         
         _platform = sys.platform
-        self.target_version = target_version or TARGET_VERSION
+        if target_version:
+            self.__class__.target_version = target_version
         self._base = base_ = "chromedriver{}"
          
         exe_name = self._base
