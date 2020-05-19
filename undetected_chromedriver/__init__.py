@@ -29,13 +29,12 @@ from selenium.webdriver import ChromeOptions as _ChromeOptions
 logger = logging.getLogger(__name__)
 
 
-_DL_BASE = "https://chromedriver.storage.googleapis.com/"
 TARGET_VERSION = 81
-__is_patched__ = 0
+__IS_PATCHED__ = 0
 
 
 class Chrome:
-         
+
     def __new__(cls, *args, **kwargs):
 
         if not ChromeDriverManager.installed:
@@ -86,7 +85,7 @@ class ChromeOptions:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
-        
+ 
         instance = object.__new__(_ChromeOptions)
         instance.__init__()
         instance.add_argument("start-maximized")
@@ -97,19 +96,23 @@ class ChromeOptions:
 
 
 class ChromeDriverManager(object):
+
     installed = False
     selenium_patched = False
-    target_version = TARGET_VERSION
-         
+    target_version = None
+
+    DL_BASE = "https://chromedriver.storage.googleapis.com/"
+
+
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
-        
+
         _platform = sys.platform
+        self.target_version = TARGET_VERSION
         if target_version:
-            self.__class__.target_version = target_version
+            self.target_version = target_version
         self._base = base_ = "chromedriver{}"
-         
+
         exe_name = self._base
-        
         if _platform in ('win32',):
             exe_name = base_.format(".exe")
         if _platform in ('linux',):
@@ -119,7 +122,7 @@ class ChromeDriverManager(object):
             _platform = 'mac64'
             exe_name = exe_name.format('')
         self.platform = _platform
-        self.executable_path = executable_path or exe_name      
+        self.executable_path = executable_path or exe_name
         self._exe_name = exe_name
 
     def patch_selenium_webdriver(self_):
@@ -158,7 +161,7 @@ class ChromeDriverManager(object):
         if patch_selenium:
             self.patch_selenium_webdriver()
 
-                  
+ 
     def get_release_version_number(self):
         """
         Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
@@ -170,7 +173,7 @@ class ChromeDriverManager(object):
             if not self.target_version
             else f"LATEST_RELEASE_{self.target_version}"
         )
-        return urlopen(_DL_BASE + path).read().decode()
+        return urlopen(self.__class__.DL_BASE + path).read().decode()
 
 
     def fetch_chromedriver(self):
@@ -185,7 +188,7 @@ class ChromeDriverManager(object):
         if os.path.exists(self.executable_path):
             return self.executable_path
         urlretrieve(
-            f"{_DL_BASE}{ver}/{base_.format(f'_{self.platform}')}.zip",
+            f"{self.__class__.DL_BASE}{ver}/{base_.format(f'_{self.platform}')}.zip",
             filename=zip_name,
         )
         with zipfile.ZipFile(zip_name) as zf:
@@ -211,7 +214,7 @@ class ChromeDriverManager(object):
                     binary.seek(-len(line), 1)
                     line = b"  var key = '$azc_abcdefghijklmnopQRstuv_';\n"
                     binary.write(line)
-                    __is_patched__ = 1
+                    __IS_PATCHED__ = 1
                     break
             else:
                 return False

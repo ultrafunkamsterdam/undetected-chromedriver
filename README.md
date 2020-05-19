@@ -30,8 +30,8 @@ driver.get('https://distilnetworks.com')
 Needs to be done before importing from selenium package
 
 ```python
-import undetected_chromedriver
-undetected_chromedriver.install()
+import undetected_chromedriver as uc
+uc.install()
 from selenium.webdriver import Chrome
 driver = Chrome()
 driver.get('https://distilnetworks.com')
@@ -40,10 +40,11 @@ driver.get('https://distilnetworks.com')
 
 #### the customized way ####
 ```python
-import undetected_chromedriver
+import undetected_chromedriver as uc
 
 #specify chromedriver version to download and patch
-undetected_chromedriver.TARGET_VERSION = 78
+#this did not work correctly until 1.2.1
+uc.TARGET_VERSION = 78    
 
 # or specify your own chromedriver binary to patch
 undetected_chromedriver.install(
