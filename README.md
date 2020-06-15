@@ -5,7 +5,7 @@ https://github.com/ultrafunkamsterdam/undetected-chromedriver
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network.
 Automatically downloads the driver binary and patches it.
 
-* **Tested on version 75,76,77,78,79,80,81,83**
+* **Tested on version 75,76,77,78,79,80,81,83,84**
 
 * **patching also works on MS Edge (chromium-based) webdriver binary**
 
