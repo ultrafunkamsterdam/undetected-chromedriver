@@ -5,7 +5,7 @@ https://github.com/ultrafunkamsterdam/undetected-chromedriver
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network.
 Automatically downloads the driver binary and patches it.
 
-* **Tested on version 75,76,77,78,79,80,81,83**
+* **Tested on version 75,76,77,78,79,80,81,83,84**
 
 * **patching also works on MS Edge (chromium-based) webdriver binary**
 
@@ -14,18 +14,24 @@ Automatically downloads the driver binary and patches it.
 ```
 pip install  git+https://github.com/ultrafunkamsterdam/undetected-chromedriver.git
 ```
-##### important note: 
-the default blank page on start plays a BIG role in the anti-detection workings of the module. You will only become undetectable from the moment you use driver.get(url) to navigate to some url (and next and next and next). This automatically means that if you enter a url in the browser screen by hand right after launch, you are NOT protected! New Tabs: same story. If you really need multi-tabs, then open the tab with the blank page (hint: url is  `data:,`  including comma, and yes, driver accepts it) and do your thing as usual. If you follow these "rules" (actually its default behaviour), then you will have a great time for now.
-#####
 
 ## Usage ##
 
+To prevent unnecessary hair-pulling and issue-rasing, please mind the **[important note at the end of this document](#important-note) .**
+
+<br>
 
 #### the easy way (recommended) ####
 ```python
-from undetected_chromedriver import Chrome, ChromeOptions
-driver = Chrome()
+import undetected_chromedriver as uc
+driver = uc.Chrome()
 driver.get('https://distilnetworks.com')
+
+# To target specific version
+
+import undetected_chromedriver as uc
+uc.TARGET_VERSION = 84
+driver = uc.Chrome()
 ```
 
 
@@ -61,4 +67,20 @@ driver.get('https://distilnetworks.com')
 ```
 
 
+### important note ###
+
+the default blank page on start plays a BIG role in the anti-detection workings of the module. You will only become undetectable from the moment you use driver.get(url) to navigate to some url (and next and next and next). This automatically means that if you enter a url in the browser screen by hand right after launch, you are NOT protected! New Tabs: same story. If you really need multi-tabs, then open the tab with the blank page (hint: url is  `data:,`  including comma, and yes, driver accepts it) and do your thing as usual. If you follow these "rules" (actually its default behaviour), then you will have a great time for now. 
+
+TL;DR and for the visual-minded:
+
+```python
+In [1]: import undetected_chromedriver as uc
+In [2]: driver = uc.Chrome()
+In [3]: driver.execute_script('return navigator.webdriver')
+Out[3]: True  # Detectable
+In [4]: driver.get('https://distilnetworks.com') # starts magic
+In [4]: driver.execute_script('return navigator.webdriver')
+In [5]: None  # Undetectable!
+```
+### end important note ###
 

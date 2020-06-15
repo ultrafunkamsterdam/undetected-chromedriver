@@ -72,7 +72,6 @@ class Chrome:
             "Network.setUserAgentOverride",
             {
                 "userAgent": original_user_agent_string.replace("Headless", ""),
-                "platform": "Windows",
             },
         )
         logger.info(f"starting undetected_chromedriver.Chrome({args}, {kwargs})")
