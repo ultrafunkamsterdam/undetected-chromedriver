@@ -14,6 +14,9 @@ Automatically downloads the driver binary and patches it.
 ```
 pip install  git+https://github.com/ultrafunkamsterdam/undetected-chromedriver.git
 ```
+##### important note: 
+the default blank page on start plays a BIG role in the anti-detection workings of the module. You will only become undetectable from the moment you use driver.get(url) to navigate to some url (and next and next and next). This automatically means that if you enter a url in the browser screen by hand right after launch, you are NOT protected! New Tabs: same story. If you really need multi-tabs, then open the tab with the blank page (hint: url is  `data:,`  including comma, and yes, driver accepts it) and do your thing as usual. If you follow these "rules" (actually its default behaviour), then you will have a great time for now.
+#####
 
 ## Usage ##
 
