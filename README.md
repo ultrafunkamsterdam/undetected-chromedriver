@@ -23,9 +23,15 @@ To prevent unnecessary hair-pulling and issue-rasing, please mind the **[importa
 
 #### the easy way (recommended) ####
 ```python
-from undetected_chromedriver import Chrome, ChromeOptions
-driver = Chrome()
+import undetected_chromedriver as uc
+driver = uc.Chrome()
 driver.get('https://distilnetworks.com')
+
+# To target specific version
+
+import undetected_chromedriver as uc
+uc.TARGET_VERSION = 84
+driver = uc.Chrome()
 ```
 
 
