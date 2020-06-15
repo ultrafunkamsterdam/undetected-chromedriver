@@ -34,6 +34,30 @@ uc.TARGET_VERSION = 84
 driver = uc.Chrome()
 ```
 
+### datadome.co ####
+These guys have actually a powerful product, and a link to this repo, which makes me wanna test their product.
+Make sure you use a "clean" ip for this one. 
+```
+# STANDARD chromedriver
+from selenium import webdriver
+chrome = webdriver.Chrome()
+chrome.get('https://datadome.co/customers-stories/toppreise-ends-web-scraping-and-content-theft-with-datadome/')
+chrome.save_screenshot('datadome_regular_webdriver.png')
+True  
+# after this detectioon, you'll keep being nagged with puzzles, even if you use another machine from the same same network (they use a very tight but effective regime, possibly combination of fingerprinting and ip-flagging).
+
+
+# UNDETECTED chromedriver (headless,even)
+
+import undetected_chromedriver as uc
+options = uc.ChromeOptions()
+options.headless=True
+options.add_argument('--headless')
+chrome = uc.Chrome(options=options)
+chrome.get('https://datadome.co/customers-stories/toppreise-ends-web-scraping-and-content-theft-with-datadome/')
+chrome.save_screenshot('datadome_undetected_webddriver.png')
+```
+
 
 #### patches selenium module  ####
 Needs to be done before importing from selenium package
