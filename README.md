@@ -95,7 +95,7 @@ chrome.save_screenshot('datadome_undetected_webddriver.png')
 
 
 
-### important note ###
+## important note ##
 
 the default blank page on start plays a BIG role in the anti-detection workings of the module. You will only become undetectable from the moment you use driver.get(url) to navigate to some url (and next and next and next). This automatically means that if you enter a url in the browser screen by hand right after launch, you are NOT protected! New Tabs: same story. If you really need multi-tabs, then open the tab with the blank page (hint: url is  `data:,`  including comma, and yes, driver accepts it) and do your thing as usual. If you follow these "rules" (actually its default behaviour), then you will have a great time for now. 
 
@@ -110,7 +110,7 @@ In [4]: driver.get('https://distilnetworks.com') # starts magic
 In [4]: driver.execute_script('return navigator.webdriver')
 In [5]: None  # Undetectable!
 ```
-### end important note ###
+## end important note ##
 
 
 
