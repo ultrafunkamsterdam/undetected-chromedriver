@@ -91,7 +91,7 @@ chrome.get('https://datadome.co/customers-stories/toppreise-ends-web-scraping-an
 chrome.save_screenshot('datadome_undetected_webddriver.png')
 
 ```
-## Check both saved screenhots [here](https://imgur.com/a/fEmqadP) ##
+**Check both saved screenhots [here](https://imgur.com/a/fEmqadP)**
 
 
 
