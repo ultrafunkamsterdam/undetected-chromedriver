@@ -29,7 +29,7 @@ from selenium.webdriver import ChromeOptions as _ChromeOptions
 logger = logging.getLogger(__name__)
 
 
-TARGET_VERSION = 83
+TARGET_VERSION = 84
 __IS_PATCHED__ = 0
 
 
