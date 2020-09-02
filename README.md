@@ -5,7 +5,7 @@ https://github.com/ultrafunkamsterdam/undetected-chromedriver
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network.
 Automatically downloads the driver binary and patches it.
 
-* **Tested on version 75,76,77,78,79,80,81,83,84**
+* **Tested on version 75,76,77,78,79,80,81,83,84,85,86**
 
 * **patching also works on MS Edge (chromium-based) webdriver binary**
 
@@ -30,7 +30,7 @@ driver.get('https://distilnetworks.com')
 # To target specific version
 
 import undetected_chromedriver as uc
-uc.TARGET_VERSION = 84
+uc.TARGET_VERSION = 85
 driver = uc.Chrome()
 ```
 
