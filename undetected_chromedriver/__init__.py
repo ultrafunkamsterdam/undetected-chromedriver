@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 import zipfile
+from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
 from selenium.webdriver import Chrome as _Chrome
@@ -29,8 +30,9 @@ from selenium.webdriver import ChromeOptions as _ChromeOptions
 logger = logging.getLogger(__name__)
 
 
-TARGET_VERSION = 84
+
 __IS_PATCHED__ = 0
+TARGET_VERSION = 0
 
 
 class Chrome:
@@ -106,9 +108,15 @@ class ChromeDriverManager(object):
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
 
         _platform = sys.platform
-        self.target_version = TARGET_VERSION
-        if target_version:
-            self.target_version = target_version
+         
+        if TARGET_VERSION: # user override using global
+            self.target_version = TARGET_VERSION
+        if target_version: 
+            self.target_version = target_version # user override
+        if not self.target_version:
+            # if target_version still not set, fetch the current major release version
+            self.target_version = self.get_release_version_number().version[0] # only major version int
+         
         self._base = base_ = "chromedriver{}"
 
         exe_name = self._base
@@ -172,7 +180,7 @@ class ChromeDriverManager(object):
             if not self.target_version
             else f"LATEST_RELEASE_{self.target_version}"
         )
-        return urlopen(self.__class__.DL_BASE + path).read().decode()
+        return LooseVersion(urlopen(self.__class__.DL_BASE + path).read().decode())
 
 
     def fetch_chromedriver(self):
@@ -183,7 +191,7 @@ class ChromeDriverManager(object):
         """
         base_ = self._base
         zip_name = base_.format(".zip")
-        ver = self.get_release_version_number()
+        ver = self.get_release_version_number().vstring
         if os.path.exists(self.executable_path):
             return self.executable_path
         urlretrieve(
