@@ -1,4 +1,3 @@
-
 """
 
          888                                                  888         d8b
@@ -15,19 +14,24 @@ BY ULTRAFUNKAMSTERDAM (https://github.com/ultrafunkamsterdam)"""
 from setuptools import setup
 
 
-
-
 setup(
-    name='undetected-chromedriver',
-    version='1.3.5',
-    packages=['undetected_chromedriver'],
-    install_requires=[
-        'selenium',
+    name="undetected-chromedriver",
+    version="1.3.7",
+    packages=["undetected_chromedriver"],
+    install_requires=["selenium",],
+    url="https://github.com/ultrafunkamsterdam/undetected_chromedriver",
+    license="GPL-3.0",
+    author="UltrafunkAmsterdam",
+    author_email="info@blackhat-security.nl",
+    description="""
+                Optimized Selenium/Chromedriver drop-in replacement for selenium.webdriver, using the same interface for Chrome and ChromeOptions, but which does NOT trigger anti-bot services like Distil / Imperva / DataDome and such.
+                All required anti-detection settings are built-in, yet overridable if you\'d really want. Be aware: any customization in settings could potentially trigger detection,
+                For more information check out the README.""",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    classifiers=[
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
     ],
-    url='https://github.com/ultrafunkamsterdam/undetected_chromedriver',
-    license='MIT',
-    author='UltrafunkAmsterdam',
-    author_email='',
-    description='Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distil Network. '
-                'Automatically downloads the driver binary and patches it.'
 )

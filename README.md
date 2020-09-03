@@ -12,7 +12,7 @@ Automatically downloads the driver binary and patches it.
 
 ## Installation ##
 ```
-pip install  git+https://github.com/ultrafunkamsterdam/undetected-chromedriver.git
+pip install undetected-chromedriver
 ```
 
 ## Usage ##

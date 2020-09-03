@@ -30,23 +30,23 @@ from selenium.webdriver import ChromeOptions as _ChromeOptions
 logger = logging.getLogger(__name__)
 
 
-
 __IS_PATCHED__ = 0
 TARGET_VERSION = 0
 
 
 class Chrome:
-
     def __new__(cls, *args, **kwargs):
 
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
-        if not kwargs.get('executable_path'):
-            kwargs['executable_path'] = './{}'.format(ChromeDriverManager(*args, **kwargs).executable_path)
-        if not kwargs.get('options'):
-            kwargs['options'] = ChromeOptions() 
+        if not kwargs.get("executable_path"):
+            kwargs["executable_path"] = "./{}".format(
+                ChromeDriverManager(*args, **kwargs).executable_path
+            )
+        if not kwargs.get("options"):
+            kwargs["options"] = ChromeOptions()
         instance = object.__new__(_Chrome)
         instance.__init__(*args, **kwargs)
         instance.execute_cdp_cmd(
@@ -72,9 +72,7 @@ class Chrome:
         )
         instance.execute_cdp_cmd(
             "Network.setUserAgentOverride",
-            {
-                "userAgent": original_user_agent_string.replace("Headless", ""),
-            },
+            {"userAgent": original_user_agent_string.replace("Headless", ""),},
         )
         logger.info(f"starting undetected_chromedriver.Chrome({args}, {kwargs})")
         return instance
@@ -86,7 +84,7 @@ class ChromeOptions:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
             ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
- 
+
         instance = object.__new__(_ChromeOptions)
         instance.__init__()
         instance.add_argument("start-maximized")
@@ -104,30 +102,31 @@ class ChromeDriverManager(object):
 
     DL_BASE = "https://chromedriver.storage.googleapis.com/"
 
-
     def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
 
         _platform = sys.platform
-         
-        if TARGET_VERSION: # user override using global
+
+        if TARGET_VERSION:  # user override using global
             self.target_version = TARGET_VERSION
-        if target_version: 
-            self.target_version = target_version # user override
+        if target_version:
+            self.target_version = target_version  # user override
         if not self.target_version:
             # if target_version still not set, fetch the current major release version
-            self.target_version = self.get_release_version_number().version[0] # only major version int
-         
+            self.target_version = self.get_release_version_number().version[
+                0
+            ]  # only major version int
+
         self._base = base_ = "chromedriver{}"
 
         exe_name = self._base
-        if _platform in ('win32',):
+        if _platform in ("win32",):
             exe_name = base_.format(".exe")
-        if _platform in ('linux',):
-            _platform+='64'
-            exe_name = exe_name.format('')
-        if _platform in ('darwin',):
-            _platform = 'mac64'
-            exe_name = exe_name.format('')
+        if _platform in ("linux",):
+            _platform += "64"
+            exe_name = exe_name.format("")
+        if _platform in ("darwin",):
+            _platform = "mac64"
+            exe_name = exe_name.format("")
         self.platform = _platform
         self.executable_path = executable_path or exe_name
         self._exe_name = exe_name
@@ -140,13 +139,11 @@ class ChromeDriverManager(object):
         """
         import selenium.webdriver.chrome.service
         import selenium.webdriver
+
         selenium.webdriver.Chrome = Chrome
         selenium.webdriver.ChromeOptions = ChromeOptions
-        logger.warning(
-            "Selenium patched. Safe to import Chrome / ChromeOptions"
-        )
+        logger.warning("Selenium patched. Safe to import Chrome / ChromeOptions")
         self_.__class__.selenium_patched = True
-
 
     def install(self, patch_selenium=True):
         """
@@ -168,7 +165,6 @@ class ChromeDriverManager(object):
         if patch_selenium:
             self.patch_selenium_webdriver()
 
- 
     def get_release_version_number(self):
         """
         Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
@@ -181,7 +177,6 @@ class ChromeDriverManager(object):
             else f"LATEST_RELEASE_{self.target_version}"
         )
         return LooseVersion(urlopen(self.__class__.DL_BASE + path).read().decode())
-
 
     def fetch_chromedriver(self):
         """
@@ -201,10 +196,9 @@ class ChromeDriverManager(object):
         with zipfile.ZipFile(zip_name) as zf:
             zf.extract(self._exe_name)
         os.remove(zip_name)
-        if sys.platform != 'win32':
+        if sys.platform != "win32":
             os.chmod(self._exe_name, 0o755)
         return self._exe_name
-
 
     def patch_binary(self):
         """
