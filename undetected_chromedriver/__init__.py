@@ -35,7 +35,7 @@ TARGET_VERSION = 0
 
 
 class Chrome:
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, enable_console_log=False, **kwargs):
 
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
@@ -63,8 +63,10 @@ class Chrome:
                   ? target[key].bind(target)
                   : target[key]
             })
-        })
+        });
                   """
+                          + "console.dir = console.log = function(){};" 
+                          if not enable_console_log else ''
             },
         )
         original_user_agent_string = instance.execute_script(
