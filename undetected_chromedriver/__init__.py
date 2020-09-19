@@ -49,26 +49,37 @@ class Chrome:
             kwargs["options"] = ChromeOptions()
         instance = object.__new__(_Chrome)
         instance.__init__(*args, **kwargs)
-        instance.execute_cdp_cmd(
-            "Page.addScriptToEvaluateOnNewDocument",
-            {
-                "source": """
-        Object.defineProperty(window, 'navigator', {
-            value: new Proxy(navigator, {
-              has: (target, key) => (key === 'webdriver' ? false : key in target),
-              get: (target, key) =>
-                key === 'webdriver'
-                  ? undefined
-                  : typeof target[key] === 'function'
-                  ? target[key].bind(target)
-                  : target[key]
-            })
-        });
-                  """
-                          + "console.dir = console.log = function(){};" 
-                          if not enable_console_log else ''
-            },
-        )
+        
+        instance._orig_get = instance.get
+        
+        def _get_wrapped(*args, **kwargs):
+            if instance.execute_script("return navigator.webdriver"):
+                instance.execute_cdp_cmd(
+                  
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    {"source": """
+
+                            Object.defineProperty(window, 'navigator', {
+                                value: new Proxy(navigator, {
+                                has: (target, key) => (key === 'webdriver' ? false : key in target),
+                                get: (target, key) =>
+                                    key === 'webdriver'
+                                    ? undefined
+                                    : typeof target[key] === 'function'
+                                    ? target[key].bind(target)
+                                    : target[key]
+                                })
+                            });
+                            
+                            (function () {
+                            }) ();
+
+                            """  + ("console.log = console.dir = console.error = function(){};"  if not enable_console_log else '' ) }
+                )
+            return instance._orig_get(*args, **kwargs)
+        
+        instance.get = _get_wrapped
+        
         original_user_agent_string = instance.execute_script(
             "return navigator.userAgent"
         )
@@ -92,6 +103,7 @@ class ChromeOptions:
         instance.add_argument("start-maximized")
         instance.add_experimental_option("excludeSwitches", ["enable-automation"])
         instance.add_experimental_option("useAutomationExtension", False)
+        instance.add_argument("--disable-blink-features=AutomationControlled");
         logger.info(f"starting undetected_chromedriver.ChromeOptions({args}, {kwargs})")
         return instance
 
