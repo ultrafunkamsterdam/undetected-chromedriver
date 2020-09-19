@@ -16,7 +16,7 @@ from setuptools import setup
 
 setup(
     name="undetected-chromedriver",
-    version="1.4.0",
+    version="1.4.2",
     packages=["undetected_chromedriver"],
     install_requires=["selenium",],
     url="https://github.com/ultrafunkamsterdam/undetected_chromedriver",
