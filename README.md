@@ -10,12 +10,6 @@ Automatically downloads the driver binary and patches it.
 * **patching also works on MS Edge (chromium-based) webdriver binary**
 
 
-## fixed botprotect.io / perimeterX ##
-<img src="https://i.imgur.com/WO4yA60.png" width="400">
-<img src="https://i.imgur.com/62dpHG9.png" width="400">
-https://imgur.com/a/nqeq7bd
-
-
 ## New ##
 
 By default, the console log function is disabled to prevent certain detections.
