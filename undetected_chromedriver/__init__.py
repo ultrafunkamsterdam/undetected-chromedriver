@@ -19,6 +19,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 import io
 import logging
 import os
+import re
 import sys
 import zipfile
 from distutils.version import LooseVersion
@@ -30,7 +31,6 @@ from selenium.webdriver import ChromeOptions as _ChromeOptions
 logger = logging.getLogger(__name__)
 
 
-__IS_PATCHED__ = 0
 TARGET_VERSION = 0
 
 
@@ -49,15 +49,15 @@ class Chrome:
             kwargs["options"] = ChromeOptions()
         instance = object.__new__(_Chrome)
         instance.__init__(*args, **kwargs)
-        
+
         instance._orig_get = instance.get
-        
+
         def _get_wrapped(*args, **kwargs):
             if instance.execute_script("return navigator.webdriver"):
                 instance.execute_cdp_cmd(
-                  
                     "Page.addScriptToEvaluateOnNewDocument",
-                    {"source": """
+                    {
+                        "source": """
 
                             Object.defineProperty(window, 'navigator', {
                                 value: new Proxy(navigator, {
@@ -70,16 +70,18 @@ class Chrome:
                                     : target[key]
                                 })
                             });
-                            
-                            (function () {
-                            }) ();
-
-                            """  + ("console.log = console.dir = console.error = function(){};"  if not enable_console_log else '' ) }
+                        """
+                        + (
+                            "console.log = console.dir = console.error = function(){};"
+                            if not enable_console_log
+                            else ""
+                        )
+                    },
                 )
             return instance._orig_get(*args, **kwargs)
-        
+
         instance.get = _get_wrapped
-        
+
         original_user_agent_string = instance.execute_script(
             "return navigator.userAgent"
         )
@@ -102,9 +104,7 @@ class ChromeOptions:
         instance.__init__()
         instance.add_argument("start-maximized")
         instance.add_experimental_option("excludeSwitches", ["enable-automation"])
-        instance.add_experimental_option("useAutomationExtension", False)
-        instance.add_argument("--disable-blink-features=AutomationControlled");
-        logger.info(f"starting undetected_chromedriver.ChromeOptions({args}, {kwargs})")
+        instance.add_argument("--disable-blink-features=AutomationControlled")
         return instance
 
 
@@ -120,12 +120,16 @@ class ChromeDriverManager(object):
 
         _platform = sys.platform
 
-        if TARGET_VERSION:  # user override using global
+        if TARGET_VERSION:
+            # use global if set
             self.target_version = TARGET_VERSION
+
         if target_version:
+            # use explicitly passed target
             self.target_version = target_version  # user override
+
         if not self.target_version:
-            # if target_version still not set, fetch the current major release version
+            # none of the above (default) and just get current version
             self.target_version = self.get_release_version_number().version[
                 0
             ]  # only major version int
@@ -173,8 +177,9 @@ class ChromeDriverManager(object):
         """
         if not os.path.exists(self.executable_path):
             self.fetch_chromedriver()
-            self.patch_binary()
-            self.__class__.installed = True
+            if not self.__class__.installed:
+                if self.patch_binary():
+                    self.__class__.installed = True
 
         if patch_selenium:
             self.patch_selenium_webdriver()
@@ -220,20 +225,15 @@ class ChromeDriverManager(object):
 
         :return: False on failure, binary name on success
         """
-        if self.__class__.installed:
-            return
-
-        with io.open(self.executable_path, "r+b") as binary:
-            for line in iter(lambda: binary.readline(), b""):
+        linect = 0
+        with io.open(self.executable_path, "r+b") as fh:
+            for line in iter(lambda: fh.readline(), b""):
                 if b"cdc_" in line:
-                    binary.seek(-len(line), 1)
-                    line = b"  var key = '$azc_abcdefghijklmnopQRstuv_';\n"
-                    binary.write(line)
-                    __IS_PATCHED__ = 1
-                    break
-            else:
-                return False
-            return True
+                    fh.seek(-len(line), 1)
+                    newline = re.sub(b"cdc_.{22}", b"xxx_undetectedchromeDRiver", line)
+                    fh.write(newline)
+                    linect += 1
+            return linect
 
 
 def install(executable_path=None, target_version=None, *args, **kwargs):
