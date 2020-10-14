@@ -36,21 +36,23 @@ To prevent unnecessary hair-pulling and issue-rasing, please mind the **[importa
 import undetected_chromedriver as uc
 driver = uc.Chrome()
 driver.get('https://distilnetworks.com')
+```
 
-# To target specific version
-
+#### target specific chrome version ####
+```
 import undetected_chromedriver as uc
 uc.TARGET_VERSION = 85
 driver = uc.Chrome()
 ```
 
 
-#### patches selenium module  ####
+#### monkeypatch mode ####
 Needs to be done before importing from selenium package
 
 ```python
 import undetected_chromedriver as uc
 uc.install()
+
 from selenium.webdriver import Chrome
 driver = Chrome()
 driver.get('https://distilnetworks.com')
@@ -62,36 +64,38 @@ driver.get('https://distilnetworks.com')
 import undetected_chromedriver as uc
 
 #specify chromedriver version to download and patch
-#this did not work correctly until 1.2.1
 uc.TARGET_VERSION = 78    
 
-# or specify your own chromedriver binary to patch
+# or specify your own chromedriver binary (why you would need this, i don't know)
+
 undetected_chromedriver.install(
     executable_path='c:/users/user1/chromedriver.exe',
 )
-from selenium.webdriver import Chrome, ChromeOptions
-opts = ChromeOptions()
+
+opts = uc.ChromeOptions()
 opts.add_argument(f'--proxy-server=socks5://127.0.0.1:9050')
-driver = Chrome(options=opts)
+driver = uc.Chrome(options=opts, enable_console_log=True)
 driver.get('https://distilnetworks.com')
 ```
 
 
-### datadome.co ####
+#### datadome.co example ####
 These guys have actually a powerful product, and a link to this repo, which makes me wanna test their product.
 Make sure you use a "clean" ip for this one. 
 ```
-# STANDARD chromedriver
+#
+# STANDARD selenium Chromedriver
+#
 from selenium import webdriver
 chrome = webdriver.Chrome()
 chrome.get('https://datadome.co/customers-stories/toppreise-ends-web-scraping-and-content-theft-with-datadome/')
 chrome.save_screenshot('datadome_regular_webdriver.png')
-True  
-# after this detectioon, you'll keep being nagged with puzzles, even if you use another machine from the same same network (they use a very tight but effective regime, possibly combination of fingerprinting and ip-flagging).
+True   # it caused my ip to be flagged, unfortunately
 
 
+#
 # UNDETECTED chromedriver (headless,even)
-
+#
 import undetected_chromedriver as uc
 options = uc.ChromeOptions()
 options.headless=True
@@ -107,7 +111,7 @@ chrome.save_screenshot('datadome_undetected_webddriver.png')
 
 ## important note ##
 
-the default blank page on start plays a BIG role in the anti-detection workings of the module. You will only become undetectable from the moment you use driver.get(url) to navigate to some url (and next and next and next). This automatically means that if you enter a url in the browser screen by hand right after launch, you are NOT protected! New Tabs: same story. If you really need multi-tabs, then open the tab with the blank page (hint: url is  `data:,`  including comma, and yes, driver accepts it) and do your thing as usual. If you follow these "rules" (actually its default behaviour), then you will have a great time for now. 
+Due to the inner workings of the module, it is needed to browse programmatically (ie: using .get(url) ). Never use the gui to navigate. Using your keybord and mouse for navigation causes possible detection! New Tabs: same story. If you really need multi-tabs, then open the tab with the blank page (hint: url is  `data:,`  including comma, and yes, driver accepts it) and do your thing as usual. If you follow these "rules" (actually its default behaviour), then you will have a great time for now. 
 
 TL;DR and for the visual-minded:
 
