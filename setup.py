@@ -24,8 +24,12 @@ setup(
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
     description="""
-                Optimized Selenium/Chromedriver drop-in replacement for selenium.webdriver, using the same interface for Chrome and ChromeOptions, but which does NOT trigger anti-bot services like Distil / Imperva / DataDome / Botprotect.io and such.
-                All required anti-detection settings are built-in, yet overridable if you\'d really want. Be aware: any customization in settings could potentially trigger detection,
+                Optimized Selenium/Chromedriver drop-in replacement for selenium.webdriver which does not trigger anti-bot services like Distil / CloudFlare / Imperva / DataDome / Botprotect.io and such.
+                All required anti-detection settings are built-in and ready to use, yet overridable if you\'d really want.
+                
+                Please note: results may vary, and depend on a lot of factors like settings, network, plugins, modus operandi. 
+                No guarantees of any kind are given, yet I can guarantee ongoing and tenacious efforts evading and handling detection algorithms.
+                
                 For more information check out the README.""",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
