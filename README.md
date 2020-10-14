@@ -6,19 +6,8 @@ Optimized Selenium Chromedriver patch which does not trigger anti-bot services l
 Automatically downloads the driver binary and patches it.
 
 * **Tested on version 75,76,77,78,79,80,81,83,84,85,86**
-
 * **patching also works on MS Edge (chromium-based) webdriver binary**
-
-
-## New ##
-
-By default, the console log function is disabled to prevent certain detections until a cleaner solution is found.
-You can still enable it using
-
-```python
-import undetected_chromedriver as uc
-driver = uc.Chrome(enable_console_log=True)
-```
+* **console logging is disabled by default. to enable: pass enable_console_log=True to the Chrome constructor**
 
 ## Installation ##
 ```
@@ -39,7 +28,7 @@ driver.get('https://distilnetworks.com')
 ```
 
 #### target specific chrome version ####
-```
+```python
 import undetected_chromedriver as uc
 uc.TARGET_VERSION = 85
 driver = uc.Chrome()
@@ -56,7 +45,7 @@ uc.install()
 from selenium.webdriver import Chrome
 driver = Chrome()
 driver.get('https://distilnetworks.com')
-```` 
+```
 
 
 #### the customized way ####
@@ -82,7 +71,7 @@ driver.get('https://distilnetworks.com')
 #### datadome.co example ####
 These guys have actually a powerful product, and a link to this repo, which makes me wanna test their product.
 Make sure you use a "clean" ip for this one. 
-```
+```python
 #
 # STANDARD selenium Chromedriver
 #
