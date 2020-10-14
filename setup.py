@@ -19,7 +19,7 @@ setup(
     version="1.5.0",
     packages=["undetected_chromedriver"],
     install_requires=["selenium",],
-    url="https://github.com/ultrafunkamsterdam/undetected_chromedriver",
+    url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
     license="GPL-3.0",
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
