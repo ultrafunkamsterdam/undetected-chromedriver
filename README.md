@@ -12,8 +12,8 @@ Automatically downloads the driver binary and patches it.
 
 ## New ##
 
-By default, the console log function is disabled to prevent certain detections.
-Until a cleaner solution is found, use the following to manually enable it
+By default, the console log function is disabled to prevent certain detections until a cleaner solution is found.
+You can still enable it using
 
 ```python
 import undetected_chromedriver as uc
