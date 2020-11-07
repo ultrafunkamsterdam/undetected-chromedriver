@@ -35,18 +35,23 @@ TARGET_VERSION = 0
 
 
 class Chrome:
-    def __new__(cls, *args, enable_console_log=False, **kwargs):
+    def __new__(cls, *args, enable_console_log=False, download_path=None, **kwargs):
 
         if not ChromeDriverManager.installed:
-            ChromeDriverManager(*args, **kwargs).install()
+            ChromeDriverManager(download_path=download_path, *args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
-            ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
+            ChromeDriverManager(download_path=download_path, *args, **kwargs).patch_selenium_webdriver()
         if not kwargs.get("executable_path"):
-            kwargs["executable_path"] = "./{}".format(
-                ChromeDriverManager(*args, **kwargs).executable_path
-            )
+            if download_path is not None:
+                kwargs["executable_path"] = \
+                    os.path.join(download_path, ChromeDriverManager(download_path=download_path,
+                                                                    *args, **kwargs).executable_path)
+            else:
+                kwargs["executable_path"] = "./{}".format(
+                    ChromeDriverManager(download_path=download_path, *args, **kwargs).executable_path
+                )
         if not kwargs.get("options"):
-            kwargs["options"] = ChromeOptions()
+            kwargs["options"] = ChromeOptions(download_path=download_path)
         instance = object.__new__(_Chrome)
         instance.__init__(*args, **kwargs)
 
@@ -94,11 +99,12 @@ class Chrome:
 
 
 class ChromeOptions:
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, download_path=None, *args, **kwargs):
+
         if not ChromeDriverManager.installed:
-            ChromeDriverManager(*args, **kwargs).install()
+            ChromeDriverManager(download_path=download_path, *args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
-            ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
+            ChromeDriverManager(download_path=download_path, *args, **kwargs).patch_selenium_webdriver()
 
         instance = object.__new__(_ChromeOptions)
         instance.__init__()
@@ -116,7 +122,7 @@ class ChromeDriverManager(object):
 
     DL_BASE = "https://chromedriver.storage.googleapis.com/"
 
-    def __init__(self, executable_path=None, target_version=None, *args, **kwargs):
+    def __init__(self, executable_path=None, target_version=None, download_path=None, *args, **kwargs):
 
         _platform = sys.platform
 
@@ -147,6 +153,7 @@ class ChromeDriverManager(object):
             exe_name = exe_name.format("")
         self.platform = _platform
         self.executable_path = executable_path or exe_name
+        self.download_path = download_path
         self._exe_name = exe_name
 
     def patch_selenium_webdriver(self_):
@@ -175,7 +182,8 @@ class ChromeDriverManager(object):
         :param patch_selenium: patch selenium webdriver classes for Chrome and ChromeDriver (for current python session)
         :return:
         """
-        if not os.path.exists(self.executable_path):
+        if (not self.download_path and not os.path.exists(self.executable_path)) or \
+                (self.download_path and not os.path.exists(os.path.join(self.download_path, self.executable_path))):
             self.fetch_chromedriver()
             if not self.__class__.installed:
                 if self.patch_binary():
@@ -204,19 +212,25 @@ class ChromeDriverManager(object):
         :return: on success, name of the unpacked executable
         """
         base_ = self._base
-        zip_name = base_.format(".zip")
+        zip_name = os.path.join(self.download_path, base_.format(".zip")) \
+            if self.download_path is not None \
+            else base_.format(".zip")
         ver = self.get_release_version_number().vstring
-        if os.path.exists(self.executable_path):
+        if self.download_path is None and os.path.exists(self.executable_path):
             return self.executable_path
+        elif self.download_path is not None and os.path.exists(os.path.join(self.download_path, self.executable_path)):
+            return os.path.join(self.download_path, self.executable_path)
         urlretrieve(
             f"{self.__class__.DL_BASE}{ver}/{base_.format(f'_{self.platform}')}.zip",
             filename=zip_name,
         )
         with zipfile.ZipFile(zip_name) as zf:
-            zf.extract(self._exe_name)
+            zf.extract(self._exe_name, path=self.download_path)
         os.remove(zip_name)
         if sys.platform != "win32":
-            os.chmod(self._exe_name, 0o755)
+            os.chmod(os.path.join(self.download_path, self._exe_name)
+                     if self.download_path is not None
+                     else self._exe_name, 0o755)
         return self._exe_name
 
     def patch_binary(self):
@@ -225,8 +239,11 @@ class ChromeDriverManager(object):
 
         :return: False on failure, binary name on success
         """
+        path = os.path.join(self.download_path, self.executable_path) \
+            if self.download_path is not None \
+            else self.executable_path
         linect = 0
-        with io.open(self.executable_path, "r+b") as fh:
+        with io.open(path, "r+b") as fh:
             for line in iter(lambda: fh.readline(), b""):
                 if b"cdc_" in line:
                     fh.seek(-len(line), 1)
