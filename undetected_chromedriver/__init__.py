@@ -177,9 +177,9 @@ class ChromeDriverManager(object):
         """
         if not os.path.exists(self.executable_path):
             self.fetch_chromedriver()
-            if not self.__class__.installed:
-                if self.patch_binary():
-                    self.__class__.installed = True
+        if not self.__class__.installed:
+            self.patch_binary()
+            self.__class__.installed = True
 
         if patch_selenium:
             self.patch_selenium_webdriver()
@@ -225,14 +225,33 @@ class ChromeDriverManager(object):
 
         :return: False on failure, binary name on success
         """
+        import random
+
+        CHARS = 'abcdefghijklmnopqrstuvwxyz'
+        xxx_uc = (''.join(random.choices(CHARS, k=3)) + "_" + ''.join(random.choices(CHARS, k=22))).encode()
+
+        try:
+            with open(f"{os.path.abspath(self.executable_path).replace(chr(92), '/').rsplit('/', 1)[0]}/.undetected_chromedriver") as ucd:
+                _3_22 = ucd.read().encode()
+        except FileNotFoundError:
+            _3_22 = None
+
         linect = 0
         with io.open(self.executable_path, "r+b") as fh:
             for line in iter(lambda: fh.readline(), b""):
                 if b"cdc_" in line:
                     fh.seek(-len(line), 1)
-                    newline = re.sub(b"cdc_.{22}", b"xxx_undetectedchromeDRiver", line)
+                    newline = re.sub(b"cdc_.{22}", xxx_uc, line)
                     fh.write(newline)
                     linect += 1
+                elif _3_22 and _3_22 in line:
+                    fh.seek(-len(line), 1)
+                    newline = re.sub(_3_22, xxx_uc, line)
+                    fh.write(newline)
+                    linect += 1
+            if linect:
+                with open(f"{os.path.abspath(self.executable_path).replace(chr(92), '/').rsplit('/', 1)[0]}/.undetected_chromedriver", "w") as ucd:
+                            ucd.write(xxx_uc.decode())
             return linect
 
 
