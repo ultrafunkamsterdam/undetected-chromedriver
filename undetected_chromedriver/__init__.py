@@ -230,7 +230,7 @@ class ChromeDriverManager(object):
             for line in iter(lambda: fh.readline(), b""):
                 if b"cdc_" in line:
                     fh.seek(-len(line), 1)
-                    newline = re.sub(b"cdc_.{22}", b"xxx_undetectedchromeDRiver", line)
+                    newline = re.sub(b"cdc_.{22}", b"xxz_undetectedchromeDRiver", line)
                     fh.write(newline)
                     linect += 1
             return linect
