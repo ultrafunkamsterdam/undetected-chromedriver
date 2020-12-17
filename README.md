@@ -5,9 +5,9 @@ https://github.com/ultrafunkamsterdam/undetected-chromedriver
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network / Imperva / DataDome / Botprotect.io
 Automatically downloads the driver binary and patches it.
 
-* **Tested on version 75,76,77,78,79,80,81,83,84,85,86,87,88**
-* **patching also works on MS Edge (chromium-based) webdriver binary**
-* **console logging is disabled by default. to enable: pass enable_console_log=True to the Chrome constructor**
+* **Tested from version 80 until current beta *
+* **Patching also works on MS Edge (chromium-based) webdriver binary**
+* **Python 3.6++**
 
 ## Installation ##
 ```
@@ -16,7 +16,7 @@ pip install undetected-chromedriver
 
 ## Usage ##
 
-To prevent unnecessary hair-pulling and issue-rasing, please mind the **[important note at the end of this document](#important-note) .**
+To prevent unnecessary hair-pulling and issue-raising, please mind the **[important note at the end of this document](#important-note) .**
 
 <br>
 
@@ -57,13 +57,13 @@ uc.TARGET_VERSION = 78
 
 # or specify your own chromedriver binary (why you would need this, i don't know)
 
-undetected_chromedriver.install(
+uc.install(
     executable_path='c:/users/user1/chromedriver.exe',
 )
 
 opts = uc.ChromeOptions()
 opts.add_argument(f'--proxy-server=socks5://127.0.0.1:9050')
-driver = uc.Chrome(options=opts, enable_console_log=True)
+driver = uc.Chrome(options=opts)
 driver.get('https://distilnetworks.com')
 ```
 
