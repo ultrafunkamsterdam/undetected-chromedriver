@@ -5,7 +5,7 @@ https://github.com/ultrafunkamsterdam/undetected-chromedriver
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network / Imperva / DataDome / Botprotect.io
 Automatically downloads the driver binary and patches it.
 
-* **Tested from version 80 until current beta *
+* **Tested from version 80 until current beta **
 * **Patching also works on MS Edge (chromium-based) webdriver binary**
 * **Python 3.6++**
 
