@@ -105,6 +105,7 @@ class ChromeOptions:
         instance.add_argument("start-maximized")
         instance.add_experimental_option("excludeSwitches", ["enable-automation"])
         instance.add_argument("--disable-blink-features=AutomationControlled")
+        instance.add_argument('--log-level=%d' % divmod(logger.getEffectiveLevel(), 10)[0])
         return instance
 
 
