@@ -22,6 +22,8 @@ import os
 import re
 import sys
 import zipfile
+import string
+import random
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -160,7 +162,7 @@ class ChromeDriverManager(object):
 
         selenium.webdriver.Chrome = Chrome
         selenium.webdriver.ChromeOptions = ChromeOptions
-        logger.warning("Selenium patched. Safe to import Chrome / ChromeOptions")
+        logger.info("Selenium patched. Safe to import Chrome / ChromeOptions")
         self_.__class__.selenium_patched = True
 
     def install(self, patch_selenium=True):
@@ -219,6 +221,14 @@ class ChromeDriverManager(object):
             os.chmod(self._exe_name, 0o755)
         return self._exe_name
 
+    @staticmethod
+    def random_cdc():
+        cdc = random.choices(string.ascii_lowercase, k=26)
+        cdc[-6: -4] = map(str.upper, cdc[-6: -4])
+        cdc[2] = cdc[0]
+        cdc[3] = '_'
+        return ''.join(cdc).encode()
+
     def patch_binary(self):
         """
         Patches the ChromeDriver binary
@@ -226,11 +236,12 @@ class ChromeDriverManager(object):
         :return: False on failure, binary name on success
         """
         linect = 0
+        replacement = self.random_cdc()
         with io.open(self.executable_path, "r+b") as fh:
             for line in iter(lambda: fh.readline(), b""):
                 if b"cdc_" in line:
                     fh.seek(-len(line), 1)
-                    newline = re.sub(b"cdc_.{22}", b"xxz_undetectedchromeDRiver", line)
+                    newline = re.sub(b"cdc_.{22}", replacement, line)
                     fh.write(newline)
                     linect += 1
             return linect
