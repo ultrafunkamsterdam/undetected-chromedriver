@@ -22,8 +22,6 @@ import os
 import re
 import sys
 import zipfile
-import string
-import random
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -32,12 +30,12 @@ from selenium.webdriver import ChromeOptions as _ChromeOptions
 
 logger = logging.getLogger(__name__)
 
-
 TARGET_VERSION = 0
 
 
-class Chrome:
-    def __new__(cls, *args, enable_console_log=False, **kwargs):
+class Chrome(_Chrome):
+
+    def __init__(self, *args, enable_console_log=False, **kwargs):
 
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
@@ -49,14 +47,13 @@ class Chrome:
             )
         if not kwargs.get("options"):
             kwargs["options"] = ChromeOptions()
-        instance = object.__new__(_Chrome)
-        instance.__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
-        instance._orig_get = instance.get
+        self._original_get = self.get
 
-        def _get_wrapped(*args, **kwargs):
-            if instance.execute_script("return navigator.webdriver"):
-                instance.execute_cdp_cmd(
+        def _wrapped_get(*args, **kwargs):
+            if self.execute_script("return navigator.webdriver"):
+                self.execute_cdp_cmd(
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
                         "source": """
@@ -73,26 +70,25 @@ class Chrome:
                                 })
                             });
                         """
-                        + (
-                            "console.log = console.dir = console.error = function(){};"
-                            if not enable_console_log
-                            else ""
-                        )
+                                  + (
+                                      "console.log = console.dir = console.error = function(){};"
+                                      if not enable_console_log
+                                      else ""
+                                  )
                     },
                 )
-            return instance._orig_get(*args, **kwargs)
+            return self._original_get(*args, **kwargs)
 
-        instance.get = _get_wrapped
+        self.get = _wrapped_get
 
-        original_user_agent_string = instance.execute_script(
+        original_user_agent_string = self.execute_script(
             "return navigator.userAgent"
         )
-        instance.execute_cdp_cmd(
+        self.execute_cdp_cmd(
             "Network.setUserAgentOverride",
-            {"userAgent": original_user_agent_string.replace("Headless", ""),},
+            {"userAgent": original_user_agent_string.replace("Headless", ""), },
         )
         logger.info(f"starting undetected_chromedriver.Chrome({args}, {kwargs})")
-        return instance
 
 
 class ChromeOptions:
@@ -111,7 +107,6 @@ class ChromeOptions:
 
 
 class ChromeDriverManager(object):
-
     installed = False
     selenium_patched = False
     target_version = None
