@@ -19,14 +19,16 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 import io
 import logging
 import os
+import random
 import re
+import string
 import sys
 import zipfile
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
 from selenium.webdriver import Chrome as _Chrome
-from selenium.webdriver import ChromeOptions as _ChromeOptions
+from selenium.webdriver import ChromeOptions
 
 logger = logging.getLogger(__name__)
 
@@ -45,41 +47,16 @@ class Chrome(_Chrome):
             kwargs["executable_path"] = "./{}".format(
                 ChromeDriverManager(*args, **kwargs).executable_path
             )
+
         if not kwargs.get("options"):
             kwargs["options"] = ChromeOptions()
+        kwargs["options"].add_argument("start-maximized")
+        kwargs["options"].add_experimental_option("excludeSwitches", ["enable-automation"])
+        kwargs["options"].add_argument("--disable-blink-features=AutomationControlled")
+
         super().__init__(*args, **kwargs)
 
-        self._original_get = self.get
-
-        def _wrapped_get(*args, **kwargs):
-            if self.execute_script("return navigator.webdriver"):
-                self.execute_cdp_cmd(
-                    "Page.addScriptToEvaluateOnNewDocument",
-                    {
-                        "source": """
-
-                            Object.defineProperty(window, 'navigator', {
-                                value: new Proxy(navigator, {
-                                has: (target, key) => (key === 'webdriver' ? false : key in target),
-                                get: (target, key) =>
-                                    key === 'webdriver'
-                                    ? undefined
-                                    : typeof target[key] === 'function'
-                                    ? target[key].bind(target)
-                                    : target[key]
-                                })
-                            });
-                        """
-                                  + (
-                                      "console.log = console.dir = console.error = function(){};"
-                                      if not enable_console_log
-                                      else ""
-                                  )
-                    },
-                )
-            return self._original_get(*args, **kwargs)
-
-        self.get = _wrapped_get
+        self.__enable_console_log = enable_console_log
 
         original_user_agent_string = self.execute_script(
             "return navigator.userAgent"
@@ -90,20 +67,33 @@ class Chrome(_Chrome):
         )
         logger.info(f"starting undetected_chromedriver.Chrome({args}, {kwargs})")
 
+    def get(self, *args, **kwargs):
+        if self.execute_script("return navigator.webdriver"):
+            self.execute_cdp_cmd(
+                "Page.addScriptToEvaluateOnNewDocument",
+                {
+                    "source": """
 
-class ChromeOptions:
-    def __new__(cls, *args, **kwargs):
-        if not ChromeDriverManager.installed:
-            ChromeDriverManager(*args, **kwargs).install()
-        if not ChromeDriverManager.selenium_patched:
-            ChromeDriverManager(*args, **kwargs).patch_selenium_webdriver()
-
-        instance = object.__new__(_ChromeOptions)
-        instance.__init__()
-        instance.add_argument("start-maximized")
-        instance.add_experimental_option("excludeSwitches", ["enable-automation"])
-        instance.add_argument("--disable-blink-features=AutomationControlled")
-        return instance
+                        Object.defineProperty(window, 'navigator', {
+                            value: new Proxy(navigator, {
+                            has: (target, key) => (key === 'webdriver' ? false : key in target),
+                            get: (target, key) =>
+                                key === 'webdriver'
+                                ? undefined
+                                : typeof target[key] === 'function'
+                                ? target[key].bind(target)
+                                : target[key]
+                            })
+                        });
+                    """
+                              + (
+                                  "console.log = console.dir = console.error = function(){};"
+                                  if not self.__enable_console_log
+                                  else ""
+                              )
+                },
+            )
+        return super().get(*args, **kwargs)
 
 
 class ChromeDriverManager(object):
