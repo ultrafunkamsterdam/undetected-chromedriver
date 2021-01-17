@@ -16,7 +16,7 @@ from setuptools import setup
 
 setup(
     name="undetected-chromedriver",
-    version="1.5.2",
+    version="2.0.B0",
     packages=["undetected_chromedriver"],
     install_requires=["selenium",],
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
@@ -24,13 +24,11 @@ setup(
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
     description="""
-                Optimized Selenium/Chromedriver drop-in replacement for selenium.webdriver which does not trigger anti-bot services like Distil / CloudFlare / Imperva / DataDome / Botprotect.io and such.
-                All required anti-detection settings are built-in and ready to use, yet overridable if you\'d really want.
-                
-                Please note: results may vary, and depend on a lot of factors like settings, network, plugins, modus operandi. 
-                No guarantees of any kind are given, yet I can guarantee ongoing and tenacious efforts evading and handling detection algorithms.
-                
-                For more information check out the README.""",
+    selenium.webdriver.Chrome replacement with focus on stealth.
+    not triggered by Distil / CloudFlare / Imperva / DataDome / hCaptcha and such.
+
+    NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.
+    """,
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     classifiers=[
