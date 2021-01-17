@@ -1,4 +1,4 @@
-# undetected_chromedriver
+# undetected_chromedriver #
 
 https://github.com/ultrafunkamsterdam/undetected-chromedriver
 
@@ -45,6 +45,7 @@ uc.install()
 from selenium.webdriver import Chrome
 driver = Chrome()
 driver.get('https://distilnetworks.com')
+
 ```
 
 

@@ -46,6 +46,8 @@ import tempfile
 import threading
 import time
 import zipfile
+import atexit
+import contextlib
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -54,10 +56,9 @@ import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
 
-__all__ = ('Chrome', 'ChromeOptions', 'Patcher', 'find_chrome_executable')
+__all__ = ("Chrome", "ChromeOptions", "Patcher", "find_chrome_executable")
 
 IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
-
 
 logger = logging.getLogger("uc")
 
@@ -75,6 +76,8 @@ def find_chrome_executable():
         for item in os.environ.get("PATH").split(os.pathsep):
             for subitem in ("google-chrome", "chromium", "chromium-browser"):
                 candidates.add(os.sep.join((item, subitem)))
+        if 'darwin' in sys.platform:
+            candidates.update(["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"])
     else:
         for item in map(
             os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
@@ -91,7 +94,16 @@ def find_chrome_executable():
 
 
 class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
-    __doc__ = selenium.webdriver.remote.webdriver.WebDriver.__doc__
+    
+    __doc__ =   """\
+    --------------------------------------------------------------------------
+    NOTE: 
+    Chrome has everything included to work out of the box.
+    it does not `need` customizations.
+    any customizations MAY lead to trigger bot migitation systems.
+    
+    --------------------------------------------------------------------------
+    """ + selenium.webdriver.remote.webdriver.WebDriver.__doc__
 
     _instances = set()
 
@@ -113,6 +125,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         p = Patcher(target_path=executable_path)
         p.auto(False)
+        self._patcher = p
         self.factor = factor
         self.delay = delay
         self.port = port
@@ -142,9 +155,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if not options.binary_location:
             options.binary_location = find_chrome_executable()
-
-        if not IS_POSIX:
-            options.set_capability("platformName", "Windows")
 
         if not desired_capabilities:
             desired_capabilities = options.to_capabilities()
@@ -207,14 +217,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         (this includes CloudFlare!), and also passes many
         custom setups (eg: ticketmaster.com),
 
-        
+
         Once you are past the first challenge, a cookie is saved
         which (in my tests) also worked for other sites, and lasted
         my entire session! However, to play safe, i'd recommend to just
         call it once for every new site/domain you navigate to.
 
         NOTE:   mileage may vary!
-                bad behaviour can still be detected, and this program does not 
+                bad behaviour can still be detected, and this program does not
                 magically "fix" a flagged ip.
 
                 please don't spam issues on github! first look if the issue
@@ -265,8 +275,11 @@ class Patcher(object):
     url_repo = "https://chromedriver.storage.googleapis.com"
 
     def __init__(self, target_path=None, force=False, version_main: int = 0):
-        if target_path and not IS_POSIX:
-            if not target_path[-4] == ".exe":
+        
+        if not target_path:
+            target_path = os.path.join(tempfile.gettempdir(), 'undetected_chromedriver', 'chromedriver')
+        if not IS_POSIX:
+            if not target_path[-4:] == ".exe":
                 target_path += ".exe"
 
         self.force = force
@@ -280,7 +293,7 @@ class Patcher(object):
         self.version_main = version_main
         self.version_full = None
 
-    def auto(self, force=True):
+    def auto(self, force=False):
         try:
             os.unlink(self.target_path)
         except PermissionError:
@@ -346,8 +359,13 @@ class Patcher(object):
         :return: path to unpacked executable
         """
         logger.debug("unzipping %s" % self.zipname)
-        with zipfile.ZipFile(self.zipname) as zf:
-            zf.extract(self.exename, os.path.abspath(os.path.dirname(self.target_path)))
+        try:
+            os.makedirs(os.path.dirname(self.target_path), mode=0o755)
+        except OSError:
+            pass
+        with zipfile.ZipFile(self.zipname, mode='r') as zf:
+            zf.extract(self.exename)
+        os.rename(self.exename, self.target_path)
         os.remove(self.zipname)
         os.chmod(self.target_path, 0o755)
         return self.target_path
@@ -399,11 +417,14 @@ class Patcher(object):
 
         :return: False if not patched, else True
         """
-        with io.open(self.target_path, "rb") as fh:
-            for line in iter(lambda: fh.readline(), b""):
-                if b"cdc_" in line:
-                    return False
-        return True
+        try:
+            with io.open(self.target_path, "rb") as fh:
+                for line in iter(lambda: fh.readline(), b""):
+                    if b"cdc_" in line:
+                        return False
+            return True
+        except FileNotFoundError:
+            return False
 
     def patch_exe(self):
         """
@@ -424,6 +445,9 @@ class Patcher(object):
                     fh.write(newline)
                     linect += 1
             return linect
+
+    def __del__(self):
+        shutil.rmtree(os.path.dirname(self.target_path), ignore_errors=True)
 
 
 class ChromeOptions(selenium.webdriver.chrome.webdriver.Options):
