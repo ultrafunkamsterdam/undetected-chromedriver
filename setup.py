@@ -23,10 +23,10 @@ setup(
     license="GPL-3.0",
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
-    description="""
+    description="""\
     selenium.webdriver.Chrome replacement with focus on stealth.
     not triggered by Distil / CloudFlare / Imperva / DataDome / hCaptcha and such.
-
+    
     NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.
     """,
     long_description=open("README.md").read(),
