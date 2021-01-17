@@ -190,7 +190,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             capabilities = self.options.to_capabilities()
         super().start_session(capabilities, browser_profile)
 
-    def get_in(self, url: str, delay=1, factor=0.5):
+    def get_in(self, url: str, delay=1, factor=1):
         """
         :param url: str
         :param delay: int
@@ -221,13 +221,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 is not already reported.
         """
         try:
-            self.close()
-            threading.Timer(factor or self.factor, self.close).start()
             self.get(url)
         finally:
-            pass
-        time.sleep(delay or self.delay)
-        self.start_session()
+            self.close()
+            # threading.Timer(factor or self.factor, self.close).start()
+            time.sleep(delay or self.delay)
+            self.start_session()
 
     def quit(self):
         try:
