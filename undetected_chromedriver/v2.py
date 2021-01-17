@@ -221,6 +221,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 is not already reported.
         """
         try:
+            self.close()
             threading.Timer(factor or self.factor, self.close).start()
             self.get(url)
         finally:
