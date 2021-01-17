@@ -200,7 +200,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             capabilities = self.options.to_capabilities()
         super().start_session(capabilities, browser_profile)
 
-    def get_in(self, url: str, delay=1, factor=1):
+    def get_in(self, url: str, delay=2.5, factor=1):
         """
         :param url: str
         :param delay: int
