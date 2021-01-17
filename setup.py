@@ -16,17 +16,17 @@ from setuptools import setup
 
 setup(
     name="undetected-chromedriver",
-    version="2.0.B0",
+    version="2.0.0",
     packages=["undetected_chromedriver"],
     install_requires=["selenium",],
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
     license="GPL-3.0",
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
-    description="""
+    description="""\
     selenium.webdriver.Chrome replacement with focus on stealth.
     not triggered by Distil / CloudFlare / Imperva / DataDome / hCaptcha and such.
-
+    
     NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.
     """,
     long_description=open("README.md").read(),
@@ -37,3 +37,4 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
 )
+
