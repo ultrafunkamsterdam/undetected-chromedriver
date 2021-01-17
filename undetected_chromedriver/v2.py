@@ -109,7 +109,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __init__(
         self,
-        executable_path="chromedriver",
+        executable_path="./chromedriver",
         port=0,
         options=None,
         service_args=None,
