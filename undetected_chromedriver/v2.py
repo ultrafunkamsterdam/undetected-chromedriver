@@ -121,10 +121,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         user_data_dir=None,
         factor=0.5,
         delay=1,
-    ):
-
+    ):  
+        self._data_dir_default = True
+        if user_data_dir:
+            self._data_dir_default = False
+        
         p = Patcher(target_path=executable_path)
         p.auto(False)
+        
         self._patcher = p
         self.factor = factor
         self.delay = delay
@@ -251,7 +255,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         except Exception:  # noqa
             pass
         try:
-            shutil.rmtree(self.user_data_dir, ignore_errors=False)
+            if self._data_dir_default:
+                shutil.rmtree(self.user_data_dir, ignore_errors=False)
         except PermissionError:
             time.sleep(1)
             self.quit()
@@ -274,10 +279,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 class Patcher(object):
     url_repo = "https://chromedriver.storage.googleapis.com"
 
-    def __init__(self, target_path=None, force=False, version_main: int = 0):
-        
-        if not target_path:
-            target_path = os.path.join(tempfile.gettempdir(), 'undetected_chromedriver', 'chromedriver')
+    def __init__(self, target_path='./chromedriver', force=False, version_main: int = 0):
+        # if not target_path:
+            # target_path = os.path.join(tempfile.gettempdir(), 'undetected_chromedriver', 'chromedriver')
         if not IS_POSIX:
             if not target_path[-4:] == ".exe":
                 target_path += ".exe"
@@ -445,10 +449,6 @@ class Patcher(object):
                     fh.write(newline)
                     linect += 1
             return linect
-
-    def __del__(self):
-        shutil.rmtree(os.path.dirname(self.target_path), ignore_errors=True)
-
-
+    
 class ChromeOptions(selenium.webdriver.chrome.webdriver.Options):
     pass
