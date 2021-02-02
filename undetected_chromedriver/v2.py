@@ -494,8 +494,8 @@ class Patcher(object):
                     linect += 1
             return linect
 
-    def __del__(self):
-        shutil.rmtree(os.path.dirname(self.target_path), ignore_errors=True)
+    
+        
 
 
 class ChromeOptions(selenium.webdriver.chrome.webdriver.Options):
