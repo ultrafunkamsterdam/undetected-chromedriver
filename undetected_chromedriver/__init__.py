@@ -19,11 +19,11 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 import io
 import logging
 import os
-import random
 import re
-import string
 import sys
 import zipfile
+import string
+import random
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -31,6 +31,7 @@ from selenium.webdriver import Chrome as _Chrome
 from selenium.webdriver import ChromeOptions as _ChromeOptions
 
 logger = logging.getLogger(__name__)
+
 
 TARGET_VERSION = 0
 
@@ -60,22 +61,24 @@ class Chrome:
                     {
                         "source": """
 
-                            Object.defineProperty(window, 'navigator', {
-                                value: new Proxy(navigator, {
-                                has: (target, key) => (key === 'webdriver' ? false : key in target),
-                                get: (target, key) =>
-                                    key === 'webdriver'
-                                    ? undefined
-                                    : typeof target[key] === 'function'
-                                    ? target[key].bind(target)
-                                    : target[key]
-                                })
-                            });
-                        """
+                                   Object.defineProperty(window, 'navigator', {
+                                       value: new Proxy(navigator, {
+                                       has: (target, key) => (key === 'webdriver' ? false : key in target),
+                                       get: (target, key) =>
+                                           key === 'webdriver'
+                                           ? undefined
+                                           : typeof target[key] === 'function'
+                                           ? target[key].bind(target)
+                                           : target[key]
+                                       })
+                                   });
+                               """
                     },
                 )
             return instance._orig_get(*args, **kwargs)
 
+        instance.get = _get_wrapped
+        instance.get = _get_wrapped
         instance.get = _get_wrapped
 
         original_user_agent_string = instance.execute_script(
@@ -83,31 +86,25 @@ class Chrome:
         )
         instance.execute_cdp_cmd(
             "Network.setUserAgentOverride",
-            {
-                "userAgent": original_user_agent_string.replace("Headless", ""),
-            },
+            {"userAgent": original_user_agent_string.replace("Headless", ""),},
         )
         if emulate_touch:
             instance.execute_cdp_cmd(
                 "Page.addScriptToEvaluateOnNewDocument",
                 {
                     "source": """
-                            Object.defineProperty(navigator, 'maxTouchPoints', {
-                                get: () => 1
-                        })"""
+                                   Object.defineProperty(navigator, 'maxTouchPoints', {
+                                       get: () => 1
+                               })"""
                 },
             )
-
         logger.info(f"starting undetected_chromedriver.Chrome({args}, {kwargs})")
         return instance
 
 
 class ChromeOptions:
-    __doc__ = _ChromeOptions.__doc__
 
     def __new__(cls, *args, **kwargs):
-        __doc__ = _ChromeOptions.__new__.__doc__
-
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
@@ -122,6 +119,7 @@ class ChromeOptions:
 
 
 class ChromeDriverManager(object):
+
     installed = False
     selenium_patched = False
     target_version = None
@@ -234,10 +232,10 @@ class ChromeDriverManager(object):
     @staticmethod
     def random_cdc():
         cdc = random.choices(string.ascii_lowercase, k=26)
-        cdc[-6:-4] = map(str.upper, cdc[-6:-4])
+        cdc[-6: -4] = map(str.upper, cdc[-6: -4])
         cdc[2] = cdc[0]
-        cdc[3] = "_"
-        return "".join(cdc).encode()
+        cdc[3] = '_'
+        return ''.join(cdc).encode()
 
     def patch_binary(self):
         """
