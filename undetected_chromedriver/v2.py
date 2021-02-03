@@ -166,6 +166,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         extra_args = []
         if options.headless:
             extra_args.append("--headless")
+            extra_args.append("--window-size=1920,1080")
 
         self.browser_args = [
             find_chrome_executable(),
