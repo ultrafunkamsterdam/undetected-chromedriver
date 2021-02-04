@@ -86,7 +86,9 @@ class Chrome:
         )
         instance.execute_cdp_cmd(
             "Network.setUserAgentOverride",
-            {"userAgent": original_user_agent_string.replace("Headless", ""),},
+            {
+                "userAgent": original_user_agent_string.replace("Headless", ""),
+            },
         )
         if emulate_touch:
             instance.execute_cdp_cmd(
@@ -103,7 +105,6 @@ class Chrome:
 
 
 class ChromeOptions:
-
     def __new__(cls, *args, **kwargs):
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
@@ -232,10 +233,10 @@ class ChromeDriverManager(object):
     @staticmethod
     def random_cdc():
         cdc = random.choices(string.ascii_lowercase, k=26)
-        cdc[-6: -4] = map(str.upper, cdc[-6: -4])
+        cdc[-6:-4] = map(str.upper, cdc[-6:-4])
         cdc[2] = cdc[0]
-        cdc[3] = '_'
-        return ''.join(cdc).encode()
+        cdc[3] = "_"
+        return "".join(cdc).encode()
 
     def patch_binary(self):
         """
