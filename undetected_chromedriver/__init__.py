@@ -37,7 +37,7 @@ TARGET_VERSION = 0
 
 
 class Chrome:
-    def __new__(cls, *args, enable_console_log=False, **kwargs):
+    def __new__(cls, *args, emulate_touch=False, **kwargs):
 
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
@@ -61,27 +61,24 @@ class Chrome:
                     {
                         "source": """
 
-                            Object.defineProperty(window, 'navigator', {
-                                value: new Proxy(navigator, {
-                                has: (target, key) => (key === 'webdriver' ? false : key in target),
-                                get: (target, key) =>
-                                    key === 'webdriver'
-                                    ? undefined
-                                    : typeof target[key] === 'function'
-                                    ? target[key].bind(target)
-                                    : target[key]
-                                })
-                            });
-                        """
-                        + (
-                            "console.log = console.dir = console.error = function(){};"
-                            if not enable_console_log
-                            else ""
-                        )
+                                   Object.defineProperty(window, 'navigator', {
+                                       value: new Proxy(navigator, {
+                                       has: (target, key) => (key === 'webdriver' ? false : key in target),
+                                       get: (target, key) =>
+                                           key === 'webdriver'
+                                           ? undefined
+                                           : typeof target[key] === 'function'
+                                           ? target[key].bind(target)
+                                           : target[key]
+                                       })
+                                   });
+                               """
                     },
                 )
             return instance._orig_get(*args, **kwargs)
 
+        instance.get = _get_wrapped
+        instance.get = _get_wrapped
         instance.get = _get_wrapped
 
         original_user_agent_string = instance.execute_script(
@@ -91,11 +88,22 @@ class Chrome:
             "Network.setUserAgentOverride",
             {"userAgent": original_user_agent_string.replace("Headless", ""),},
         )
+        if emulate_touch:
+            instance.execute_cdp_cmd(
+                "Page.addScriptToEvaluateOnNewDocument",
+                {
+                    "source": """
+                                   Object.defineProperty(navigator, 'maxTouchPoints', {
+                                       get: () => 1
+                               })"""
+                },
+            )
         logger.info(f"starting undetected_chromedriver.Chrome({args}, {kwargs})")
         return instance
 
 
 class ChromeOptions:
+
     def __new__(cls, *args, **kwargs):
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
