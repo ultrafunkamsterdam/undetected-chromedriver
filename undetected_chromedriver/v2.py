@@ -119,8 +119,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         keep_alive=True,
         debug_addr=None,
         user_data_dir=None,
-        factor=0.5,
-        delay=1,
+        factor=1,
+        delay=2,
         emulate_touch=False,
     ):
 
@@ -250,7 +250,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             capabilities = self.options.to_capabilities()
         super().start_session(capabilities, browser_profile)
 
-    def get_in(self, url: str, delay=2.5, factor=1):
+    def get_in(self, url: str, delay=2, factor=1):
         """
         :param url: str
         :param delay: int
@@ -283,10 +283,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         try:
             self.get(url)
         finally:
-            self.close()
+            self.service.stop()
             # threading.Timer(factor or self.factor, self.close).start()
             time.sleep(delay or self.delay)
-            self.start_session()
+            self.service.start()
+            # self.start_session()
 
     def quit(self):
         try:
@@ -313,9 +314,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-        threading.Timer(self.factor, self.start_session).start()
+        self.service.stop()
+        #threading.Timer(self.factor, self.service.start).start()
         time.sleep(self.delay)
+        self.service.start()
 
     def __hash__(self):
         return hash(self.options.debugger_address)
