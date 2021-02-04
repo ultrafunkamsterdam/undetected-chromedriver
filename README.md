@@ -20,11 +20,20 @@ To prevent unnecessary hair-pulling and issue-raising, please mind the **[import
 
 <br>
 
+
 #### the easy way (recommended) ####
 ```python
 import undetected_chromedriver as uc
 driver = uc.Chrome()
 driver.get('https://distilnetworks.com')
+```
+
+#### the V2 (beta) way ####
+```python
+import undetected_chromedriver.v2 as uc
+driver = uc.Chrome()
+with driver:
+    driver.get('https://coinfaucet.eu')  # known url using cloudflare's "under attack mode"
 ```
 
 #### target specific chrome version ####
