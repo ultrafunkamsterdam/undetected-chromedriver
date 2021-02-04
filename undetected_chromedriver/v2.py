@@ -292,7 +292,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             # threading.Timer(factor or self.factor, self.close).start()
             time.sleep(delay or self.delay)
             self.service.start()
-            # self.start_session()
+            self.start_session()
 
     def quit(self):
         try:
@@ -323,6 +323,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # threading.Timer(self.factor, self.service.start).start()
         time.sleep(self.delay)
         self.service.start()
+        self.start_session()
 
     def __hash__(self):
         return hash(self.options.debugger_address)
