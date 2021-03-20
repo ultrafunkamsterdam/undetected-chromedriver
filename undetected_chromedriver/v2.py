@@ -31,6 +31,7 @@ whats new:
 
 """
 
+
 from __future__ import annotations
 
 import io
@@ -95,7 +96,7 @@ def find_chrome_executable():
             return os.path.normpath(candidate)
 
 
-class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
+class Chrome(object):
 
     __doc__ = (
         """\
@@ -131,6 +132,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         p = Patcher(target_path=executable_path)
         p.auto(False)
+
         self._patcher = p
         self.factor = factor
         self.delay = delay
@@ -184,14 +186,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.browser = subprocess.Popen(
             self.browser_args,
-            close_fds="win32" in sys.platform,
+            # close_fds="win32" in sys.platform,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-
-        selenium.webdriver.chrome.webdriver.WebDriver.__init__(
-            self,
+        
+        self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
             executable_path=p.target_path,
             port=port,
             options=options,
@@ -204,7 +205,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if options.headless:
 
-            orig_get = self.get
+            orig_get = self.webdriver.get
 
             def get_wrapped(*args, **kwargs):
                 if self.execute_script("return navigator.webdriver"):
@@ -237,7 +238,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     )
                 return orig_get(*args, **kwargs)
 
-            self.get = get_wrapped
+            self.webdriver.get = get_wrapped
 
         if emulate_touch:
             self.execute_cdp_cmd(
@@ -249,11 +250,25 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                            })"""
                 },
             )
+    
+    def __getattribute__(self, attr):
+        try:
+            return object.__getattribute__(self, attr)
+        except AttributeError:
+            try:
+                return object.__getattribute__(self.webdriver, attr)
+            except AttributeError:
+                raise
+
+    def __dir__(self):
+        return object.__dir__(self) + object.__dir__(self.webdriver)
+
 
     def start_session(self, capabilities=None, browser_profile=None):
         if not capabilities:
             capabilities = self.options.to_capabilities()
-        super().start_session(capabilities, browser_profile)
+        self.webdriver.start_session(capabilities, browser_profile)
+
 
     def get_in(self, url: str, delay=2, factor=1):
         """
@@ -303,7 +318,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         except Exception:  # noqa
             pass
         try:
-            super().quit()
+            self.webdriver.quit()
         except Exception:  # noqa
             pass
         try:
