@@ -170,7 +170,8 @@ class Chrome(object):
         self.options = options
         self.user_data_dir = user_data_dir
 
-        extra_args = []
+        extra_args = options.arguments
+
         if options.headless:
             extra_args.append("--headless")
             extra_args.append("--window-size=1920,1080")
@@ -191,7 +192,7 @@ class Chrome(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        
+
         self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
             executable_path=p.target_path,
             port=port,
@@ -207,7 +208,10 @@ class Chrome(object):
 
             orig_get = self.webdriver.get
 
+            logger.info("setting properties for headless")
+
             def get_wrapped(*args, **kwargs):
+
                 if self.execute_script("return navigator.webdriver"):
                     self.execute_cdp_cmd(
                         "Page.addScriptToEvaluateOnNewDocument",
@@ -224,9 +228,19 @@ class Chrome(object):
                                         : target[key]
                                     })
                                 });
+
+                                Object.defineProperty(Notification, "permission", {
+                                    configurable: true,
+                                    enumerable: true,
+                                        get: () => {
+                                            return "unknown"
+                                        },       
+                                    });
                             """
                         },
                     )
+
+                    logger.info("removing headless from user-agent string")
 
                     self.execute_cdp_cmd(
                         "Network.setUserAgentOverride",
@@ -236,21 +250,22 @@ class Chrome(object):
                             ).replace("Headless", "")
                         },
                     )
+                    logger.info("fixing notifications permission in headless browsers")
+
+                if emulate_touch:
+                    self.execute_cdp_cmd(
+                        "Page.addScriptToEvaluateOnNewDocument",
+                        {
+                            "source": """
+                                Object.defineProperty(navigator, 'maxTouchPoints', {
+                                        get: () => 1
+                                })"""
+                        },
+                    )
                 return orig_get(*args, **kwargs)
 
             self.webdriver.get = get_wrapped
 
-        if emulate_touch:
-            self.execute_cdp_cmd(
-                "Page.addScriptToEvaluateOnNewDocument",
-                {
-                    "source": """
-                           Object.defineProperty(navigator, 'maxTouchPoints', {
-                                   get: () => 1
-                           })"""
-                },
-            )
-    
     def __getattribute__(self, attr):
         try:
             return object.__getattribute__(self, attr)
@@ -263,12 +278,10 @@ class Chrome(object):
     def __dir__(self):
         return object.__dir__(self) + object.__dir__(self.webdriver)
 
-
     def start_session(self, capabilities=None, browser_profile=None):
         if not capabilities:
             capabilities = self.options.to_capabilities()
         self.webdriver.start_session(capabilities, browser_profile)
-
 
     def get_in(self, url: str, delay=2, factor=1):
         """
@@ -310,7 +323,13 @@ class Chrome(object):
             self.start_session()
 
     def quit(self):
+        logger.debug("closing webdriver")
         try:
+            self.webdriver.quit()
+        except Exception:  # noqa
+            pass
+        try:
+            logger.debug("killing browser")
             self.browser.kill()
             self.browser.wait(1)
         except TimeoutError as e:
@@ -318,12 +337,10 @@ class Chrome(object):
         except Exception:  # noqa
             pass
         try:
-            self.webdriver.quit()
-        except Exception:  # noqa
-            pass
-        try:
+            logger.debug("removing profile : %s" % self.user_data_dir)
             shutil.rmtree(self.user_data_dir, ignore_errors=False)
         except PermissionError:
+            logger.debug("permission error. files are still in use/locked. retying...")
             time.sleep(1)
             self.quit()
 
