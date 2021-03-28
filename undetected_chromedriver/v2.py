@@ -450,7 +450,7 @@ class Patcher(object):
             pass
         with zipfile.ZipFile(self.zipname, mode="r") as zf:
             zf.extract(self.exename)
-        os.rename(self.exename, self.target_path)
+        shutil.move(self.exename, self.target_path)
         os.remove(self.zipname)
         os.chmod(self.target_path, 0o755)
         return self.target_path
