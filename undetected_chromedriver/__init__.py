@@ -37,7 +37,7 @@ TARGET_VERSION = 0
 
 
 class Chrome:
-    def __new__(cls, *args, emulate_touch=False, **kwargs):
+    def __new__(cls, *args, emulate_touch=False, **kwargs) -> _Chrome:
 
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
@@ -105,7 +105,7 @@ class Chrome:
 
 
 class ChromeOptions:
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs) -> _ChromeOptions:
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
         if not ChromeDriverManager.selenium_patched:
