@@ -13,7 +13,7 @@ Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y
  "Y8888P 888  888 888     "Y88P"  888  888  888  "Y8888   "Y88888 888     888   Y88P    "Y8888  888   88888888
 
 by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
-
+# noqa
 """
 
 import io
@@ -72,7 +72,7 @@ class Chrome:
                                            : target[key]
                                        })
                                    });
-                               """
+                               """  # noqa: E501
                     },
                 )
             return instance._orig_get(*args, **kwargs)
@@ -160,7 +160,7 @@ class ChromeDriverManager(object):
         self.executable_path = executable_path or exe_name
         self._exe_name = exe_name
 
-    def patch_selenium_webdriver(self_):
+    def patch_selenium_webdriver(self):
         """
         Patches selenium package Chrome, ChromeOptions classes for current session
 
@@ -172,7 +172,7 @@ class ChromeDriverManager(object):
         selenium.webdriver.Chrome = Chrome
         selenium.webdriver.ChromeOptions = ChromeOptions
         logger.info("Selenium patched. Safe to import Chrome / ChromeOptions")
-        self_.__class__.selenium_patched = True
+        self.__class__.selenium_patched = True
 
     def install(self, patch_selenium=True):
         """
@@ -183,7 +183,8 @@ class ChromeDriverManager(object):
          patch the downloaded chromedriver
          patch selenium package if <patch_selenium> is True (default)
 
-        :param patch_selenium: patch selenium webdriver classes for Chrome and ChromeDriver (for current python session)
+        :param patch_selenium: patch selenium webdriver classes for Chrome and
+            ChromeDriver (for current python session)
         :return:
         """
         if not os.path.exists(self.executable_path):
@@ -197,7 +198,8 @@ class ChromeDriverManager(object):
 
     def get_release_version_number(self):
         """
-        Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
+        Gets the latest major version available, or the latest major version of
+            self.target_version if set explicitly.
 
         :return: version string
         """
