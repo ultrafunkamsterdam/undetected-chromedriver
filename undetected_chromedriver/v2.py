@@ -177,7 +177,7 @@ class Chrome(object):
             extra_args.append("--window-size=1920,1080")
 
         self.browser_args = [
-            find_chrome_executable(),
+            options.binary_location,
             "--user-data-dir=%s" % user_data_dir,
             "--remote-debugging-host=%s" % debug_host,
             "--remote-debugging-port=%s" % debug_port,
