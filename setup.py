@@ -12,13 +12,29 @@ Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y
 BY ULTRAFUNKAMSTERDAM (https://github.com/ultrafunkamsterdam)"""
 
 from setuptools import setup
+import os
+import re
+
+with open(os.path.join(os.path.abspath(
+        os.path.dirname(__file__)),
+        'undetected_chromedriver',
+        '__init__.py'),
+        mode='r',
+        encoding='latin1') as fp:
+    try:
+        version = re.findall(r"^__version__ = '([^']+)'\r?$",
+                             fp.read(), re.M)[0]
+    except Exception:
+        raise RuntimeError("unable to determine version")
 
 
 setup(
     name="undetected-chromedriver",
-    version="2.2.1",
+    version=version,
     packages=["undetected_chromedriver"],
-    install_requires=["selenium",],
+    install_requires=[
+        "selenium",
+    ],
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
     license="GPL-3.0",
     author="UltrafunkAmsterdam",
@@ -37,4 +53,3 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
 )
-
