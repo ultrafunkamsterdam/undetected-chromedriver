@@ -37,8 +37,8 @@ TARGET_VERSION = 0
 
 
 class Chrome:
-    def __new__(cls, *args, emulate_touch=False, chrome2use=None, **kwargs):
-        chrome2use = _Chrome if chrome2use is None else chrome2use
+    def __new__(cls, *args, emulate_touch=False, **kwargs):
+        chrome2use = kwargs.pop('chrome2use') if 'chrome2use' in kwargs else _Chrome
 
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
