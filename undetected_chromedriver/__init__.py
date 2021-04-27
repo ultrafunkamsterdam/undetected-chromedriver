@@ -37,7 +37,8 @@ TARGET_VERSION = 0
 
 
 class Chrome:
-    def __new__(cls, *args, emulate_touch=False, **kwargs):
+    def __new__(cls, *args, emulate_touch=False, chrome2use=None, **kwargs):
+        chrome2use = _Chrome if chrome2use is None else chrome2use
 
         if not ChromeDriverManager.installed:
             ChromeDriverManager(*args, **kwargs).install()
@@ -49,7 +50,7 @@ class Chrome:
             )
         if not kwargs.get("options"):
             kwargs["options"] = ChromeOptions()
-        instance = object.__new__(_Chrome)
+        instance = object.__new__(chrome2use)
         instance.__init__(*args, **kwargs)
 
         instance._orig_get = instance.get
