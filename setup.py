@@ -15,15 +15,17 @@ from setuptools import setup
 import os
 import re
 
-with open(os.path.join(os.path.abspath(
-        os.path.dirname(__file__)),
-        'undetected_chromedriver',
-        '__init__.py'),
-        mode='r',
-        encoding='latin1') as fp:
+with open(
+    os.path.join(
+        os.path.abspath(os.path.dirname(__file__)),
+        "undetected_chromedriver",
+        "__init__.py",
+    ),
+    mode="r",
+    encoding="latin1",
+) as fp:
     try:
-        version = re.findall(r"^__version__ = '([^']+)'\r?$",
-                             fp.read(), re.M)[0]
+        version = re.findall(r"^__version__ = '([^']+)'\r?$", fp.read(), re.M)[0]
     except Exception:
         raise RuntimeError("unable to determine version")
 
