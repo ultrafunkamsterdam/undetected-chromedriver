@@ -44,6 +44,7 @@ import sys
 import tempfile
 import time
 import zipfile
+import shutil
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -330,32 +331,32 @@ class Chrome(object):
     #         self.service.start()
     #         self.start_session()
     #
-    # def quit(self):
-    #     logger.debug("closing webdriver")
-    #     try:
-    #         self.webdriver.quit()
-    #     except Exception:  # noqa
-    #         pass
-    #     try:
-    #         logger.debug("killing browser")
-    #         self.browser.kill()
-    #         self.browser.wait(1)
-    #     except TimeoutError as e:
-    #         logger.debug(e, exc_info=True)
-    #     except Exception:  # noqa
-    #         pass
-    #     if not self.keep_user_data_dir or self.keep_user_data_dir is False:
-    #         for _ in range(3):
-    #             try:
-    #                 logger.debug("removing profile : %s" % self.user_data_dir)
-    #                 shutil.rmtree(self.user_data_dir, ignore_errors=False)
-    #             except FileNotFoundError:
-    #                 pass
-    #             except PermissionError:
-    #                 logger.debug("permission error. files are still in use/locked. retying...")
-    #             else:
-    #                 break
-    #             time.sleep(1)
+    def quit(self):
+        logger.debug("closing webdriver")
+        try:
+            self.webdriver.quit()
+        except Exception:  # noqa
+            pass
+        try:
+            logger.debug("killing browser")
+            self.browser.kill()
+            self.browser.wait(1)
+        except TimeoutError as e:
+            logger.debug(e, exc_info=True)
+        except Exception:  # noqa
+            pass
+        if not self.keep_user_data_dir or self.keep_user_data_dir is False:
+            for _ in range(3):
+                try:
+                    logger.debug("removing profile : %s" % self.user_data_dir)
+                    shutil.rmtree(self.user_data_dir, ignore_errors=False)
+                except FileNotFoundError:
+                    pass
+                except PermissionError:
+                    logger.debug("permission error. files are still in use/locked. retying...")
+                else:
+                    break
+                time.sleep(1)
 
     def __del__(self):
         self.quit()
