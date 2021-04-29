@@ -38,13 +38,13 @@ import logging
 import os
 import random
 import re
+import shutil
 import string
 import subprocess
 import sys
 import tempfile
 import time
 import zipfile
-import shutil
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -64,11 +64,13 @@ logger.setLevel(logging.getLogger().getEffectiveLevel())
 
 def find_chrome_executable():
     """
-    returns the full path to the chrome _browser binary
-    may not work if chrome is in a custom folder.
+    Finds the chrome, chrome beta, chrome canary, chromium executable
 
-    :return: path to chrome executable
-    :rtype: str
+    Returns
+    -------
+    executable_path :  str
+        the full file path to found executable
+
     """
     candidates = set()
     if IS_POSIX:
@@ -95,45 +97,122 @@ def find_chrome_executable():
 
 
 class Chrome(object):
-    __doc__ = (
-        """\
-            --------------------------------------------------------------------------
-            NOTE: 
+    """
+    Controls the ChromeDriver and allows you to drive the browser.
+
+    The webdriver file will be downloaded by this module automatically,
+    you do not need to specify this. however, you may if you wish.
+
+
+    Attributes
+    ----------
+
+
+    Methods
+    -------
+
+    reconnect()
+
+        this can be useful in case of heavy detection methods
+        -stops the chromedriver service which runs in the background
+        -starts the chromedriver service which runs in the background
+        -recreate session
+
+
+    start_session(capabilities=None, browser_profile=None)
+
+        differentiates from the regular method in that it does not
+        require a capabilities argument. The capabilities are automatically
+        recreated from the options at creation time.
+
+
+    --------------------------------------------------------------------------
+        NOTE:
             Chrome has everything included to work out of the box.
             it does not `need` customizations.
             any customizations MAY lead to trigger bot migitation systems.
-            
-            --------------------------------------------------------------------------
-            """
-        + selenium.webdriver.remote.webdriver.WebDriver.__doc__
-    )
+
+    --------------------------------------------------------------------------
+    """
 
     _instances = set()
 
     def __init__(
         self,
-        executable_path="./chromedriver",
+        executable_path=None,
         port=0,
         options=None,
         service_args=None,
         desired_capabilities=None,
         service_log_path=None,
         keep_alive=True,
-        keep_user_data_dir=False,
         log_level=0,
+        headless=False,
         emulate_touch=False,
+        delay=5,
     ):
+        """
+         Creates a new instance of the chrome driver.
 
-        p = Patcher.auto(executable_path=executable_path)
-        # p.auto(False)
+         Starts the service and then creates new instance of chrome driver.
 
-        self._patcher = p
-        self.port = port
-        self.process = None
-        self.browser_args = None
-        self._rcount = 0
-        self._rdiff = 10
-        self.keep_user_data_dir = keep_user_data_dir
+         # Parameters
+         # -----------
+         #  - executable_path - path to the executable. If the default is used it assumes the executable is in the $PATH
+         #  - port - port you would like the service to run, if left as 0, a free port will be found.
+         #  - options - this takes an instance of ChromeOptions
+         #  - service_args - List of args to pass to the driver service
+         #  - desired_capabilities - Dictionary object with non-browser specific
+         #    capabilities only, such as "proxy" or "loggingPref".
+         #  - service_log_path - Where to log information from the driver.
+         #  - chrome_options - Deprecated argument for options
+         #  - keep_alive - Whether to configure ChromeRemoteConnection to use HTTP keep-alive.
+
+        Parameters
+        ----------
+        executable_path: str, optional, default: None - use find_chrome_executable
+            Path to the executable. If the default is used it assumes the executable is in the $PATH
+
+        port: int, optional, default: 0
+            port you would like the service to run, if left as 0, a free port will be found.
+
+        options: ChromeOptions, optional, default: None - automatic useful defaults
+            this takes an instance of ChromeOptions, mainly to customize browser behavior.
+            anything other dan the default, for example extensions or startup options
+            are not supported in case of failure, and can probably lowers your undetectability.
+
+        service_args: list of str, optional, default: None
+            arguments to pass to the driver service
+
+        desired_capabilities: dict, optional, default: None - auto from config
+            Dictionary object with non-browser specific capabilities only, such as "proxy" or "loggingPref".
+
+        service_log_path: str, optional, default: None
+             path to log information from the driver.
+
+        keep_alive: bool, optional, default: True
+             Whether to configure ChromeRemoteConnection to use HTTP keep-alive.
+
+        log_level: int, optional, default: adapts to python global log level
+
+        headless: bool, optional, default: False
+            can also be specified in the options instance.
+            Specify whether you want to use the browser in headless mode.
+            warning: this lowers undetectability and not fully supported.
+
+        emulate_touch: bool, optional, default: False
+            if set to True, patches window.maxTouchPoints to always return non-zero
+
+        delay: int, optional, default: 5
+            delay in seconds to wait before giving back control.
+            this is used only when using the context manager
+            (`with` statement) to bypass, for example CloudFlare.
+            5 seconds is a foolproof value.
+
+        """
+
+        patcher = Patcher(executable_path=executable_path)
+        patcher.auto()
 
         debug_port = selenium.webdriver.common.service.utils.free_port()
         debug_host = "127.0.0.1"
@@ -141,17 +220,7 @@ class Chrome(object):
         if not options:
             options = selenium.webdriver.chrome.webdriver.Options()
 
-        if not options.debugger_address:
-            options.debugger_address = "%s:%d" % (debug_host, debug_port)
-
-        if not options.binary_location:
-            options.binary_location = find_chrome_executable()
-
-        if not desired_capabilities:
-            desired_capabilities = options.to_capabilities()
-
-        user_data_dir = None
-
+        # see if a custom user profile is specified
         for arg in options.arguments:
             if "user-data-dir" in arg:
                 m = re.search("(?:--)?user-data-dir(?:[ =])?(.*)", arg)
@@ -160,7 +229,7 @@ class Chrome(object):
                     logger.debug(
                         "user-data-dir found in user argument %s => %s" % (arg, m[1])
                     )
-                    self.keep_user_data_dir = True
+                    keep_user_data_dir = True
                     break
                 except IndexError:
                     logger.debug(
@@ -169,42 +238,69 @@ class Chrome(object):
                     )
         else:
             user_data_dir = os.path.normpath(tempfile.mkdtemp())
-            self.keep_user_data_dir = False
-            arg = "--user-data-dir=%s" % user_data_dir
-            options.add_argument(arg)
+            keep_user_data_dir = False
+            options.add_argument("--user-data-dir=%s" % user_data_dir)
             logger.debug(
                 "created a temporary folder in which the user-data (profile) will be stored during this\n"
                 "session, and added it to chrome startup arguments: %s" % arg
             )
+
+        if not options.debugger_address:
+            options.debugger_address = "%s:%d" % (debug_host, debug_port)
+
+        if not options.binary_location:
+            options.binary_location = find_chrome_executable()
+
+        self._delay = delay
+
         self.user_data_dir = user_data_dir
+        self.keep_user_data_dir = keep_user_data_dir
+
+        if headless or options.headless:
+            options.headless = True
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--start-maximized")
+
+        options.add_argument("--remote-debugging-host=%s " % debug_host)
+        options.add_argument("--remote-debugging-port=%s" % debug_port)
+        options.add_argument(
+            "--log-level=%d" % log_level
+            or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
+        )
 
         self.options = options
 
-        extra_args = options.arguments
+        # fix exit_type flag to prevent tab-restore nag
+        try:
+            with open(
+                os.path.join(user_data_dir, "Default/Preferences"),
+                encoding="latin1",
+                mode="r+",
+            ) as fs:
+                import json
 
-        if options.headless:
-            extra_args.append("--headless")
-            extra_args.append("--window-size=1920,1080")
-
-        self.browser_args = [
-            options.binary_location,
-            "--remote-debugging-host=%s" % debug_host,
-            "--remote-debugging-port=%s" % debug_port,
-            "--log-level=%d" % log_level
-            or divmod(logging.getLogger().getEffectiveLevel(), 10)[0],
-            *extra_args,
-        ]
+                config = json.load(fs)
+                if config["profile"]["exit_type"] is not None:
+                    # fixing the restore-tabs-nag
+                    config["profile"]["exit_type"] = None
+                fs.seek(0, 0)
+                fs.write(json.dumps(config, indent=4))
+                logger.debug("fixed exit_type flag")
+        except Exception as e:
+            logger.debug("did not find a bad exit_type flag ")
 
         self.browser = subprocess.Popen(
-            self.browser_args,
-            # close_fds="win32" in sys.platform,
+            [options.binary_location, *options.arguments],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
 
+        if not desired_capabilities:
+            desired_capabilities = options.to_capabilities()
+
         self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
-            # executable_path=p.executable_path,
+            executable_path=patcher.executable_path,
             port=port,
             options=options,
             service_args=service_args,
@@ -214,6 +310,16 @@ class Chrome(object):
         )
 
         if options.headless:
+            if emulate_touch:
+                self.execute_cdp_cmd(
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    {
+                        "source": """
+                                         Object.defineProperty(navigator, 'maxTouchPoints', {
+                                                 get: () => 1
+                                         })"""
+                    },
+                )
 
             orig_get = self.webdriver.get
 
@@ -237,29 +343,29 @@ class Chrome(object):
                                         : target[key]
                                     })
                                 });
-
-                                Object.defineProperty(Notification, "permission", {
-                                    configurable: true,
-                                    enumerable: true,
-                                        get: () => {
-                                            return "unknown"
-                                        },       
-                                    });
                             """
                         },
                     )
 
-                    logger.info("removing headless from user-agent string")
+                logger.info("removing headless from user-agent string")
 
-                    self.execute_cdp_cmd(
-                        "Network.setUserAgentOverride",
-                        {
-                            "userAgent": self.execute_script(
-                                "return navigator.userAgent"
-                            ).replace("Headless", "")
-                        },
-                    )
-                    logger.info("fixing notifications permission in headless browsers")
+                self.execute_cdp_cmd(
+                    "Network.setUserAgentOverride",
+                    {
+                        "userAgent": self.execute_script(
+                            "return navigator.userAgent"
+                        ).replace("Headless", "")
+                    },
+                )
+                self.execute_cdp_cmd(
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    {
+                        "source": """
+                                // fix Notification permission in headless mode
+                                Object.defineProperty(Notification, 'permission', { get: () => "default"});
+                        """
+                    },
+                )
 
                 if emulate_touch:
                     self.execute_cdp_cmd(
@@ -287,50 +393,27 @@ class Chrome(object):
     def __dir__(self):
         return object.__dir__(self) + object.__dir__(self.webdriver)
 
+    def reconnect(self):
+        try:
+            self.service.stop()
+        except Exception as e:
+            logger.debug(e)
+
+        try:
+            self.service.start()
+        except Exception as e:
+            logger.debug(e)
+
+        try:
+            self.start_session()
+        except Exception as e:
+            logger.debug(e)
+
     def start_session(self, capabilities=None, browser_profile=None):
         if not capabilities:
             capabilities = self.options.to_capabilities()
         self.webdriver.start_session(capabilities, browser_profile)
 
-    # def get_in(self, url: str, delay=2, factor=1):
-    #     """
-    #     :param url: str
-    #     :param delay: int
-    #     :param factor: disconnect <factor> seconds after .get()
-    #                    too low will disconnect before get() fired.
-    #
-    #     =================================================
-    #
-    #     In case you are being detected by some sophisticated
-    #     algorithm, and you are the kind that hates losing,
-    #     this might be your friend.
-    #
-    #     this currently works for hCaptcha based systems
-    #     (this includes CloudFlare!), and also passes many
-    #     custom setups (eg: ticketmaster.com),
-    #
-    #
-    #     Once you are past the first challenge, a cookie is saved
-    #     which (in my tests) also worked for other sites, and lasted
-    #     my entire session! However, to play safe, i'd recommend to just
-    #     call it once for every new site/domain you navigate to.
-    #
-    #     NOTE:   mileage may vary!
-    #             bad behaviour can still be detected, and this program does not
-    #             magically "fix" a flagged ip.
-    #
-    #             please don't spam issues on github! first look if the issue
-    #             is not already reported.
-    #     """
-    #     try:
-    #         self.get(url)
-    #     finally:
-    #         self.service.stop()
-    #         # threading.Timer(factor or self.factor, self.close).start()
-    #         time.sleep(delay or self.delay)
-    #         self.service.start()
-    #         self.start_session()
-    #
     def quit(self):
         logger.debug("closing webdriver")
         try:
@@ -353,7 +436,9 @@ class Chrome(object):
                 except FileNotFoundError:
                     pass
                 except PermissionError:
-                    logger.debug("permission error. files are still in use/locked. retying...")
+                    logger.debug(
+                        "permission error. files are still in use/locked. retying..."
+                    )
                 else:
                     break
                 time.sleep(1)
@@ -366,13 +451,28 @@ class Chrome(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.service.stop()
-        # threading.Timer(self.factor, self.service.start).start()
-        time.sleep(self.delay)
+        time.sleep(self._delay)
         self.service.start()
         self.start_session()
 
     def __hash__(self):
         return hash(self.options.debugger_address)
+
+    def find_elements_by_text(self, text: str):
+        for elem in self.find_elements_by_css_selector("*"):
+            try:
+                if text.lower() in elem.text.lower():
+                    yield elem
+            except Exception as e:
+                logger.debug("find_elements_by_text: %s" % e)
+
+    def find_element_by_text(self, text: str):
+        for elem in self.find_elements_by_css_selector("*"):
+            try:
+                if text.lower() in elem.text.lower():
+                    return elem
+            except Exception as e:
+                logger.debug("find_elements_by_text: %s" % e)
 
 
 class Patcher(object):
@@ -430,7 +530,7 @@ class Patcher(object):
         self.version_full = None
 
     @classmethod
-    def auto(cls, executable_path="./chromedriver", force=False):
+    def auto(cls, executable_path=None, force=False):
         """
 
         Args:
@@ -514,9 +614,7 @@ class Patcher(object):
 
         with zipfile.ZipFile(fp, mode="r") as zf:
             zf.extract(self.exe_name, os.path.dirname(self.executable_path))
-        # os.rename(self.zip_path, self.executable_path)
         os.remove(fp)
-
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
 
@@ -575,8 +673,13 @@ class Patcher(object):
                     linect += 1
             return linect
 
+    def __repr__(self):
+        return "{0:s}({1:s})".format(
+            self.__class__.__name__,
+            self.executable_path,
+        )
 
-# class ChromeOptions(selenium.webdriver.chrome.webdriver.Options):
+
 class ChromeOptions(_ChromeOptions):
     def add_extension_file_crx(self, extension=None):
         if extension:
