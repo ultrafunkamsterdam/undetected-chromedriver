@@ -4,7 +4,7 @@
 """
 V2 beta
 
-whats new: 
+whats new:
 
     - currently this v2 module will be available as option.
       to use it / test it, you need to alter your imports by appending .v2
@@ -20,7 +20,7 @@ whats new:
 
     # if site is protected by hCaptcha/Cloudflare
     driver.get_in('https://cloudflareprotectedsite.xyz')
-    
+
     # if site is protected by hCaptcha/Cloudflare
     # (different syntax, same function)
     with driver:
@@ -44,11 +44,8 @@ import string
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 import zipfile
-import atexit
-import contextlib
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -101,11 +98,11 @@ class Chrome(object):
     __doc__ = (
         """\
     --------------------------------------------------------------------------
-    NOTE: 
+    NOTE:
     Chrome has everything included to work out of the box.
     it does not `need` customizations.
     any customizations MAY lead to trigger bot migitation systems.
-    
+
     --------------------------------------------------------------------------
     """
         + selenium.webdriver.remote.webdriver.WebDriver.__doc__
@@ -234,7 +231,7 @@ class Chrome(object):
                                     enumerable: true,
                                         get: () => {
                                             return "unknown"
-                                        },       
+                                        },
                                     });
                             """
                         },
