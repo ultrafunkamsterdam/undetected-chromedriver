@@ -152,10 +152,28 @@ class Chrome(object):
         delay=5,
     ):
         """
+<<<<<<< HEAD
         Creates a new instance of the chrome driver.
 
         Starts the service and then creates new instance of chrome driver.
 
+=======
+         Creates a new instance of the chrome driver.
+
+         Starts the service and then creates new instance of chrome driver.
+
+         # Parameters
+         # -----------
+         #  - executable_path - path to the executable. If the default is used it assumes the executable is in the $PATH
+         #  - port - port you would like the service to run, if left as 0, a free port will be found.
+         #  - options - this takes an instance of ChromeOptions
+         #  - service_args - List of args to pass to the driver service
+         #  - desired_capabilities - Dictionary object with non-browser specific
+         #    capabilities only, such as "proxy" or "loggingPref".
+         #  - service_log_path - Where to log information from the driver.
+         #  - chrome_options - Deprecated argument for options
+         #  - keep_alive - Whether to configure ChromeRemoteConnection to use HTTP keep-alive.
+>>>>>>> cf059a638cc9139f6fda5da23072488d06577071
 
         Parameters
         ----------
@@ -191,6 +209,7 @@ class Chrome(object):
 
         emulate_touch: bool, optional, default: False
             if set to True, patches window.maxTouchPoints to always return non-zero
+<<<<<<< HEAD
 
         delay: int, optional, default: 5
             delay in seconds to wait before giving back control.
@@ -224,6 +243,26 @@ class Chrome(object):
         options.add_argument("--remote-debugging-host=%s " % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
 
+=======
+
+        delay: int, optional, default: 5
+            delay in seconds to wait before giving back control.
+            this is used only when using the context manager
+            (`with` statement) to bypass, for example CloudFlare.
+            5 seconds is a foolproof value.
+
+        """
+
+        patcher = Patcher(executable_path=executable_path)
+        patcher.auto()
+
+        debug_port = selenium.webdriver.common.service.utils.free_port()
+        debug_host = "127.0.0.1"
+
+        if not options:
+            options = selenium.webdriver.chrome.webdriver.Options()
+
+>>>>>>> cf059a638cc9139f6fda5da23072488d06577071
         # see if a custom user profile is specified
         for arg in options.arguments:
             if "user-data-dir" in arg:
@@ -243,12 +282,17 @@ class Chrome(object):
         else:
             user_data_dir = os.path.normpath(tempfile.mkdtemp())
             keep_user_data_dir = False
+<<<<<<< HEAD
             arg = "--user-data-dir=%s" % user_data_dir
             options.add_argument(arg)
+=======
+            options.add_argument("--user-data-dir=%s" % user_data_dir)
+>>>>>>> cf059a638cc9139f6fda5da23072488d06577071
             logger.debug(
                 "created a temporary folder in which the user-data (profile) will be stored during this\n"
                 "session, and added it to chrome startup arguments: %s" % arg
             )
+<<<<<<< HEAD
 
         if not options.binary_location:
             options.binary_location = find_chrome_executable()
@@ -293,6 +337,52 @@ class Chrome(object):
             desired_capabilities = options.to_capabilities()
 
         # unlock_port(debug_port)
+=======
+
+        if not options.debugger_address:
+            options.debugger_address = "%s:%d" % (debug_host, debug_port)
+
+        if not options.binary_location:
+            options.binary_location = find_chrome_executable()
+
+        self._delay = delay
+
+        self.user_data_dir = user_data_dir
+        self.keep_user_data_dir = keep_user_data_dir
+
+        if headless or options.headless:
+            options.headless = True
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--start-maximized")
+
+        options.add_argument("--remote-debugging-host=%s " % debug_host)
+        options.add_argument("--remote-debugging-port=%s" % debug_port)
+        options.add_argument(
+            "--log-level=%d" % log_level
+            or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
+        )
+
+        self.options = options
+
+        # fix exit_type flag to prevent tab-restore nag
+        try:
+            with open(
+                os.path.join(user_data_dir, "Default/Preferences"),
+                encoding="latin1",
+                mode="r+",
+            ) as fs:
+                import json
+
+                config = json.load(fs)
+                if config["profile"]["exit_type"] is not None:
+                    # fixing the restore-tabs-nag
+                    config["profile"]["exit_type"] = None
+                fs.seek(0, 0)
+                fs.write(json.dumps(config, indent=4))
+                logger.debug("fixed exit_type flag")
+        except Exception as e:
+            logger.debug("did not find a bad exit_type flag ")
+>>>>>>> cf059a638cc9139f6fda5da23072488d06577071
 
         self.browser = subprocess.Popen(
             [options.binary_location, *options.arguments],
@@ -300,6 +390,9 @@ class Chrome(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+
+        if not desired_capabilities:
+            desired_capabilities = options.to_capabilities()
 
         self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
             executable_path=patcher.executable_path,
@@ -318,9 +411,15 @@ class Chrome(object):
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
                         "source": """
+<<<<<<< HEAD
                         Object.defineProperty(navigator, 'maxTouchPoints', {
                               get: () => 1
                         })"""
+=======
+                                         Object.defineProperty(navigator, 'maxTouchPoints', {
+                                                 get: () => 1
+                                         })"""
+>>>>>>> cf059a638cc9139f6fda5da23072488d06577071
                     },
                 )
 
@@ -681,6 +780,7 @@ class Patcher(object):
             self.__class__.__name__,
             self.executable_path,
         )
+<<<<<<< HEAD
 
 
 #
@@ -713,6 +813,11 @@ class ChromeOptions(_ChromeOptions):
 
     session = None
 
+=======
+
+
+class ChromeOptions(_ChromeOptions):
+>>>>>>> cf059a638cc9139f6fda5da23072488d06577071
     def add_extension_file_crx(self, extension=None):
         if extension:
             extension_to_add = os.path.abspath(os.path.expanduser(extension))
