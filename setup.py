@@ -14,16 +14,17 @@ BY ULTRAFUNKAMSTERDAM (https://github.com/ultrafunkamsterdam)"""
 from setuptools import setup
 import os
 import re
+import codecs
 
-with open(os.path.join(os.path.abspath(
-        os.path.dirname(__file__)),
-        'undetected_chromedriver',
-        '__init__.py'),
-        mode='r',
-        encoding='latin1') as fp:
+dirname = os.path.abspath(os.path.dirname(__file__))
+
+with codecs.open(
+    os.path.join(dirname, "undetected_chromedriver", "__init__.py"),
+    mode="r",
+    encoding="latin1",
+) as fp:
     try:
-        version = re.findall(r"^__version__ = '([^']+)'\r?$",
-                             fp.read(), re.M)[0]
+        version = re.findall(r"^__version__ = ['\"]([^'\"]*)['\"]", fp.read(), re.M)[0]
     except Exception:
         raise RuntimeError("unable to determine version")
 
@@ -40,16 +41,19 @@ setup(
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
     description="""\
-    selenium.webdriver.Chrome replacement with focus on stealth.
-    not triggered by Distil / CloudFlare / Imperva / DataDome / hCaptcha and such.
+    selenium.webdriver.Chrome replacement wiht compatiblity for Brave, and other Chromium baed browsers.
+    not triggered by CloudFlare/Imperva/hCaptcha and such.
     
     NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.
     """,
-    long_description=open("README.md").read(),
+    long_description=open(os.path.join(dirname, "README.md")).read(),
     long_description_content_type="text/markdown",
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
 )

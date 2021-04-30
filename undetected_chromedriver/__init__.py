@@ -31,7 +31,7 @@ from selenium.webdriver import Chrome as _Chrome
 from selenium.webdriver import ChromeOptions as _ChromeOptions
 
 logger = logging.getLogger(__name__)
-__version__ = "2.2.6"
+__version__ = "2.2.7"
 
 TARGET_VERSION = 0
 
