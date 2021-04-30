@@ -16,28 +16,16 @@ import os
 import re
 import codecs
 
-<<<<<<< HEAD
+
 dirname = os.path.abspath(os.path.dirname(__file__))
 
 with codecs.open(
     os.path.join(dirname, "undetected_chromedriver", "__init__.py"),
-=======
-with open(
-    os.path.join(
-        os.path.abspath(os.path.dirname(__file__)),
-        "undetected_chromedriver",
-        "__init__.py",
-    ),
->>>>>>> cf059a638cc9139f6fda5da23072488d06577071
     mode="r",
     encoding="latin1",
 ) as fp:
     try:
-<<<<<<< HEAD
         version = re.findall(r"^__version__ = ['\"]([^'\"]*)['\"]", fp.read(), re.M)[0]
-=======
-        version = re.findall(r"^__version__ = '([^']+)'\r?$", fp.read(), re.M)[0]
->>>>>>> cf059a638cc9139f6fda5da23072488d06577071
     except Exception:
         raise RuntimeError("unable to determine version")
 
