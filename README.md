@@ -22,12 +22,14 @@ To prevent unnecessary hair-pulling and issue-raising, please mind the **[import
 
 #### The Version 2 way ####
 Literally, this is all you have to do. Settings are included and your browser executable found automagically.
+
 ```python
 import undetected_chromedriver.v2 as uc
 driver = uc.Chrome()
 with driver:
     driver.get('https://coinfaucet.eu')  # known url using cloudflare's "under attack mode"
 ```
+
 
 
 
@@ -40,6 +42,7 @@ import undetected_chromedriver as uc
 driver = uc.Chrome()
 driver.get('https://distilnetworks.com')
 ```
+
 
 
 #### target specific chrome version  (v1 old stuff) ####
