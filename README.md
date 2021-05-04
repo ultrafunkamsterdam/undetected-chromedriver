@@ -5,8 +5,8 @@ https://github.com/ultrafunkamsterdam/undetected-chromedriver
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network / Imperva / DataDome / Botprotect.io
 Automatically downloads the driver binary and patches it.
 
-* **Tested from version 80 until current beta**
-* **Patching also works on MS Edge (chromium-based) webdriver binary**
+* **Tested until current chrome beta versions**
+* **Works also on Brave Browser and many other Chromium based browsers**
 * **Python 3.6++**
 
 ## Installation ##
@@ -20,15 +20,9 @@ To prevent unnecessary hair-pulling and issue-raising, please mind the **[import
 
 <br>
 
+#### The Version 2 way ####
+Literally, this is all you have to do. Settings are included and your browser executable found automagically.
 
-#### the easy way (recommended) ####
-```python
-import undetected_chromedriver as uc
-driver = uc.Chrome()
-driver.get('https://distilnetworks.com')
-```
-
-#### the V2 (beta) way ####
 ```python
 import undetected_chromedriver.v2 as uc
 driver = uc.Chrome()
@@ -36,7 +30,22 @@ with driver:
     driver.get('https://coinfaucet.eu')  # known url using cloudflare's "under attack mode"
 ```
 
-#### target specific chrome version ####
+
+
+
+<br>
+<br>
+
+#### the easy way (v1 old stuff) ####
+```python
+import undetected_chromedriver as uc
+driver = uc.Chrome()
+driver.get('https://distilnetworks.com')
+```
+
+
+
+#### target specific chrome version  (v1 old stuff) ####
 ```python
 import undetected_chromedriver as uc
 uc.TARGET_VERSION = 85
@@ -44,7 +53,7 @@ driver = uc.Chrome()
 ```
 
 
-#### monkeypatch mode ####
+#### monkeypatch mode  (v1 old stuff) ####
 Needs to be done before importing from selenium package
 
 ```python
@@ -58,7 +67,7 @@ driver.get('https://distilnetworks.com')
 ```
 
 
-#### the customized way ####
+#### the customized way  (v1 old stuff) ####
 ```python
 import undetected_chromedriver as uc
 
@@ -78,7 +87,7 @@ driver.get('https://distilnetworks.com')
 ```
 
 
-#### datadome.co example ####
+#### datadome.co example  (v1 old stuff) ####
 These guys have actually a powerful product, and a link to this repo, which makes me wanna test their product.
 Make sure you use a "clean" ip for this one. 
 ```python
@@ -108,7 +117,7 @@ chrome.save_screenshot('datadome_undetected_webddriver.png')
 
 
 
-## important note ##
+## important note  (v1 old stuff) ####
 
 Due to the inner workings of the module, it is needed to browse programmatically (ie: using .get(url) ). Never use the gui to navigate. Using your keybord and mouse for navigation causes possible detection! New Tabs: same story. If you really need multi-tabs, then open the tab with the blank page (hint: url is  `data:,`  including comma, and yes, driver accepts it) and do your thing as usual. If you follow these "rules" (actually its default behaviour), then you will have a great time for now. 
 
@@ -138,6 +147,5 @@ from selenium.webdriver import Chrome
 driver = uc.Chrome(chrome2use=Chrome)
 driver.get('https://distilnetworks.com')
 ```
-
 
 
