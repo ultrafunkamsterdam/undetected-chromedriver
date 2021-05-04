@@ -136,3 +136,16 @@ In [5]: None  # Undetectable!
 
 
 
+## Replacing the original Chrome ##
+
+If you want to use another Chrome class as a base class, must specify the chrome2use field when initializing the webdriver instance.
+
+```python
+import undetected_chromedriver as uc
+from selenium.webdriver import Chrome
+driver = uc.Chrome(chrome2use=Chrome)
+driver.get('https://distilnetworks.com')
+```
+
+
+
