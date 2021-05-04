@@ -143,9 +143,9 @@ If you want to use another Chrome class as a base class, must specify the chrome
 ```python
 import undetected_chromedriver as uc
 from selenium.webdriver import Chrome
-
 driver = uc.Chrome(chrome2use=Chrome)
 driver.get('https://distilnetworks.com')
 ```
+
 
 
