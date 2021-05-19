@@ -334,6 +334,7 @@ class Chrome(selenium.webdriver.Chrome):
                         "Page.addScriptToEvaluateOnNewDocument",
                         {
                             "source": """
+                            
                             Object.defineProperty(window, 'navigator', {
                                 value: new Proxy(navigator, {
                                 has: (target, key) => (key === 'webdriver' ? false : key in target),
@@ -345,17 +346,64 @@ class Chrome(selenium.webdriver.Chrome):
                                     : target[key]
                                 })
                             });
+                            
                              Object.defineProperty(window, 'chrome', {
-                                value: new Proxy(chrome, {
-                                has: (target, key) => (key === 'webdriver' ? false : key in target),
-                                get: (target, key) =>
-                                    key === 'webdriver'
-                                    ? undefined
-                                    : typeof target[key] === 'function'
-                                    ? target[key].bind(target)
-                                    : target[key]
-                                })
-                            });
+                                     value: new Proxy(window.chrome, {
+                                         has: (target,key) => true,
+                                         get: (target,key) => {
+                                             return {
+                                               usingthebestantibotprotection: true
+                                               ,
+                                               app: {
+                                                 isInstalled: false,
+                                               },
+                                               webstore: {
+                                                 onInstallStageChanged: {},
+                                                 onDownloadProgress: {},
+                                               },
+                                               runtime: {
+                                                 PlatformOs: {
+                                                   MAC: 'mac',
+                                                   WIN: 'win',
+                                                   ANDROID: 'android',
+                                                   CROS: 'cros',
+                                                   LINUX: 'linux',
+                                                   OPENBSD: 'openbsd',
+                                                 },
+                                                 PlatformArch: {
+                                                   ARM: 'arm',
+                                                   X86_32: 'x86-32',
+                                                   X86_64: 'x86-64',
+                                                 },
+                                                 PlatformNaclArch: {
+                                                   ARM: 'arm',
+                                                   X86_32: 'x86-32',
+                                                   X86_64: 'x86-64',
+                                                 },
+                                                 RequestUpdateCheckStatus: {
+                                                   THROTTLED: 'throttled',
+                                                   NO_UPDATE: 'no_update',
+                                                   UPDATE_AVAILABLE: 'update_available',
+                                                 },
+                                                 OnInstalledReason: {
+                                                   INSTALL: 'install',
+                                                   UPDATE: 'update',
+                                                   CHROME_UPDATE: 'chrome_update',
+                                                   SHARED_MODULE_UPDATE: 'shared_module_update',
+                                                 },
+                                                 OnRestartRequiredReason: {
+                                                   APP_UPDATE: 'app_update',
+                                                   OS_UPDATE: 'os_update',
+                                                   PERIODIC: 'periodic',
+                                                 },
+                                               },
+                                             }
+                                         }
+                                     })
+                                 });
+                            
+                            
+                            
                         """
                         },
                     )
