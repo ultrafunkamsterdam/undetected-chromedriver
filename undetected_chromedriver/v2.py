@@ -1,39 +1,11 @@
 #!/usr/bin/env python3
 # this module is part of undetected_chromedriver
 
-"""
-V2 beta
-
-whats new: 
-
-    - currently this v2 module will be available as option.
-      to use it / test it, you need to alter your imports by appending .v2
-
-    - headless mode not (yet) supported in v2
-
-    example:
-
-    ```python
-    import undetected_chromedriver.v2 as uc
-    driver = uc.Chrome()
-    driver.get('https://somewebsite.xyz')
-
-    # if site is protected by hCaptcha/Cloudflare
-    driver.get_in('https://cloudflareprotectedsite.xyz')
-    
-    # if site is protected by hCaptcha/Cloudflare
-    # (different syntax, same function)
-    with driver:
-        driver.get('https://cloudflareprotectedsite.xyz')
-    ```
-
-    tests/example in ../tests/test_undetected_chromedriver.py
-
-"""
-
 from __future__ import annotations
 
+import asyncio
 import io
+import json
 import logging
 import os
 import random
@@ -43,6 +15,7 @@ import string
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import zipfile
 from distutils.version import LooseVersion
@@ -96,7 +69,7 @@ def find_chrome_executable():
             return os.path.normpath(candidate)
 
 
-class Chrome(object):
+class Chrome(selenium.webdriver.Chrome):
     """
     Controls the ChromeDriver and allows you to drive the browser.
 
@@ -142,6 +115,7 @@ class Chrome(object):
         executable_path=None,
         port=0,
         options=None,
+        enable_cdp_events=False,
         service_args=None,
         desired_capabilities=None,
         service_log_path=None,
@@ -170,11 +144,19 @@ class Chrome(object):
             anything other dan the default, for example extensions or startup options
             are not supported in case of failure, and can probably lowers your undetectability.
 
+        enable_cdp_events: bool, default: False
+            :: currently for chrome only
+            this enables the handling of wire messages
+            when enabled, you can subscribe to CDP events by using:
+
+                driver.on_cdp_event("Network.dataReceived", yourcallback)
+                # yourcallback is an callable which accepts exactly 1 dict as parameter
+
         service_args: list of str, optional, default: None
             arguments to pass to the driver service
 
         desired_capabilities: dict, optional, default: None - auto from config
-            Dictionary object with non-browser specific capabilities only, such as "proxy" or "loggingPref".
+            Dictionary object with non-browser specific capabilities only, such as "item" or "loggingPref".
 
         service_log_path: str, optional, default: None
              path to log information from the driver.
@@ -204,7 +186,7 @@ class Chrome(object):
         patcher.auto()
 
         if not options:
-            options = selenium.webdriver.chrome.webdriver.Options()
+            options = ChromeOptions()
         try:
             if options.session and options.session is not None:
                 #  prevent reuse of options,
@@ -218,14 +200,28 @@ class Chrome(object):
 
         debug_port = selenium.webdriver.common.service.utils.free_port()
         debug_host = "127.0.0.1"
+
         if not options.debugger_address:
             options.debugger_address = "%s:%d" % (debug_host, debug_port)
 
-        options.add_argument("--remote-debugging-host=%s " % debug_host)
+        if enable_cdp_events:
+            options.add_experimental_option("goog:loggingPrefs", {"performance": "ALL"})
+
+        options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
 
+        user_data_dir, language, keep_user_data_dir = None, None, None
         # see if a custom user profile is specified
         for arg in options.arguments:
+
+            if "lang" in arg:
+                m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
+                try:
+                    language = m[1]
+                except IndexError:
+                    logger.debug("will set the language to en-US,en;q=0.9")
+                    language = "en-US,en;q=0.9"
+
             if "user-data-dir" in arg:
                 m = re.search("(?:--)?user-data-dir(?:[ =])?(.*)", arg)
                 try:
@@ -234,13 +230,14 @@ class Chrome(object):
                         "user-data-dir found in user argument %s => %s" % (arg, m[1])
                     )
                     keep_user_data_dir = True
-                    break
+
                 except IndexError:
                     logger.debug(
                         "no user data dir could be extracted from supplied argument %s "
                         % arg
                     )
-        else:
+
+        if not user_data_dir:
             user_data_dir = os.path.normpath(tempfile.mkdtemp())
             keep_user_data_dir = False
             arg = "--user-data-dir=%s" % user_data_dir
@@ -249,6 +246,11 @@ class Chrome(object):
                 "created a temporary folder in which the user-data (profile) will be stored during this\n"
                 "session, and added it to chrome startup arguments: %s" % arg
             )
+
+        if not language:
+            language = "en-US"
+
+        options.add_argument("--lang=%s" % language)
 
         if not options.binary_location:
             options.binary_location = find_chrome_executable()
@@ -292,13 +294,12 @@ class Chrome(object):
         if not desired_capabilities:
             desired_capabilities = options.to_capabilities()
 
-        # unlock_port(debug_port)
-
         self.browser = subprocess.Popen(
             [options.binary_location, *options.arguments],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
         )
 
         self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
@@ -311,20 +312,18 @@ class Chrome(object):
             keep_alive=keep_alive,
         )
 
-        self.__class__._instances.add((self, options))
-        if options.headless:
-            if emulate_touch:
-                self.execute_cdp_cmd(
-                    "Page.addScriptToEvaluateOnNewDocument",
-                    {
-                        "source": """
-                        Object.defineProperty(navigator, 'maxTouchPoints', {
-                              get: () => 1
-                        })"""
-                    },
-                )
+        self.reactor = None
 
-            orig_get = self.webdriver.get
+        if enable_cdp_events:
+            reactor = Reactor(self)
+            reactor.start()
+            self.reactor = reactor
+
+        # self.__class__._instances.add((self, options))
+
+        if options.headless:
+
+            orig_get = self.get
 
             logger.info("setting properties for headless")
 
@@ -335,18 +334,29 @@ class Chrome(object):
                         "Page.addScriptToEvaluateOnNewDocument",
                         {
                             "source": """
-                                Object.defineProperty(window, 'navigator', {
-                                    value: new Proxy(navigator, {
-                                    has: (target, key) => (key === 'webdriver' ? false : key in target),
-                                    get: (target, key) =>
-                                        key === 'webdriver'
-                                        ? undefined
-                                        : typeof target[key] === 'function'
-                                        ? target[key].bind(target)
-                                        : target[key]
-                                    })
-                                });
-                            """
+                            Object.defineProperty(window, 'navigator', {
+                                value: new Proxy(navigator, {
+                                has: (target, key) => (key === 'webdriver' ? false : key in target),
+                                get: (target, key) =>
+                                    key === 'webdriver'
+                                    ? undefined
+                                    : typeof target[key] === 'function'
+                                    ? target[key].bind(target)
+                                    : target[key]
+                                })
+                            });
+                             Object.defineProperty(window, 'chrome', {
+                                value: new Proxy(chrome, {
+                                has: (target, key) => (key === 'webdriver' ? false : key in target),
+                                get: (target, key) =>
+                                    key === 'webdriver'
+                                    ? undefined
+                                    : typeof target[key] === 'function'
+                                    ? target[key].bind(target)
+                                    : target[key]
+                                })
+                            });
+                        """
                         },
                     )
 
@@ -382,7 +392,7 @@ class Chrome(object):
                     )
                 return orig_get(*args, **kwargs)
 
-            self.webdriver.get = get_wrapped
+            self.get = get_wrapped
 
     def __getattribute__(self, attr):
         try:
@@ -394,7 +404,17 @@ class Chrome(object):
                 raise
 
     def __dir__(self):
-        return object.__dir__(self) + object.__dir__(self.webdriver)
+        return object.__dir__(self) + object.__dir__(self)
+
+    def add_cdp_listener(self, event_name, callback):
+        if (
+            self.reactor
+            and self.reactor is not None
+            and isinstance(self.reactor, Reactor)
+        ):
+            self.reactor.add_event_handler(event_name, callback)
+            return self.reactor.handlers
+        return False
 
     def reconnect(self):
         try:
@@ -415,11 +435,13 @@ class Chrome(object):
     def start_session(self, capabilities=None, browser_profile=None):
         if not capabilities:
             capabilities = self.options.to_capabilities()
-        self.webdriver.start_session(capabilities, browser_profile)
+        super().start_session(capabilities, browser_profile)
 
     def quit(self):
         logger.debug("closing webdriver")
         try:
+            if self.reactor and isinstance(self.reactor, Reactor):
+                self.reactor.event.set()
             self.webdriver.quit()
         except Exception:  # noqa
             pass
@@ -447,6 +469,7 @@ class Chrome(object):
                 time.sleep(1)
 
     def __del__(self):
+        logger.debug("Chrome.__del__")
         self.quit()
 
     def __enter__(self):
@@ -461,21 +484,25 @@ class Chrome(object):
     def __hash__(self):
         return hash(self.options.debugger_address)
 
-    def find_elements_by_text(self, text: str):
-        for elem in self.find_elements_by_css_selector("*"):
+    def find_elements_by_text(self, text: str, selector=None):
+        if not selector:
+            selector = "*"
+        for elem in self.find_elements_by_css_selector(selector):
             try:
                 if text.lower() in elem.text.lower():
                     yield elem
             except Exception as e:
                 logger.debug("find_elements_by_text: %s" % e)
 
-    def find_element_by_text(self, text: str):
-        for elem in self.find_elements_by_css_selector("*"):
+    def find_element_by_text(self, text: str, selector=None):
+        if not selector:
+            selector = "*"
+        for elem in self.find_elements_by_css_selector(selector):
             try:
                 if text.lower() in elem.text.lower():
                     return elem
             except Exception as e:
-                logger.debug("find_elements_by_text: %s" % e)
+                logger.debug("find_elements_by_text: {}".format(e))
 
 
 class Patcher(object):
@@ -683,34 +710,7 @@ class Patcher(object):
         )
 
 
-#
-#
-# def unlock_port(port):
-#     import os
-#     if not IS_POSIX:
-#         try:
-#
-#             c = subprocess.Popen('netstat -ano | findstr  :%d' % port, shell=True, stdout=subprocess.PIPE,
-#                                  stderr=subprocess.PIPE)
-#             stdout, stderr = c.communicate()
-#             lines = stdout.splitlines()
-#             _pid = lines[0].split(b' ')[-1].decode()
-#             c = subprocess.Popen(['taskkill', '/f', '/pid', _pid], shell=True, stdout=subprocess.PIPE,
-#                                       stderr=subprocess.PIPE)
-#             stdout, stderr = c.communicate()
-#         except Exception as e:
-#             logger.debug(e)
-#
-#     else:
-#         try:
-#             os.system('kill -15 $(lsof -i:%d)' % port)
-#         except Exception:
-#             pass
-#
-
-
 class ChromeOptions(_ChromeOptions):
-
     session = None
 
     def add_extension_file_crx(self, extension=None):
@@ -719,3 +719,86 @@ class ChromeOptions(_ChromeOptions):
             logger.debug("extension_to_add: %s" % extension_to_add)
 
         return super().add_extension(r"%s" % extension)
+
+    def add_experimental_option(self, name, value):
+        self.set_capability(name, value)
+
+
+class Reactor(threading.Thread):
+    def __init__(self, driver: Chrome):
+        super().__init__()
+
+        self.driver = driver
+        self.loop = asyncio.new_event_loop()
+
+        self.lock = threading.Lock()
+        self.event = threading.Event()
+        self.daemon = True
+        self.handlers = {}
+
+    def add_event_handler(self, method_name, callback: callable):
+        """
+
+        Parameters
+        ----------
+        event_name: str
+            example "Network.responseReceived"
+
+        callback: callable
+            callable which accepts 1 parameter: the message object dictionary
+
+        Returns
+        -------
+
+        """
+        with self.lock:
+            self.handlers[method_name.lower()] = callback
+
+    @property
+    def running(self):
+        return not self.event.is_set()
+
+    def run(self):
+        try:
+            asyncio.set_event_loop(self.loop)
+            self.loop.run_until_complete(self.listen())
+        except Exception as e:
+            logger.warning("Reactor.run() => %s", e)
+
+    async def listen(self):
+
+        while self.running:
+
+            await asyncio.sleep(0)
+
+            try:
+                with self.lock:
+                    log_entries = self.driver.get_log("performance")
+
+                for entry in log_entries:
+
+                    try:
+
+                        obj_serialized: str = entry.get("message")
+                        obj = json.loads(obj_serialized)
+                        message = obj.get("message")
+                        method = message.get("method")
+
+                        if "*" in self.handlers:
+                            await self.loop.run_in_executor(
+                                None, self.handlers["*"], message
+                            )
+                        elif method.lower() in self.handlers:
+                            await self.loop.run_in_executor(
+                                None, self.handlers[method.lower()], message
+                            )
+
+                        # print(type(message), message)
+                    except Exception as e:
+                        raise e from None
+
+            except Exception as e:
+                if "invalid session id" in str(e):
+                    pass
+                else:
+                    logging.debug("exception ignored :", e)
