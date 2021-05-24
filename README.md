@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # undetected_chromedriver #
 
 https://github.com/ultrafunkamsterdam/undetected-chromedriver
@@ -21,7 +21,7 @@ To prevent unnecessary hair-pulling and issue-raising, please mind the **[import
 
 <br>
 
-#### The Version 2 way ####
+### The Version 2 way ###
 Literally, this is all you have to do. 
 Settings are included and your browser executable is found automagically.
 This is also the snippet i recommend using in case you experience an issue.
@@ -32,7 +32,7 @@ with driver:
     driver.get('https://nowsecure.nl')  # known url using cloudflare's "under attack mode"
 ```
 
-#### The Version 2 more advanced way, including setting profie folder ####
+### The Version 2 more advanced way, including setting profie folder ###
 Literally, this is all you have to do. 
 If a specified folder does not exist, a NEW profile is created.
 Data dirs which are specified like this will not be autoremoved on exit.
@@ -58,7 +58,7 @@ with driver:
 ```
 
 
-#### The Version 2 expert mode, including Devtool/Wire events!  ####
+### The Version 2 expert mode, including Devtool/Wire events!  ###
 Literally, this is all you have to do. 
 You can now listen and subscribe to the low level devtools-protocol.
 I just recently found out that is also on planning for future release of the official chromedriver.
