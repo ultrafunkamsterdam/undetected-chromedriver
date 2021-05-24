@@ -19,19 +19,18 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 import io
 import logging
 import os
+import random
 import re
+import string
 import sys
 import zipfile
-import string
-import random
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
-from selenium.webdriver import Chrome as _Chrome
-from selenium.webdriver import ChromeOptions as _ChromeOptions
+from selenium.webdriver import Chrome as _Chrome, ChromeOptions as _ChromeOptions
 
 logger = logging.getLogger(__name__)
-__version__ = "2.3.1"
+__version__ = "3.0.0"
 
 TARGET_VERSION = 0
 
@@ -73,61 +72,7 @@ class Chrome:
                                        })
                                    });
                                     
-                                    
-                                     Object.defineProperty(window, 'chrome', {
-                                     value: new Proxy(window.chrome, {
-                                         has: (target,key) => true,
-                                         get: (target,key) => {
-                                             return {
-                                               usingthebestantibotprotection: true
-                                               ,
-                                               app: {
-                                                 isInstalled: false,
-                                               },
-                                               webstore: {
-                                                 onInstallStageChanged: {},
-                                                 onDownloadProgress: {},
-                                               },
-                                               runtime: {
-                                                 PlatformOs: {
-                                                   MAC: 'mac',
-                                                   WIN: 'win',
-                                                   ANDROID: 'android',
-                                                   CROS: 'cros',
-                                                   LINUX: 'linux',
-                                                   OPENBSD: 'openbsd',
-                                                 },
-                                                 PlatformArch: {
-                                                   ARM: 'arm',
-                                                   X86_32: 'x86-32',
-                                                   X86_64: 'x86-64',
-                                                 },
-                                                 PlatformNaclArch: {
-                                                   ARM: 'arm',
-                                                   X86_32: 'x86-32',
-                                                   X86_64: 'x86-64',
-                                                 },
-                                                 RequestUpdateCheckStatus: {
-                                                   THROTTLED: 'throttled',
-                                                   NO_UPDATE: 'no_update',
-                                                   UPDATE_AVAILABLE: 'update_available',
-                                                 },
-                                                 OnInstalledReason: {
-                                                   INSTALL: 'install',
-                                                   UPDATE: 'update',
-                                                   CHROME_UPDATE: 'chrome_update',
-                                                   SHARED_MODULE_UPDATE: 'shared_module_update',
-                                                 },
-                                                 OnRestartRequiredReason: {
-                                                   APP_UPDATE: 'app_update',
-                                                   OS_UPDATE: 'os_update',
-                                                   PERIODIC: 'periodic',
-                                                 },
-                                               },
-                                             }
-                                         }
-                                     })
-                                 });                            
+                                                            
                         """
                     },
                 )
@@ -176,7 +121,6 @@ class ChromeOptions:
 
 
 class ChromeDriverManager(object):
-
     installed = False
     selenium_patched = False
     target_version = None

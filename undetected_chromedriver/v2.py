@@ -3,70 +3,29 @@
 
 from __future__ import annotations
 
-import asyncio
-import io
 import json
 import logging
 import os
-import random
 import re
 import shutil
-import string
 import subprocess
 import sys
 import tempfile
-import threading
 import time
-import zipfile
-from distutils.version import LooseVersion
-from urllib.request import urlopen, urlretrieve
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
-from selenium.webdriver.chrome.options import Options as _ChromeOptions
 
-__all__ = ("Chrome", "ChromeOptions", "Patcher", "find_chrome_executable")
+from .options import ChromeOptions
+from .patcher import IS_POSIX, Patcher
+from .reactor import Reactor
 
-IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
+__all__ = ("Chrome", "ChromeOptions", "Patcher", "Reactor", "find_chrome_executable")
 
 logger = logging.getLogger("uc")
 logger.setLevel(logging.getLogger().getEffectiveLevel())
-
-
-def find_chrome_executable():
-    """
-    Finds the chrome, chrome beta, chrome canary, chromium executable
-
-    Returns
-    -------
-    executable_path :  str
-        the full file path to found executable
-
-    """
-    candidates = set()
-    if IS_POSIX:
-        for item in os.environ.get("PATH").split(os.pathsep):
-            for subitem in ("google-chrome", "chromium", "chromium-browser"):
-                candidates.add(os.sep.join((item, subitem)))
-        if "darwin" in sys.platform:
-            candidates.update(
-                ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
-            )
-    else:
-        for item in map(
-            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
-        ):
-            for subitem in (
-                "Google/Chrome/Application",
-                "Google/Chrome Beta/Application",
-                "Google/Chrome Canary/Application",
-            ):
-                candidates.add(os.sep.join((item, subitem, "chrome.exe")))
-    for candidate in candidates:
-        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
-            return os.path.normpath(candidate)
 
 
 class Chrome(selenium.webdriver.Chrome):
@@ -119,10 +78,9 @@ class Chrome(selenium.webdriver.Chrome):
         service_args=None,
         desired_capabilities=None,
         service_log_path=None,
-        keep_alive=True,
+        keep_alive=False,
         log_level=0,
         headless=False,
-        emulate_touch=False,
         delay=5,
     ):
         """
@@ -187,6 +145,7 @@ class Chrome(selenium.webdriver.Chrome):
 
         if not options:
             options = ChromeOptions()
+
         try:
             if options.session and options.session is not None:
                 #  prevent reuse of options,
@@ -205,12 +164,13 @@ class Chrome(selenium.webdriver.Chrome):
             options.debugger_address = "%s:%d" % (debug_host, debug_port)
 
         if enable_cdp_events:
-            options.add_experimental_option("goog:loggingPrefs", {"performance": "ALL"})
+            options.set_capability("goog:loggingPrefs", {"performance": "ALL"})
 
         options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
 
         user_data_dir, language, keep_user_data_dir = None, None, None
+
         # see if a custom user profile is specified
         for arg in options.arguments:
 
@@ -238,17 +198,32 @@ class Chrome(selenium.webdriver.Chrome):
                     )
 
         if not user_data_dir:
-            user_data_dir = os.path.normpath(tempfile.mkdtemp())
-            keep_user_data_dir = False
-            arg = "--user-data-dir=%s" % user_data_dir
-            options.add_argument(arg)
-            logger.debug(
-                "created a temporary folder in which the user-data (profile) will be stored during this\n"
-                "session, and added it to chrome startup arguments: %s" % arg
-            )
+            if options.user_data_dir:
+                options.add_argument("--user-data-dir=%s" % options.user_data_dir)
+                keep_user_data_dir = True
+                logger.debug(
+                    "user_data_dir property found in options object: %s" % user_data_dir
+                )
+
+            else:
+                user_data_dir = os.path.normpath(tempfile.mkdtemp())
+                keep_user_data_dir = False
+                arg = "--user-data-dir=%s" % user_data_dir
+                options.add_argument(arg)
+                logger.debug(
+                    "created a temporary folder in which the user-data (profile) will be stored during this\n"
+                    "session, and added it to chrome startup arguments: %s" % arg
+                )
 
         if not language:
-            language = "en-US"
+            try:
+                import locale
+
+                language = locale.getdefaultlocale()[0].replace("_", "-")
+            except Exception:
+                pass
+            if not language:
+                language = "en-US"
 
         options.add_argument("--lang=%s" % language)
 
@@ -277,7 +252,6 @@ class Chrome(selenium.webdriver.Chrome):
                 encoding="latin1",
                 mode="r+",
             ) as fs:
-                import json
 
                 config = json.load(fs)
                 if config["profile"]["exit_type"] is not None:
@@ -300,9 +274,10 @@ class Chrome(selenium.webdriver.Chrome):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            close_fds=True,
         )
 
-        self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
+        super().__init__(
             executable_path=patcher.executable_path,
             port=port,
             options=options,
@@ -312,9 +287,25 @@ class Chrome(selenium.webdriver.Chrome):
             keep_alive=keep_alive,
         )
 
+        # self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
+        #     executable_path=patcher.executable_path,
+        #     port=port,
+        #     options=options,
+        #     service_args=service_args,
+        #     desired_capabilities=desired_capabilities,
+        #     service_log_path=service_log_path,
+        #     keep_alive=keep_alive,
+        # )
+
         self.reactor = None
 
         if enable_cdp_events:
+
+            if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+                logging.getLogger(
+                    "selenium.webdriver.remote.remote_connection"
+                ).setLevel(20)
+
             reactor = Reactor(self)
             reactor.start()
             self.reactor = reactor
@@ -322,94 +313,40 @@ class Chrome(selenium.webdriver.Chrome):
         # self.__class__._instances.add((self, options))
 
         if options.headless:
+            self._configure_headless()
 
-            orig_get = self.get
+    def _configure_headless(self):
 
-            logger.info("setting properties for headless")
+        orig_get = self.get
 
-            def get_wrapped(*args, **kwargs):
+        logger.info("setting properties for headless")
 
-                if self.execute_script("return navigator.webdriver"):
-                    self.execute_cdp_cmd(
-                        "Page.addScriptToEvaluateOnNewDocument",
-                        {
-                            "source": """
-                            
+        def get_wrapped(*args, **kwargs):
+
+            if self.execute_script("return navigator.webdriver"):
+                logger.info("patch navigator.webdriver")
+                self.execute_cdp_cmd(
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    {
+                        "source": """
+                        
                             Object.defineProperty(window, 'navigator', {
                                 value: new Proxy(navigator, {
-                                has: (target, key) => (key === 'webdriver' ? false : key in target),
-                                get: (target, key) =>
-                                    key === 'webdriver'
-                                    ? undefined
-                                    : typeof target[key] === 'function'
-                                    ? target[key].bind(target)
-                                    : target[key]
-                                })
+                                        has: (target, key) => (key === 'webdriver' ? false : key in target),
+                                        get: (target, key) =>
+                                                key === 'webdriver' ?
+                                                undefined :
+                                                typeof target[key] === 'function' ?
+                                                target[key].bind(target) :
+                                                target[key]
+                                        })
                             });
                             
-                             Object.defineProperty(window, 'chrome', {
-                                     value: new Proxy(window.chrome, {
-                                         has: (target,key) => true,
-                                         get: (target,key) => {
-                                             return {
-                                               usingthebestantibotprotection: true
-                                               ,
-                                               app: {
-                                                 isInstalled: false,
-                                               },
-                                               webstore: {
-                                                 onInstallStageChanged: {},
-                                                 onDownloadProgress: {},
-                                               },
-                                               runtime: {
-                                                 PlatformOs: {
-                                                   MAC: 'mac',
-                                                   WIN: 'win',
-                                                   ANDROID: 'android',
-                                                   CROS: 'cros',
-                                                   LINUX: 'linux',
-                                                   OPENBSD: 'openbsd',
-                                                 },
-                                                 PlatformArch: {
-                                                   ARM: 'arm',
-                                                   X86_32: 'x86-32',
-                                                   X86_64: 'x86-64',
-                                                 },
-                                                 PlatformNaclArch: {
-                                                   ARM: 'arm',
-                                                   X86_32: 'x86-32',
-                                                   X86_64: 'x86-64',
-                                                 },
-                                                 RequestUpdateCheckStatus: {
-                                                   THROTTLED: 'throttled',
-                                                   NO_UPDATE: 'no_update',
-                                                   UPDATE_AVAILABLE: 'update_available',
-                                                 },
-                                                 OnInstalledReason: {
-                                                   INSTALL: 'install',
-                                                   UPDATE: 'update',
-                                                   CHROME_UPDATE: 'chrome_update',
-                                                   SHARED_MODULE_UPDATE: 'shared_module_update',
-                                                 },
-                                                 OnRestartRequiredReason: {
-                                                   APP_UPDATE: 'app_update',
-                                                   OS_UPDATE: 'os_update',
-                                                   PERIODIC: 'periodic',
-                                                 },
-                                               },
-                                             }
-                                         }
-                                     })
-                                 });
-                            
-                            
-                            
-                        """
-                        },
-                    )
+                    """
+                    },
+                )
 
-                logger.info("removing headless from user-agent string")
-
+                logger.info("patch user-agent string")
                 self.execute_cdp_cmd(
                     "Network.setUserAgentOverride",
                     {
@@ -418,6 +355,10 @@ class Chrome(selenium.webdriver.Chrome):
                         ).replace("Headless", "")
                     },
                 )
+
+            if self.options.mock_permissions:
+                logger.info("patch permissions api")
+
                 self.execute_cdp_cmd(
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
@@ -428,31 +369,126 @@ class Chrome(selenium.webdriver.Chrome):
                     },
                 )
 
-                if emulate_touch:
-                    self.execute_cdp_cmd(
-                        "Page.addScriptToEvaluateOnNewDocument",
-                        {
-                            "source": """
-                                Object.defineProperty(navigator, 'maxTouchPoints', {
-                                        get: () => 1
-                                })"""
-                        },
-                    )
-                return orig_get(*args, **kwargs)
+            if self.options.emulate_touch:
+                logger.info("patch emulate touch")
 
-            self.get = get_wrapped
+                self.execute_cdp_cmd(
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    {
+                        "source": """
+                            Object.defineProperty(navigator, 'maxTouchPoints', {
+                                    get: () => 1
+                            })"""
+                    },
+                )
 
-    def __getattribute__(self, attr):
-        try:
-            return object.__getattribute__(self, attr)
-        except AttributeError:
-            try:
-                return object.__getattribute__(self.webdriver, attr)
-            except AttributeError:
-                raise
+            if self.options.mock_canvas_fp:
+                logger.info("patch HTMLCanvasElement fingerprinting")
+
+                self.execute_cdp_cmd(
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    {
+                        "source": """
+                        (function() {
+                            const ORIGINAL_CANVAS = HTMLCanvasElement.prototype[name];
+                            Object.defineProperty(HTMLCanvasElement.prototype, name, {
+                                    "value": function() {
+                                            var shift = {
+                                                    'r': Math.floor(Math.random() * 10) - 5,
+                                                    'g': Math.floor(Math.random() * 10) - 5,
+                                                    'b': Math.floor(Math.random() * 10) - 5,
+                                                    'a': Math.floor(Math.random() * 10) - 5
+                                            };
+                                            var width = this.width,
+                                                    height = this.height,
+                                                    context = this.getContext("2d");
+                                            var imageData = context.getImageData(0, 0, width, height);
+                                            for (var i = 0; i < height; i++) {
+                                                    for (var j = 0; j < width; j++) {
+                                                            var n = ((i * (width * 4)) + (j * 4));
+                                                            imageData.data[n + 0] = imageData.data[n + 0] + shift.r;
+                                                            imageData.data[n + 1] = imageData.data[n + 1] + shift.g;
+                                                            imageData.data[n + 2] = imageData.data[n + 2] + shift.b;
+                                                            imageData.data[n + 3] = imageData.data[n + 3] + shift.a;
+                                                    }
+                                            }
+                                            context.putImageData(imageData, 0, 0);
+                                            return ORIGINAL_CANVAS.apply(this, arguments);
+                                    }
+                            });
+                        })(this)
+                        """
+                    },
+                )
+
+            if self.options.mock_chrome_global:
+                self.execute_cdp_cmd(
+                    "Page.addScriptToEvaluateOnNewDocument",
+                    {
+                        "source": """
+                            
+                            Object.defineProperty(window, 'chrome', {
+                                value: new Proxy(window.chrome, {
+                                        has: (target, key) => true,
+                                        get: (target, key) => {
+                                                return {
+                                                        app: {
+                                                                isInstalled: false,
+                                                        },
+                                                        webstore: {
+                                                                onInstallStageChanged: {},
+                                                                onDownloadProgress: {},
+                                                        },
+                                                        runtime: {
+                                                                PlatformOs: {
+                                                                        MAC: 'mac',
+                                                                        WIN: 'win',
+                                                                        ANDROID: 'android',
+                                                                        CROS: 'cros',
+                                                                        LINUX: 'linux',
+                                                                        OPENBSD: 'openbsd',
+                                                                },
+                                                                PlatformArch: {
+                                                                        ARM: 'arm',
+                                                                        X86_32: 'x86-32',
+                                                                        X86_64: 'x86-64',
+                                                                },
+                                                                PlatformNaclArch: {
+                                                                        ARM: 'arm',
+                                                                        X86_32: 'x86-32',
+                                                                        X86_64: 'x86-64',
+                                                                },
+                                                                RequestUpdateCheckStatus: {
+                                                                        THROTTLED: 'throttled',
+                                                                        NO_UPDATE: 'no_update',
+                                                                        UPDATE_AVAILABLE: 'update_available',
+                                                                },
+                                                                OnInstalledReason: {
+                                                                        INSTALL: 'install',
+                                                                        UPDATE: 'update',
+                                                                        CHROME_UPDATE: 'chrome_update',
+                                                                        SHARED_MODULE_UPDATE: 'shared_module_update',
+                                                                },
+                                                                OnRestartRequiredReason: {
+                                                                        APP_UPDATE: 'app_update',
+                                                                        OS_UPDATE: 'os_update',
+                                                                        PERIODIC: 'periodic',
+                                                                },
+                                                        },
+                                                }
+                                        }
+                                })
+                            });
+                            """
+                    },
+                )
+
+            return orig_get(*args, **kwargs)
+
+        self.get = get_wrapped
 
     def __dir__(self):
-        return object.__dir__(self) + object.__dir__(self)
+        return object.__dir__(self)
 
     def add_cdp_listener(self, event_name, callback):
         if (
@@ -486,21 +522,25 @@ class Chrome(selenium.webdriver.Chrome):
         super().start_session(capabilities, browser_profile)
 
     def quit(self):
+
         logger.debug("closing webdriver")
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
                 self.reactor.event.set()
-            self.webdriver.quit()
+            super().quit()
+
         except Exception:  # noqa
             pass
         try:
             logger.debug("killing browser")
             self.browser.kill()
             self.browser.wait(1)
+
         except TimeoutError as e:
             logger.debug(e, exc_info=True)
         except Exception:  # noqa
             pass
+
         if not self.keep_user_data_dir or self.keep_user_data_dir is False:
             for _ in range(3):
                 try:
@@ -553,300 +593,35 @@ class Chrome(selenium.webdriver.Chrome):
                 logger.debug("find_elements_by_text: {}".format(e))
 
 
-class Patcher(object):
-    url_repo = "https://chromedriver.storage.googleapis.com"
-    zip_name = "chromedriver_%s.zip"
-    exe_name = "chromedriver%s"
+def find_chrome_executable():
+    """
+    Finds the chrome, chrome beta, chrome canary, chromium executable
 
-    platform = sys.platform
-    if platform.endswith("win32"):
-        zip_name %= "win32"
-        exe_name %= ".exe"
-    if platform.endswith("linux"):
-        zip_name %= "linux64"
-        exe_name %= ""
-    if platform.endswith("darwin"):
-        zip_name %= "mac64"
-        exe_name %= ""
+    Returns
+    -------
+    executable_path :  str
+        the full file path to found executable
 
-    if platform.endswith("win32"):
-        d = "~/appdata/roaming/undetected_chromedriver"
-    elif platform.startswith("linux"):
-        d = "~/.local/share/undetected_chromedriver"
-    elif platform.endswith("darwin"):
-        d = "~/Library/Application Support/undetected_chromedriver"
+    """
+    candidates = set()
+    if IS_POSIX:
+        for item in os.environ.get("PATH").split(os.pathsep):
+            for subitem in ("google-chrome", "chromium", "chromium-browser"):
+                candidates.add(os.sep.join((item, subitem)))
+        if "darwin" in sys.platform:
+            candidates.update(
+                ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+            )
     else:
-        d = "~/.undetected_chromedriver"
-    data_path = os.path.abspath(os.path.expanduser(d))
-
-    def __init__(self, executable_path=None, force=False, version_main: int = 0):
-        """
-
-        Args:
-            executable_path: None = automatic
-                             a full file path to the chromedriver executable
-            force: False
-                    terminate processes which are holding lock
-            version_main: 0 = auto
-                specify main chrome version (rounded, ex: 82)
-        """
-
-        self.force = force
-
-        if not executable_path:
-            executable_path = os.path.join(self.data_path, self.exe_name)
-
-        if not IS_POSIX:
-            if not executable_path[-4:] == ".exe":
-                executable_path += ".exe"
-
-        self.zip_path = os.path.join(self.data_path, self.zip_name)
-
-        self.executable_path = os.path.abspath(os.path.join(".", executable_path))
-
-        self.version_main = version_main
-        self.version_full = None
-
-    @classmethod
-    def auto(cls, executable_path=None, force=False):
-        """
-
-        Args:
-            force:
-
-        Returns:
-
-        """
-        i = cls(executable_path, force=force)
-        try:
-            os.unlink(i.executable_path)
-        except PermissionError:
-            if i.force:
-                cls.force_kill_instances(i.executable_path)
-                return i.auto(force=False)
-            try:
-                if i.is_binary_patched():
-                    # assumes already running AND patched
-                    return True
-            except PermissionError:
-                pass
-            # return False
-        except FileNotFoundError:
-            pass
-
-        release = i.fetch_release_number()
-        i.version_main = release.version[0]
-        i.version_full = release
-        i.unzip_package(i.fetch_package())
-        i.patch()
-        return i
-
-    def patch(self):
-        self.patch_exe()
-        return self.is_binary_patched()
-
-    def fetch_release_number(self):
-        """
-        Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
-        :return: version string
-        :rtype: LooseVersion
-        """
-        path = "/latest_release"
-        if self.version_main:
-            path += f"_{self.version_main}"
-        path = path.upper()
-        logger.debug("getting release number from %s" % path)
-        return LooseVersion(urlopen(self.url_repo + path).read().decode())
-
-    def parse_exe_version(self):
-        with io.open(self.executable_path, "rb") as f:
-            for line in iter(lambda: f.readline(), b""):
-                match = re.search(br"platform_handle\x00content\x00([0-9.]*)", line)
-                if match:
-                    return LooseVersion(match[1].decode())
-
-    def fetch_package(self):
-        """
-        Downloads ChromeDriver from source
-
-        :return: path to downloaded file
-        """
-        u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
-        logger.debug("downloading from %s" % u)
-        # return urlretrieve(u, filename=self.data_path)[0]
-        return urlretrieve(u)[0]
-
-    def unzip_package(self, fp):
-        """
-        Does what it says
-
-        :return: path to unpacked executable
-        """
-        logger.debug("unzipping %s" % fp)
-        try:
-            os.unlink(self.zip_path)
-        except (FileNotFoundError, OSError):
-            pass
-
-        os.makedirs(self.data_path, mode=0o755, exist_ok=True)
-
-        with zipfile.ZipFile(fp, mode="r") as zf:
-            zf.extract(self.exe_name, os.path.dirname(self.executable_path))
-        os.remove(fp)
-        os.chmod(self.executable_path, 0o755)
-        return self.executable_path
-
-    @staticmethod
-    def force_kill_instances(exe_name):
-        """
-        kills running instances.
-        :param: executable name to kill, may be a path as well
-
-        :return: True on success else False
-        """
-        exe_name = os.path.basename(exe_name)
-        if IS_POSIX:
-            r = os.system("kill -f -9 $(pidof %s)" % exe_name)
-        else:
-            r = os.system("taskkill /f /im %s" % exe_name)
-        return not r
-
-    @staticmethod
-    def gen_random_cdc():
-        cdc = random.choices(string.ascii_lowercase, k=26)
-        cdc[-6:-4] = map(str.upper, cdc[-6:-4])
-        cdc[2] = cdc[0]
-        cdc[3] = "_"
-        return "".join(cdc).encode()
-
-    def is_binary_patched(self, executable_path=None):
-        """simple check if executable is patched.
-
-        :return: False if not patched, else True
-        """
-        executable_path = executable_path or self.executable_path
-        with io.open(executable_path, "rb") as fh:
-            for line in iter(lambda: fh.readline(), b""):
-                if b"cdc_" in line:
-                    return False
-            else:
-                return True
-
-    def patch_exe(self):
-        """
-        Patches the ChromeDriver binary
-
-        :return: False on failure, binary name on success
-        """
-        logger.info("patching driver executable %s" % self.executable_path)
-
-        linect = 0
-        replacement = self.gen_random_cdc()
-        with io.open(self.executable_path, "r+b") as fh:
-            for line in iter(lambda: fh.readline(), b""):
-                if b"cdc_" in line:
-                    fh.seek(-len(line), 1)
-                    newline = re.sub(b"cdc_.{22}", replacement, line)
-                    fh.write(newline)
-                    linect += 1
-            return linect
-
-    def __repr__(self):
-        return "{0:s}({1:s})".format(
-            self.__class__.__name__,
-            self.executable_path,
-        )
-
-
-class ChromeOptions(_ChromeOptions):
-    session = None
-
-    def add_extension_file_crx(self, extension=None):
-        if extension:
-            extension_to_add = os.path.abspath(os.path.expanduser(extension))
-            logger.debug("extension_to_add: %s" % extension_to_add)
-
-        return super().add_extension(r"%s" % extension)
-
-    def add_experimental_option(self, name, value):
-        self.set_capability(name, value)
-
-
-class Reactor(threading.Thread):
-    def __init__(self, driver: Chrome):
-        super().__init__()
-
-        self.driver = driver
-        self.loop = asyncio.new_event_loop()
-
-        self.lock = threading.Lock()
-        self.event = threading.Event()
-        self.daemon = True
-        self.handlers = {}
-
-    def add_event_handler(self, method_name, callback: callable):
-        """
-
-        Parameters
-        ----------
-        event_name: str
-            example "Network.responseReceived"
-
-        callback: callable
-            callable which accepts 1 parameter: the message object dictionary
-
-        Returns
-        -------
-
-        """
-        with self.lock:
-            self.handlers[method_name.lower()] = callback
-
-    @property
-    def running(self):
-        return not self.event.is_set()
-
-    def run(self):
-        try:
-            asyncio.set_event_loop(self.loop)
-            self.loop.run_until_complete(self.listen())
-        except Exception as e:
-            logger.warning("Reactor.run() => %s", e)
-
-    async def listen(self):
-
-        while self.running:
-
-            await asyncio.sleep(0)
-
-            try:
-                with self.lock:
-                    log_entries = self.driver.get_log("performance")
-
-                for entry in log_entries:
-
-                    try:
-
-                        obj_serialized: str = entry.get("message")
-                        obj = json.loads(obj_serialized)
-                        message = obj.get("message")
-                        method = message.get("method")
-
-                        if "*" in self.handlers:
-                            await self.loop.run_in_executor(
-                                None, self.handlers["*"], message
-                            )
-                        elif method.lower() in self.handlers:
-                            await self.loop.run_in_executor(
-                                None, self.handlers[method.lower()], message
-                            )
-
-                        # print(type(message), message)
-                    except Exception as e:
-                        raise e from None
-
-            except Exception as e:
-                if "invalid session id" in str(e):
-                    pass
-                else:
-                    logging.debug("exception ignored :", e)
+        for item in map(
+            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+        ):
+            for subitem in (
+                "Google/Chrome/Application",
+                "Google/Chrome Beta/Application",
+                "Google/Chrome Canary/Application",
+            ):
+                candidates.add(os.sep.join((item, subitem, "chrome.exe")))
+    for candidate in candidates:
+        if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            return os.path.normpath(candidate)
