@@ -19,19 +19,19 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 import io
 import logging
 import os
+import random
 import re
+import string
 import sys
 import zipfile
-import string
-import random
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
-from selenium.webdriver import Chrome as _Chrome
-from selenium.webdriver import ChromeOptions as _ChromeOptions
+from selenium.webdriver import Chrome as _Chrome, ChromeOptions as _ChromeOptions
 
 logger = logging.getLogger(__name__)
-__version__ = "2.2.7"
+__version__ = "3.0.0"
+
 
 TARGET_VERSION = 0
 
@@ -72,7 +72,9 @@ class Chrome:
                                            : target[key]
                                        })
                                    });
-                               """
+                                    
+                                                            
+                        """
                     },
                 )
             return instance._orig_get(*args, **kwargs)
@@ -120,7 +122,6 @@ class ChromeOptions:
 
 
 class ChromeDriverManager(object):
-
     installed = False
     selenium_patched = False
     target_version = None

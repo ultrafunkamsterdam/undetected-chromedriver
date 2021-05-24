@@ -36,6 +36,8 @@ setup(
     packages=["undetected_chromedriver"],
     install_requires=[
         "selenium",
+        "requests",
+        "websockets",
     ],
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
     license="GPL-3.0",
