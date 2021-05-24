@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # undetected_chromedriver #
 
 https://github.com/ultrafunkamsterdam/undetected-chromedriver
@@ -1103,9 +1104,3 @@ chrome.save_screenshot('datadome_undetected_webddriver.png')
 
 ```
 **Check both saved screenhots [here](https://imgur.com/a/fEmqadP)**
-
-
-
-
-
-

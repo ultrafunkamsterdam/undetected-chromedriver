@@ -30,15 +30,14 @@ logger.setLevel(logging.getLogger().getEffectiveLevel())
 
 class Chrome(selenium.webdriver.Chrome):
     """
+
     Controls the ChromeDriver and allows you to drive the browser.
 
     The webdriver file will be downloaded by this module automatically,
     you do not need to specify this. however, you may if you wish.
 
-
     Attributes
     ----------
-
 
     Methods
     -------
@@ -56,7 +55,6 @@ class Chrome(selenium.webdriver.Chrome):
         differentiates from the regular method in that it does not
         require a capabilities argument. The capabilities are automatically
         recreated from the options at creation time.
-
 
     --------------------------------------------------------------------------
         NOTE:
@@ -87,7 +85,6 @@ class Chrome(selenium.webdriver.Chrome):
         Creates a new instance of the chrome driver.
 
         Starts the service and then creates new instance of chrome driver.
-
 
         Parameters
         ----------
@@ -198,6 +195,7 @@ class Chrome(selenium.webdriver.Chrome):
                     )
 
         if not user_data_dir:
+
             if options.user_data_dir:
                 options.add_argument("--user-data-dir=%s" % options.user_data_dir)
                 keep_user_data_dir = True
@@ -252,7 +250,6 @@ class Chrome(selenium.webdriver.Chrome):
                 encoding="latin1",
                 mode="r+",
             ) as fs:
-
                 config = json.load(fs)
                 if config["profile"]["exit_type"] is not None:
                     # fixing the restore-tabs-nag
@@ -298,7 +295,6 @@ class Chrome(selenium.webdriver.Chrome):
         # )
 
         self.reactor = None
-
         if enable_cdp_events:
 
             if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
@@ -309,8 +305,6 @@ class Chrome(selenium.webdriver.Chrome):
             reactor = Reactor(self)
             reactor.start()
             self.reactor = reactor
-
-        # self.__class__._instances.add((self, options))
 
         if options.headless:
             self._configure_headless()
@@ -522,7 +516,6 @@ class Chrome(selenium.webdriver.Chrome):
         super().start_session(capabilities, browser_profile)
 
     def quit(self):
-
         logger.debug("closing webdriver")
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
@@ -572,10 +565,8 @@ class Chrome(selenium.webdriver.Chrome):
     def __hash__(self):
         return hash(self.options.debugger_address)
 
-    def find_elements_by_text(self, text: str, selector=None):
-        if not selector:
-            selector = "*"
-        for elem in self.find_elements_by_css_selector(selector):
+    def find_elements_by_text(self, text: str):
+        for elem in self.find_elements_by_css_selector("*"):
             try:
                 if text.lower() in elem.text.lower():
                     yield elem

@@ -38,6 +38,7 @@ def test_undetected_chromedriver():
     driver = uc.Chrome()
 
     with driver:
+
         driver.get("https://nowsecure.nl")
     time.sleep(4)  # sleep only used for timing of screenshot
     driver.save_screenshot("nowsecure.nl.png")
