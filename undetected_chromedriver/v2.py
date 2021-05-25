@@ -270,7 +270,7 @@ class Chrome(selenium.webdriver.Chrome):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            #creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             close_fds=True,
         )
 
