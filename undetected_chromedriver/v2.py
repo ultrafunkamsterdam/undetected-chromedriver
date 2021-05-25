@@ -104,7 +104,7 @@ class Chrome(selenium.webdriver.Chrome):
             this enables the handling of wire messages
             when enabled, you can subscribe to CDP events by using:
 
-                driver.on_cdp_event("Network.dataReceived", yourcallback)
+                driver.add_cdp_listener("Network.dataReceived", yourcallback)
                 # yourcallback is an callable which accepts exactly 1 dict as parameter
 
         service_args: list of str, optional, default: None
@@ -255,7 +255,7 @@ class Chrome(selenium.webdriver.Chrome):
                     # fixing the restore-tabs-nag
                     config["profile"]["exit_type"] = None
                 fs.seek(0, 0)
-                fs.write(json.dumps(config, indent=4))
+                json.dump(config, fs)
                 logger.debug("fixed exit_type flag")
         except Exception as e:
             logger.debug("did not find a bad exit_type flag ")
@@ -283,7 +283,7 @@ class Chrome(selenium.webdriver.Chrome):
             service_log_path=service_log_path,
             keep_alive=keep_alive,
         )
-
+        # intentional
         # self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
         #     executable_path=patcher.executable_path,
         #     port=port,
@@ -493,7 +493,11 @@ class Chrome(selenium.webdriver.Chrome):
             self.reactor.add_event_handler(event_name, callback)
             return self.reactor.handlers
         return False
-
+    
+    def clear_cdp_listeners(self):
+        if self.reactor and isinstance(self.reactor, Reactor):
+            self.reactor.handlers.clear()
+            
     def reconnect(self):
         try:
             self.service.stop()
