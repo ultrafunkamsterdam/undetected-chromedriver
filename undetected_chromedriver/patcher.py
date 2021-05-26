@@ -72,16 +72,10 @@ class Patcher(object):
         self.version_full = None
 
     @classmethod
-    def auto(cls, executable_path=None, force=False):
+    def auto(cls, executable_path=None, force=False, version_main=None):
         """
-
-        Args:
-            force:
-
-        Returns:
-
         """
-        i = cls(executable_path, force=force)
+        i = cls(executable_path, force=force, version_main=version_main)
         try:
             os.unlink(i.executable_path)
         except PermissionError:
