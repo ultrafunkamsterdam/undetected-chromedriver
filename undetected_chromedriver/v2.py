@@ -80,6 +80,8 @@ class Chrome(selenium.webdriver.Chrome):
         log_level=0,
         headless=False,
         delay=5,
+        version_main=None,
+        force_patcher=False,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -135,11 +137,20 @@ class Chrome(selenium.webdriver.Chrome):
             (`with` statement) to bypass, for example CloudFlare.
             5 seconds is a foolproof value.
 
+        version_main: int, optional, default: None (=auto)
+            if you, for god knows whatever reason, use 
+            an older version of Chrome. You can specify it's full rounded version number
+            here. Example: 87 for all versions of 87
+
+        patcher_force_close: bool, optional, default: False
+            instructs the patcher to do whatever it can to access the chromedriver binary
+            if the file is locked, it will force shutdown all instances.
+            setting it is not recommended, unless you know the implications and think
+            you might need it.
         """
 
-        patcher = Patcher(executable_path=executable_path)
-        patcher.auto()
-
+        Patcher.auto(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
+        
         if not options:
             options = ChromeOptions()
 
