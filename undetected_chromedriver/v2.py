@@ -106,11 +106,7 @@ class Chrome(selenium.webdriver.Chrome):
             this enables the handling of wire messages
             when enabled, you can subscribe to CDP events by using:
 
-<<<<<<< HEAD
-                driver.on_cdp_event("Network.dataReceived", yourcallback)
-=======
                 driver.add_cdp_listener("Network.dataReceived", yourcallback)
->>>>>>> 6a58ec9f6179aed1c1f8e246d8f5d77cdb07228f
                 # yourcallback is an callable which accepts exactly 1 dict as parameter
 
         service_args: list of str, optional, default: None
@@ -152,7 +148,7 @@ class Chrome(selenium.webdriver.Chrome):
             setting it is not recommended, unless you know the implications and think
             you might need it.
         """
-        patcher=Patcher.auto(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
+        patcher = Patcher.auto(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
         
         if not options:
             options = ChromeOptions()
