@@ -81,7 +81,7 @@ class Chrome(selenium.webdriver.Chrome):
         headless=False,
         delay=5,
         version_main=None,
-        force_patcher=False,
+        patcher_force_close=False,
     ):
         """
         Creates a new instance of the chrome driver.
