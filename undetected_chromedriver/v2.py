@@ -80,6 +80,8 @@ class Chrome(selenium.webdriver.Chrome):
         log_level=0,
         headless=False,
         delay=5,
+        version_main=None,
+        patcher_force_close=False,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -104,7 +106,7 @@ class Chrome(selenium.webdriver.Chrome):
             this enables the handling of wire messages
             when enabled, you can subscribe to CDP events by using:
 
-                driver.on_cdp_event("Network.dataReceived", yourcallback)
+                driver.add_cdp_listener("Network.dataReceived", yourcallback)
                 # yourcallback is an callable which accepts exactly 1 dict as parameter
 
         service_args: list of str, optional, default: None
@@ -135,9 +137,18 @@ class Chrome(selenium.webdriver.Chrome):
             (`with` statement) to bypass, for example CloudFlare.
             5 seconds is a foolproof value.
 
-        """
+        version_main: int, optional, default: None (=auto)
+            if you, for god knows whatever reason, use 
+            an older version of Chrome. You can specify it's full rounded version number
+            here. Example: 87 for all versions of 87
 
-        patcher = Patcher(executable_path=executable_path)
+        patcher_force_close: bool, optional, default: False
+            instructs the patcher to do whatever it can to access the chromedriver binary
+            if the file is locked, it will force shutdown all instances.
+            setting it is not recommended, unless you know the implications and think
+            you might need it.
+        """
+        patcher = Patcher(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
         patcher.auto()
 
         if not options:
@@ -237,7 +248,10 @@ class Chrome(selenium.webdriver.Chrome):
             options.headless = True
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--start-maximized")
-
+            options.add_argument("--no-sandbox")
+            # fixes "could not connect to chrome" error when running 
+            # on linux using privileged user like root (which i don't recommend)
+            
         options.add_argument(
             "--log-level=%d" % log_level
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
@@ -255,7 +269,7 @@ class Chrome(selenium.webdriver.Chrome):
                     # fixing the restore-tabs-nag
                     config["profile"]["exit_type"] = None
                 fs.seek(0, 0)
-                fs.write(json.dumps(config, indent=4))
+                json.dump(config, fs)
                 logger.debug("fixed exit_type flag")
         except Exception as e:
             logger.debug("did not find a bad exit_type flag ")
@@ -270,7 +284,6 @@ class Chrome(selenium.webdriver.Chrome):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            #creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             close_fds=True,
         )
 
@@ -283,7 +296,7 @@ class Chrome(selenium.webdriver.Chrome):
             service_log_path=service_log_path,
             keep_alive=keep_alive,
         )
-
+        # intentional
         # self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
         #     executable_path=patcher.executable_path,
         #     port=port,
@@ -305,6 +318,7 @@ class Chrome(selenium.webdriver.Chrome):
             reactor = Reactor(self)
             reactor.start()
             self.reactor = reactor
+
 
         if options.headless:
             self._configure_headless()
@@ -493,6 +507,28 @@ class Chrome(selenium.webdriver.Chrome):
             self.reactor.add_event_handler(event_name, callback)
             return self.reactor.handlers
         return False
+    
+    def clear_cdp_listeners(self):
+        if self.reactor and isinstance(self.reactor, Reactor):
+            self.reactor.handlers.clear()
+
+    def tab_new(self, url:str):
+        """
+        this opens a url in a new tab.
+        apparently, that passes all tests directly!
+
+        Parameters
+        ----------
+        url
+
+        Returns
+        -------
+
+        """
+        if not hasattr(self, 'cdp'):
+            from .cdp import CDP
+            self.cdp = CDP(self.options)
+        self.cdp.tab_new(url)
 
     def reconnect(self):
         try:
