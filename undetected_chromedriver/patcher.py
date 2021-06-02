@@ -71,19 +71,25 @@ class Patcher(object):
         self.version_main = version_main
         self.version_full = None
 
-    @classmethod
-    def auto(cls, executable_path=None, force=False, version_main=None):
+
+    def auto(self, executable_path=None, force=False, version_main=None):
         """
         """
-        i = cls(executable_path, force=force, version_main=version_main)
+        if executable_path:
+            self.executable_path = executable_path
+        if version_main:
+            self.version_main = version_main
+        if force is True:
+            self.force = force
+
         try:
-            os.unlink(i.executable_path)
+            os.unlink(self.executable_path)
         except PermissionError:
-            if i.force:
-                cls.force_kill_instances(i.executable_path)
-                return i.auto(force=False)
+            if self.force:
+                self.force_kill_instances(self.executable_path)
+                return self.auto(force=not self.force)
             try:
-                if i.is_binary_patched():
+                if self.is_binary_patched():
                     # assumes already running AND patched
                     return True
             except PermissionError:
@@ -92,12 +98,12 @@ class Patcher(object):
         except FileNotFoundError:
             pass
 
-        release = i.fetch_release_number()
-        i.version_main = release.version[0]
-        i.version_full = release
-        i.unzip_package(i.fetch_package())
-        i.patch()
-        return i
+        release = self.fetch_release_number()
+        self.version_main = release.version[0]
+        self.version_full = release
+        self.unzip_package(self.fetch_package())
+        # i.patch()
+        return self.patch()
 
     def patch(self):
         self.patch_exe()

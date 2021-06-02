@@ -148,8 +148,9 @@ class Chrome(selenium.webdriver.Chrome):
             setting it is not recommended, unless you know the implications and think
             you might need it.
         """
-        patcher = Patcher.auto(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
-        
+        patcher = Patcher(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
+        patcher.auto()
+
         if not options:
             options = ChromeOptions()
 
@@ -510,7 +511,25 @@ class Chrome(selenium.webdriver.Chrome):
     def clear_cdp_listeners(self):
         if self.reactor and isinstance(self.reactor, Reactor):
             self.reactor.handlers.clear()
-            
+
+    def tab_new(self, url:str):
+        """
+        this opens a url in a new tab.
+        apparently, that passes all tests directly!
+
+        Parameters
+        ----------
+        url
+
+        Returns
+        -------
+
+        """
+        if not hasattr(self, 'cdp'):
+            from .cdp import CDP
+            self.cdp = CDP(self.options)
+        self.cdp.tab_new(url)
+
     def reconnect(self):
         try:
             self.service.stop()

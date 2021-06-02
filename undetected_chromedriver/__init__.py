@@ -30,7 +30,7 @@ from urllib.request import urlopen, urlretrieve
 from selenium.webdriver import Chrome as _Chrome, ChromeOptions as _ChromeOptions
 
 logger = logging.getLogger(__name__)
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 
 TARGET_VERSION = 0
