@@ -21,8 +21,9 @@ import selenium.webdriver.remote.webdriver
 from .options import ChromeOptions
 from .patcher import IS_POSIX, Patcher
 from .reactor import Reactor
+from .cdp import CDP
 
-__all__ = ("Chrome", "ChromeOptions", "Patcher", "Reactor", "find_chrome_executable")
+__all__ = ("Chrome", "ChromeOptions", "Patcher", "Reactor", "CDP", "find_chrome_executable")
 
 logger = logging.getLogger("uc")
 logger.setLevel(logging.getLogger().getEffectiveLevel())
@@ -570,7 +571,9 @@ class Chrome(selenium.webdriver.Chrome):
         except Exception:  # noqa
             pass
 
-        if not self.keep_user_data_dir or self.keep_user_data_dir is False:
+        if hasattr(self, 'keep_user_data_dir') \
+            and not self.keep_user_data_dir \
+                or self.keep_user_data_dir is False:
             for _ in range(3):
                 try:
                     logger.debug("removing profile : %s" % self.user_data_dir)
@@ -581,9 +584,13 @@ class Chrome(selenium.webdriver.Chrome):
                     logger.debug(
                         "permission error. files are still in use/locked. retying..."
                     )
+                except (RuntimeError, OSError) as e:
+                    logger.debug(
+                        "%s retying..." % e
+                    )
                 else:
                     break
-                time.sleep(1)
+                time.sleep(.25)
 
     def __del__(self):
         logger.debug("Chrome.__del__")

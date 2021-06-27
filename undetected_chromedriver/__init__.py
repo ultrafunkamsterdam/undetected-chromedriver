@@ -29,7 +29,10 @@ from urllib.request import urlopen, urlretrieve
 
 from selenium.webdriver import Chrome as _Chrome, ChromeOptions as _ChromeOptions
 from . import v2
+from . import cdp
+from . import options
 
+ChromeOptionsV2 = v2.ChromeOptions
 logger = logging.getLogger(__name__)
 __version__ = "3.0.2"
 
