@@ -28,9 +28,10 @@ from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
 from selenium.webdriver import Chrome as _Chrome, ChromeOptions as _ChromeOptions
+from . import v2
 
 logger = logging.getLogger(__name__)
-__version__ = "3.0.1"
+__version__ = "3.0.2"
 
 
 TARGET_VERSION = 0
