@@ -571,9 +571,8 @@ class Chrome(selenium.webdriver.Chrome):
         except Exception:  # noqa
             pass
 
-        if hasattr(self, 'keep_user_data_dir') \
-            and not self.keep_user_data_dir \
-                or self.keep_user_data_dir is False:
+        if hasattr(self, 'keep_user_data_dir') and \
+            (not self.keep_user_data_dir or self.keep_user_data_dir is False):
             for _ in range(3):
                 try:
                     logger.debug("removing profile : %s" % self.user_data_dir)
