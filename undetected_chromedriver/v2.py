@@ -18,18 +18,25 @@ import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
 
+from .cdp import CDP
 from .options import ChromeOptions
 from .patcher import IS_POSIX, Patcher
 from .reactor import Reactor
-from .cdp import CDP
 
-__all__ = ("Chrome", "ChromeOptions", "Patcher", "Reactor", "CDP", "find_chrome_executable")
+__all__ = (
+    "Chrome",
+    "ChromeOptions",
+    "Patcher",
+    "Reactor",
+    "CDP",
+    "find_chrome_executable",
+)
 
 logger = logging.getLogger("uc")
 logger.setLevel(logging.getLogger().getEffectiveLevel())
 
 
-class Chrome(selenium.webdriver.Chrome):
+class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     """
 
     Controls the ChromeDriver and allows you to drive the browser.
@@ -67,6 +74,7 @@ class Chrome(selenium.webdriver.Chrome):
     """
 
     _instances = set()
+    session_id = None
 
     def __init__(
         self,
@@ -129,9 +137,6 @@ class Chrome(selenium.webdriver.Chrome):
             Specify whether you want to use the browser in headless mode.
             warning: this lowers undetectability and not fully supported.
 
-        emulate_touch: bool, optional, default: False
-            if set to True, patches window.maxTouchPoints to always return non-zero
-
         delay: int, optional, default: 5
             delay in seconds to wait before giving back control.
             this is used only when using the context manager
@@ -139,7 +144,7 @@ class Chrome(selenium.webdriver.Chrome):
             5 seconds is a foolproof value.
 
         version_main: int, optional, default: None (=auto)
-            if you, for god knows whatever reason, use 
+            if you, for god knows whatever reason, use
             an older version of Chrome. You can specify it's full rounded version number
             here. Example: 87 for all versions of 87
 
@@ -149,14 +154,20 @@ class Chrome(selenium.webdriver.Chrome):
             setting it is not recommended, unless you know the implications and think
             you might need it.
         """
-        patcher = Patcher(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
+
+        patcher = Patcher(
+            executable_path=executable_path,
+            force=patcher_force_close,
+            version_main=version_main,
+        )
         patcher.auto()
 
         if not options:
             options = ChromeOptions()
 
         try:
-            if options.session and options.session is not None:
+            if hasattr(options, "_session") and options._session is not None:
+
                 #  prevent reuse of options,
                 #  as it just appends arguments, not replace them
                 #  you'll get conflicts starting chrome
@@ -164,7 +175,7 @@ class Chrome(selenium.webdriver.Chrome):
         except AttributeError:
             pass
 
-        options.session = self
+        options._session = self
 
         debug_port = selenium.webdriver.common.service.utils.free_port()
         debug_host = "127.0.0.1"
@@ -250,9 +261,9 @@ class Chrome(selenium.webdriver.Chrome):
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--start-maximized")
             options.add_argument("--no-sandbox")
-            # fixes "could not connect to chrome" error when running 
+            # fixes "could not connect to chrome" error when running
             # on linux using privileged user like root (which i don't recommend)
-            
+
         options.add_argument(
             "--log-level=%d" % log_level
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
@@ -280,15 +291,16 @@ class Chrome(selenium.webdriver.Chrome):
         if not desired_capabilities:
             desired_capabilities = options.to_capabilities()
 
+
         self.browser = subprocess.Popen(
             [options.binary_location, *options.arguments],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            close_fds=True,
+            close_fds=IS_POSIX,
         )
 
-        super().__init__(
+        super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
             port=port,
             options=options,
@@ -320,9 +332,21 @@ class Chrome(selenium.webdriver.Chrome):
             reactor.start()
             self.reactor = reactor
 
-
         if options.headless:
             self._configure_headless()
+
+        orig_get = self.get
+
+        # def get_wrapped(*args, **kwargs):
+
+        #     self.execute_cdp_cmd(
+        #         "Network.setExtraHTTPHeaders",
+        #         {"headers": {"dnt": "1", "cache-control": "no-cache"}},
+        #     )
+        #
+        #     return orig_get(*args, **kwargs)
+        #
+        # self.get = get_wrapped
 
     def _configure_headless(self):
 
@@ -508,12 +532,12 @@ class Chrome(selenium.webdriver.Chrome):
             self.reactor.add_event_handler(event_name, callback)
             return self.reactor.handlers
         return False
-    
+
     def clear_cdp_listeners(self):
         if self.reactor and isinstance(self.reactor, Reactor):
             self.reactor.handlers.clear()
 
-    def tab_new(self, url:str):
+    def tab_new(self, url: str):
         """
         this opens a url in a new tab.
         apparently, that passes all tests directly!
@@ -526,17 +550,18 @@ class Chrome(selenium.webdriver.Chrome):
         -------
 
         """
-        if not hasattr(self, 'cdp'):
+        if not hasattr(self, "cdp"):
             from .cdp import CDP
+
             self.cdp = CDP(self.options)
         self.cdp.tab_new(url)
 
-    def reconnect(self):
+    def reconnect(self, timeout=0.1):
         try:
             self.service.stop()
         except Exception as e:
             logger.debug(e)
-
+        time.sleep(timeout)
         try:
             self.service.start()
         except Exception as e:
@@ -550,20 +575,20 @@ class Chrome(selenium.webdriver.Chrome):
     def start_session(self, capabilities=None, browser_profile=None):
         if not capabilities:
             capabilities = self.options.to_capabilities()
-        super().start_session(capabilities, browser_profile)
+        super(Chrome, self).start_session(capabilities, browser_profile)
+
 
     def quit(self):
         logger.debug("closing webdriver")
+        self.service.process.kill()
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
                 self.reactor.event.set()
-            super().quit()
-
         except Exception:  # noqa
             pass
         try:
             logger.debug("killing browser")
-            self.browser.kill()
+            self.browser.terminate()
             self.browser.wait(1)
 
         except TimeoutError as e:
@@ -571,10 +596,12 @@ class Chrome(selenium.webdriver.Chrome):
         except Exception:  # noqa
             pass
 
-        if hasattr(self, 'keep_user_data_dir') \
-            and not self.keep_user_data_dir \
-                or self.keep_user_data_dir is False:
-            for _ in range(3):
+        if (
+            hasattr(self, "keep_user_data_dir")
+            and hasattr(self, "user_data_dir")
+            and not self.keep_user_data_dir
+        ):
+            for _ in range(5):
                 try:
                     logger.debug("removing profile : %s" % self.user_data_dir)
                     shutil.rmtree(self.user_data_dir, ignore_errors=False)
@@ -585,15 +612,16 @@ class Chrome(selenium.webdriver.Chrome):
                         "permission error. files are still in use/locked. retying..."
                     )
                 except (RuntimeError, OSError) as e:
-                    logger.debug(
-                        "%s retying..." % e
-                    )
+                    logger.debug("%s retying..." % e)
                 else:
                     break
-                time.sleep(.25)
+                time.sleep(0.1)
 
     def __del__(self):
-        logger.debug("Chrome.__del__")
+        try:
+            self.service.process.kill()
+        except:
+            pass
         self.quit()
 
     def __enter__(self):
@@ -608,23 +636,6 @@ class Chrome(selenium.webdriver.Chrome):
     def __hash__(self):
         return hash(self.options.debugger_address)
 
-    def find_elements_by_text(self, text: str):
-        for elem in self.find_elements_by_css_selector("*"):
-            try:
-                if text.lower() in elem.text.lower():
-                    yield elem
-            except Exception as e:
-                logger.debug("find_elements_by_text: %s" % e)
-
-    def find_element_by_text(self, text: str, selector=None):
-        if not selector:
-            selector = "*"
-        for elem in self.find_elements_by_css_selector(selector):
-            try:
-                if text.lower() in elem.text.lower():
-                    return elem
-            except Exception as e:
-                logger.debug("find_elements_by_text: {}".format(e))
 
 
 def find_chrome_executable():

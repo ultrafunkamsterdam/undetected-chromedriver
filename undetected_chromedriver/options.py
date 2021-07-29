@@ -11,7 +11,7 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 class ChromeOptions(_ChromeOptions):
     KEY = "goog:chromeOptions"
 
-    session = None
+    _session = None
     emulate_touch = True
     mock_permissions = True
     mock_chrome_global = False

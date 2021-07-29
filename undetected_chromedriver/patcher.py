@@ -56,27 +56,44 @@ class Patcher(object):
         """
 
         self.force = force
+        self.executable_path = None
 
         if not executable_path:
-            executable_path = os.path.join(self.data_path, self.exe_name)
+            self.executable_path = os.path.join(self.data_path, self.exe_name)
 
         if not IS_POSIX:
-            if not executable_path[-4:] == ".exe":
-                executable_path += ".exe"
+            if executable_path:
+                if not executable_path[-4:] == ".exe":
+                    executable_path += ".exe"
 
         self.zip_path = os.path.join(self.data_path, self.zip_name)
 
-        self.executable_path = os.path.abspath(os.path.join(".", executable_path))
+        if not executable_path:
+            self.executable_path = os.path.abspath(
+                os.path.join(".", self.executable_path)
+            )
 
+        self._custom_exe_path = False
+
+        if executable_path:
+            self._custom_exe_path = True
+            self.executable_path = executable_path
         self.version_main = version_main
         self.version_full = None
 
-
     def auto(self, executable_path=None, force=False, version_main=None):
-        """
-        """
+        """"""
         if executable_path:
             self.executable_path = executable_path
+            self._custom_exe_path = True
+
+        if self._custom_exe_path:
+            ispatched = self.is_binary_patched(self.executable_path)
+            if not ispatched:
+                return self.patch_exe()
+            else:
+                return
+
         if version_main:
             self.version_main = version_main
         if force is True:
