@@ -34,7 +34,7 @@ from . import options
 
 ChromeOptionsV2 = v2.ChromeOptions
 logger = logging.getLogger(__name__)
-__version__ = "3.0.2"
+__version__ = "3.0.3"
 
 
 TARGET_VERSION = 0
