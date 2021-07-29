@@ -43,7 +43,7 @@ class Patcher(object):
         d = "~/.undetected_chromedriver"
     data_path = os.path.abspath(os.path.expanduser(d))
 
-    def __init__(self, executable_path=None, force=False, version_main: int = 0):
+    def __init__(self, executable_path=None, force=False, version_main: int = 0, keep_webdriver_file=False):
         """
 
         Args:
@@ -56,6 +56,7 @@ class Patcher(object):
         """
 
         self.force = force
+        self.keep_webdriver_file = keep_webdriver_file
 
         if not executable_path:
             executable_path = os.path.join(self.data_path, self.exe_name)
@@ -98,10 +99,14 @@ class Patcher(object):
         except FileNotFoundError:
             pass
 
-        release = self.fetch_release_number()
-        self.version_main = release.version[0]
-        self.version_full = release
-        self.unzip_package(self.fetch_package())
+        # If the binary exists and keep_webdriver_file was set to True,
+        # then no there is need to download it again
+        if not (os.path.exists(self.executable_path) and self.keep_webdriver_file):
+            release = self.fetch_release_number()
+            self.version_main = release.version[0]
+            self.version_full = release
+            self.unzip_package(self.fetch_package())
+        
         # i.patch()
         return self.patch()
 

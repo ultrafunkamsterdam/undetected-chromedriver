@@ -83,6 +83,7 @@ class Chrome(selenium.webdriver.Chrome):
         delay=5,
         version_main=None,
         patcher_force_close=False,
+        keep_webdriver_file=False,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -149,7 +150,7 @@ class Chrome(selenium.webdriver.Chrome):
             setting it is not recommended, unless you know the implications and think
             you might need it.
         """
-        patcher = Patcher(executable_path=executable_path, force=patcher_force_close, version_main=version_main)
+        patcher = Patcher(executable_path=executable_path, force=patcher_force_close, version_main=version_main, keep_webdriver_file=keep_webdriver_file)
         patcher.auto()
 
         if not options:
