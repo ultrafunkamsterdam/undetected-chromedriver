@@ -76,7 +76,7 @@ However i implemented my own for now. Since i needed it myself for investigation
 import undetected_chromedriver.v2 as uc
 from pprint import pformat
 
-driver = uc.Chrome(enable_cdp_event=True)
+driver = uc.Chrome(enable_cdp_events=True)
 
 def mylousyprintfunction(eventdata):
     print(pformat(eventdata))
