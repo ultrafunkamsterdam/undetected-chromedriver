@@ -43,7 +43,7 @@ class Patcher(object):
         d = "~/.undetected_chromedriver"
     data_path = os.path.abspath(os.path.expanduser(d))
 
-    def __init__(self, executable_path=None, force=False, version_main: int = 0):
+    def __init__(self, executable_path=None, force=False, version_main: int = 0, custom_data_path=None):
         """
 
         Args:
@@ -58,6 +58,9 @@ class Patcher(object):
         self.force = force
         self.executable_path = None
 
+        if custom_data_path:
+            self.data_path = custom_data_path
+
         if not executable_path:
             self.executable_path = os.path.join(self.data_path, self.exe_name)
 
@@ -66,6 +69,7 @@ class Patcher(object):
                 if not executable_path[-4:] == ".exe":
                     executable_path += ".exe"
 
+        
         self.zip_path = os.path.join(self.data_path, self.zip_name)
 
         if not executable_path:

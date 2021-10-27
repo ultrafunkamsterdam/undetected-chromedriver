@@ -91,6 +91,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         delay=5,
         version_main=None,
         patcher_force_close=False,
+        custom_data_path=None
     ):
         """
         Creates a new instance of the chrome driver.
@@ -159,6 +160,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             executable_path=executable_path,
             force=patcher_force_close,
             version_main=version_main,
+            custom_data_path=custom_data_path
         )
         patcher.auto()
 
