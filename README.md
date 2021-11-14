@@ -11,6 +11,16 @@ Automatically downloads the driver binary and patches it.
 * Python 3.6++**
 
 
+### 3.0.4 changes ####
+ - change process creation behavior to be fully detached
+ - changed .get(url) method to always use the contextmanager 
+ - changed .get(url) method to use cdp under the hood. 
+
+    ... the `with` statement is not necessary anymore ..
+ 
+ - todo: work towards asyncification and selenium 4
+ 
+ 
 **July 2021: Currently busy implementing selenium 4 for undetected-chromedriver**
 
 **newsflash: https://github.com/ultrafunkamsterdam/undetected-chromedriver/pull/255**
