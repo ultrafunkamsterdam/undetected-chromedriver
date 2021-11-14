@@ -3,24 +3,27 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
 
+import requests
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
+import websockets
 
 from .cdp import CDP
 from .options import ChromeOptions
-from .patcher import IS_POSIX, Patcher
+from .patcher import IS_POSIX
+from .patcher import Patcher
 from .reactor import Reactor
 
 __all__ = (
@@ -34,6 +37,8 @@ __all__ = (
 
 logger = logging.getLogger("uc")
 logger.setLevel(logging.getLogger().getEffectiveLevel())
+
+from .dprocess import start_detached
 
 
 class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
@@ -77,20 +82,20 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     session_id = None
 
     def __init__(
-        self,
-        executable_path=None,
-        port=0,
-        options=None,
-        enable_cdp_events=False,
-        service_args=None,
-        desired_capabilities=None,
-        service_log_path=None,
-        keep_alive=False,
-        log_level=0,
-        headless=False,
-        delay=5,
-        version_main=None,
-        patcher_force_close=False,
+            self,
+            executable_path=None,
+            port=0,
+            options=None,
+            enable_cdp_events=False,
+            service_args=None,
+            desired_capabilities=None,
+            service_log_path=None,
+            keep_alive=False,
+            log_level=0,
+            headless=False,
+            delay=5,
+            version_main=None,
+            patcher_force_close=False,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -167,7 +172,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         try:
             if hasattr(options, "_session") and options._session is not None:
-
                 #  prevent reuse of options,
                 #  as it just appends arguments, not replace them
                 #  you'll get conflicts starting chrome
@@ -272,9 +276,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # fix exit_type flag to prevent tab-restore nag
         try:
             with open(
-                os.path.join(user_data_dir, "Default/Preferences"),
-                encoding="latin1",
-                mode="r+",
+                    os.path.join(user_data_dir, "Default/Preferences"),
+                    encoding="latin1",
+                    mode="r+",
             ) as fs:
                 config = json.load(fs)
                 if config["profile"]["exit_type"] is not None:
@@ -291,14 +295,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not desired_capabilities:
             desired_capabilities = options.to_capabilities()
 
+        self.browser_pid = start_detached(options.binary_location, *options.arguments)
 
-        self.browser = subprocess.Popen(
-            [options.binary_location, *options.arguments],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            close_fds=IS_POSIX,
-        )
+        # self.browser = subprocess.Popen(
+        #     [options.binary_location, *options.arguments],
+        #     stdin=subprocess.PIPE,
+        #     stdout=subprocess.PIPE,
+        #     stderr=subprocess.PIPE,
+        #     close_fds=IS_POSIX,
+        # )
 
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
@@ -523,11 +528,27 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def __dir__(self):
         return object.__dir__(self)
 
+    def get(self, url):
+
+        tabs = requests.get('http://{0}:{1}/json'.format(*self.options.debugger_address.split(':'))).json()
+        for tab in tabs:
+            if tab['type'] == 'page':
+                break
+
+        async def _get():
+            wsurl = tab['webSocketDebuggerUrl']
+            async with websockets.connect(wsurl) as ws:
+                await ws.send(json.dumps({"method": "Page.navigate", "params": {"url": url}, "id": 1}))
+                return await ws.recv()
+
+        with self:
+            return asyncio.get_event_loop().run_until_complete(_get())
+
     def add_cdp_listener(self, event_name, callback):
         if (
-            self.reactor
-            and self.reactor is not None
-            and isinstance(self.reactor, Reactor)
+                self.reactor
+                and self.reactor is not None
+                and isinstance(self.reactor, Reactor)
         ):
             self.reactor.add_event_handler(event_name, callback)
             return self.reactor.handlers
@@ -577,7 +598,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             capabilities = self.options.to_capabilities()
         super(Chrome, self).start_session(capabilities, browser_profile)
 
-
     def quit(self):
         logger.debug("closing webdriver")
         self.service.process.kill()
@@ -588,8 +608,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             pass
         try:
             logger.debug("killing browser")
-            self.browser.terminate()
-            self.browser.wait(1)
+            os.kill(self.browser_pid)
+            # self.browser.terminate()
+            # self.browser.wait(1)
 
         except TimeoutError as e:
             logger.debug(e, exc_info=True)
@@ -597,9 +618,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             pass
 
         if (
-            hasattr(self, "keep_user_data_dir")
-            and hasattr(self, "user_data_dir")
-            and not self.keep_user_data_dir
+                hasattr(self, "keep_user_data_dir")
+                and hasattr(self, "user_data_dir")
+                and not self.keep_user_data_dir
         ):
             for _ in range(5):
                 try:
@@ -637,7 +658,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         return hash(self.options.debugger_address)
 
 
-
 def find_chrome_executable():
     """
     Finds the chrome, chrome beta, chrome canary, chromium executable
@@ -659,12 +679,12 @@ def find_chrome_executable():
             )
     else:
         for item in map(
-            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+                os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
         ):
             for subitem in (
-                "Google/Chrome/Application",
-                "Google/Chrome Beta/Application",
-                "Google/Chrome Canary/Application",
+                    "Google/Chrome/Application",
+                    "Google/Chrome Beta/Application",
+                    "Google/Chrome Canary/Application",
             ):
                 candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
