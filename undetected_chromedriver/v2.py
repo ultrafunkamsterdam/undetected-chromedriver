@@ -12,6 +12,7 @@ import shutil
 import sys
 import tempfile
 import time
+import inspect
 
 import requests
 import selenium.webdriver.chrome.service
@@ -646,6 +647,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         self.quit()
 
     def __enter__(self):
+        try:
+            curframe = inspect.currentframe()
+            callframe = inspect.getouterframes(curframe, 2)
+            caller = callframe[1][3]
+            logging.getLogger(__name__).debug('__enter__ caller: %s' % caller)
+            if caller == 'get':
+                return
+        except (AttributeError, ValueError, KeyError, OSError) as e:
+            logging.getLogger(__name__).debug(e)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

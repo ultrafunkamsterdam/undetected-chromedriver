@@ -65,7 +65,7 @@ def _cleanup():
             logging.getLogger(__name__).debug('cleaning up pid %d ' % pid)
             os.kill(pid, signal.SIGTERM)
         except:  # noqa
-            traceback.print_exc()
+            pass
 
 
 atexit.register(_cleanup)

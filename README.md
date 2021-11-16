@@ -20,6 +20,18 @@ Automatically downloads the driver binary and patches it.
  
  - todo: work towards asyncification and selenium 4
  
+ #### words of wisdom: ####
+ Whenever you encounter the daunted
+ 
+ ```from session not created: This version of ChromeDriver only supports Chrome version 96 # or what ever version``` 
+ 
+ the solution is simple:  
+ ```python
+   import undetected_chromedriver.v2 as uc
+   driver = uc.Chrome(version_main=95)
+ ```
+
+ 
  
 **July 2021: Currently busy implementing selenium 4 for undetected-chromedriver**
 
@@ -44,8 +56,7 @@ This is also the snippet i recommend using in case you experience an issue.
 ```python
 import undetected_chromedriver.v2 as uc
 driver = uc.Chrome()
-with driver:
-    driver.get('https://nowsecure.nl')  # known url using cloudflare's "under attack mode"
+driver.get('https://nowsecure.nl')  # known url using cloudflare's "under attack mode"
 ```
 
 ### The Version 2 more advanced way, including setting profie folder ###
@@ -66,10 +77,9 @@ options.add_argument('--user-data-dir=c:\\temp\\profile2')
 
 # just some options passing in to skip annoying popups
 options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
-driver = uc.Chrome(options=options)
+driver = uc.Chrome(options=options, version_main=94)  # version_main allows to specify your chrome version instead of following chrome global version
 
-with driver:
-    driver.get('https://nowsecure.nl')  # known url using cloudflare's "under attack mode"
+driver.get('https://nowsecure.nl')  # known url using cloudflare's "under attack mode"
 
 ```
 
@@ -86,7 +96,7 @@ However i implemented my own for now. Since i needed it myself for investigation
 import undetected_chromedriver.v2 as uc
 from pprint import pformat
 
-driver = uc.Chrome(enable_cdp_event=True)
+driver = uc.Chrome(enable_cdp_events=True)
 
 def mylousyprintfunction(eventdata):
     print(pformat(eventdata))
@@ -112,8 +122,7 @@ driver.add_cdp_listener('Network.dataReceived', mylousyprintfunction)
 
 # now all these events will be printed in my console
 
-with driver:
-    driver.get('https://nowsecure.nl')
+driver.get('https://nowsecure.nl')
 
 
 {'method': 'Network.requestWillBeSent',
