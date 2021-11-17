@@ -56,7 +56,7 @@ def _start_detached(executable, *args, writer: multiprocessing.Pipe = None):
 
     # send pid to pipe
     writer.send(p.pid)
-    exit()
+    sys.exit()
 
 
 def _cleanup():
