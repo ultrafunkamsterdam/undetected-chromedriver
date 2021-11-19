@@ -3,7 +3,6 @@
 
 import json
 import logging
-from collections import Mapping, Sequence
 
 import requests
 import websockets
