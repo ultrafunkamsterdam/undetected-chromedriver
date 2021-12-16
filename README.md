@@ -10,6 +10,35 @@ Automatically downloads the driver binary and patches it.
 * Works also on Brave Browser and many other Chromium based browsers, some tweaking
 * Python 3.6++**
 
+### 3.1.0rc1 ####
+
+  **this version is for test purposes only and contains breaking changes**
+  - v2 is now the "main/default" module.
+        ```python
+        import undetected_chromedriver as uc
+        driver = uc.Chrome()
+        driver.get('https://nowsecure.nl')
+        ```
+  - The above is the README for this version. or use the regular instructions, but
+    skip the `with` black magic and skip references to v2.
+  - v1 moved to _compat for now.
+  - fixed wrong dependancies
+  - **~~~~ added "new" anti-detection mechanic ~~~~** 
+    
+  - the above ^^ makes all recent changes and additions obsolete
+  - Removed ChromeOptions black magic to fix compatiblity issues
+
+  - restored .get() to (near) original.
+       - most changes from 3.0.4 to 3.0.6 are obsolete, as t
+       - no `with` statements needed anymore, although it will still 
+         work for the sake of backward-compatibility.
+       - no sleeps, stop-start-sessions, delays, or async cdp black magic!
+       - this will solve a lot of other "issues" as well.
+  - test success to date: 100% 
+  - just to mention it another time, since some people have hard time reading:
+    **headless is still WIP. Raising issues is needless**      
+  
+  
 
 ### 3.0.4 changes ####
  - change process creation behavior to be fully detached
