@@ -3,6 +3,7 @@
 
 https://github.com/ultrafunkamsterdam/undetected-chromedriver
 
+
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network / Imperva / DataDome / Botprotect.io
 Automatically downloads the driver binary and patches it.
 
@@ -11,7 +12,14 @@ Automatically downloads the driver binary and patches it.
 * Python 3.6++**
 
 
-### 3.0.4 changes ####
+### psst, skilled users... there is a 3.1.0rc out to be tested. ! breaking changes ! ##
+- please read before use.
+- https://pypi.org/project/undetected-chromedriver/3.1.0rc1/
+
+
+
+
+# 3.0.4 changes #
  - change process creation behavior to be fully detached
  - changed .get(url) method to always use the contextmanager 
  - changed .get(url) method to use cdp under the hood. 
