@@ -100,7 +100,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def __init__(
         self,
         user_data_dir=None,
-        executable_path=None,
+        browser_executable_path=None,
         port=0,
         options=None,
         enable_cdp_events=False,
@@ -126,8 +126,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             if user_data_dir is a path to a valid chrome profile directory, use it,
             and turn off automatic removal mechanism at exit.
             
-        executable_path: str, optional, default: None - use find_chrome_executable
-            Path to the executable. If the default is used it assumes the executable is in the $PATH
+        browser_executable_path: str, optional, default: None - use find_chrome_executable
+            Path to the browser executable. 
+            If not specified, make sure the executable's folder is in $PATH
 
         port: int, optional, default: 0
             port you would like the service to run, if left as 0, a free port will be found.
@@ -177,7 +178,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         """
 
         patcher = Patcher(
-            executable_path=executable_path,
+            executable_path=None,
             force=patcher_force_close,
             version_main=version_main,
         )
@@ -270,10 +271,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 language = "en-US"
 
         options.add_argument("--lang=%s" % language)
-
+        
         if not options.binary_location:
-            options.binary_location = find_chrome_executable()
-
+            options.binary_location = browser_executable_path or find_chrome_executable()
+         
         self._delay = delay
 
         self.user_data_dir = user_data_dir
