@@ -99,6 +99,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __init__(
         self,
+        user_data_dir=None,
         executable_path=None,
         port=0,
         options=None,
@@ -109,9 +110,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         keep_alive=False,
         log_level=0,
         headless=False,
-        delay=5,
         version_main=None,
         patcher_force_close=False,
+        **kw
     ):
         """
         Creates a new instance of the chrome driver.
@@ -120,6 +121,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         Parameters
         ----------
+        
+        user_data_dir: str , optional, default: None (creates temp profile)
+            if user_data_dir is a path to a valid chrome profile directory, use it,
+            and turn off automatic removal mechanism at exit.
+            
         executable_path: str, optional, default: None - use find_chrome_executable
             Path to the executable. If the default is used it assumes the executable is in the $PATH
 
@@ -157,12 +163,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             can also be specified in the options instance.
             Specify whether you want to use the browser in headless mode.
             warning: this lowers undetectability and not fully supported.
-
-        delay: int, optional, default: 5
-            delay in seconds to wait before giving back control.
-            this is used only when using the context manager
-            (`with` statement) to bypass, for example CloudFlare.
-            5 seconds is a foolproof value.
 
         version_main: int, optional, default: None (=auto)
             if you, for god knows whatever reason, use
@@ -211,9 +211,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
 
-        user_data_dir, language, keep_user_data_dir = None, None, None
+        language, keep_user_data_dir = None, bool(user_data_dir)
 
-        # see if a custom user profile is specified
+
+        # see if a custom user profile is specified in options
         for arg in options.arguments:
 
             if "lang" in arg:
@@ -315,14 +316,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.browser_pid = start_detached(options.binary_location, *options.arguments)
 
-        # self.browser = subprocess.Popen(
-        #     [options.binary_location, *options.arguments],
-        #     stdin=subprocess.PIPE,
-        #     stdout=subprocess.PIPE,
-        #     stderr=subprocess.PIPE,
-        #     close_fds=IS_POSIX,
-        # )
-
+     
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
             port=port,
@@ -332,17 +326,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             service_log_path=service_log_path,
             keep_alive=keep_alive,
         )
-        # intentional
-        # self.webdriver = selenium.webdriver.chrome.webdriver.WebDriver(
-        #     executable_path=patcher.executable_path,
-        #     port=port,
-        #     options=options,
-        #     service_args=service_args,
-        #     desired_capabilities=desired_capabilities,
-        #     service_log_path=service_log_path,
-        #     keep_alive=keep_alive,
-        # )
-
+        
         self.reactor = None
         if enable_cdp_events:
 
@@ -705,7 +689,7 @@ def find_chrome_executable():
     candidates = set()
     if IS_POSIX:
         for item in os.environ.get("PATH").split(os.pathsep):
-            for subitem in ("google-chrome", "chromium", "chromium-browser"):
+            for subitem in ("google-chrome", "chromium", "chromium-browser", "chrome"):
                 candidates.add(os.sep.join((item, subitem)))
         if "darwin" in sys.platform:
             candidates.update(
