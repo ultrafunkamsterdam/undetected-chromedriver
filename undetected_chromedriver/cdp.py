@@ -35,14 +35,16 @@ class PageElement(CDPObject):
 class CDP:
     log = logging.getLogger("CDP")
 
-    endpoints = CDPObject({
-        "json": "/json",
-        "protocol": "/json/protocol",
-        "list": "/json/list",
-        "new": "/json/new?{url}",
-        "activate": "/json/activate/{id}",
-        "close": "/json/close/{id}",
-    })
+    endpoints = CDPObject(
+        {
+            "json": "/json",
+            "protocol": "/json/protocol",
+            "list": "/json/list",
+            "new": "/json/new?{url}",
+            "activate": "/json/activate/{id}",
+            "close": "/json/close/{id}",
+        }
+    )
 
     def __init__(self, options: "ChromeOptions"):  # noqa
         self.server_addr = "http://{0}:{1}".format(*options.debugger_address.split(":"))
@@ -58,7 +60,7 @@ class CDP:
 
     def tab_activate(self, id=None):
         if not id:
-            active_tab  = self.tab_list()[0]
+            active_tab = self.tab_list()[0]
             id = active_tab.id  # noqa
             self.wsurl = active_tab.webSocketDebuggerUrl  # noqa
         return self.post(self.endpoints["activate"].format(id=id))

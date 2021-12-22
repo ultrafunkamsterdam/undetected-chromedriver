@@ -27,8 +27,12 @@ def start_detached(executable, *args):
     reader, writer = multiprocessing.Pipe(False)
 
     # do not keep reference
-    multiprocessing.Process(target=_start_detached, args=(executable, *args), kwargs={'writer': writer},
-                            daemon=True).start()
+    multiprocessing.Process(
+        target=_start_detached,
+        args=(executable, *args),
+        kwargs={"writer": writer},
+        daemon=True,
+    ).start()
     # receive pid from pipe
     pid = reader.recv()
     REGISTERED.append(pid)
@@ -43,7 +47,7 @@ def _start_detached(executable, *args, writer: multiprocessing.Pipe = None):
 
     # configure launch
     kwargs = {}
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         kwargs.update(creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP)
     elif sys.version_info < (3, 2):
         # assume posix
@@ -62,11 +66,10 @@ def _start_detached(executable, *args, writer: multiprocessing.Pipe = None):
 def _cleanup():
     for pid in REGISTERED:
         try:
-            logging.getLogger(__name__).debug('cleaning up pid %d ' % pid)
+            logging.getLogger(__name__).debug("cleaning up pid %d " % pid)
             os.kill(pid, signal.SIGTERM)
         except:  # noqa
             pass
 
 
 atexit.register(_cleanup)
-

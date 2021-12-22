@@ -50,11 +50,24 @@ class Reactor(threading.Thread):
         except Exception as e:
             logger.warning("Reactor.run() => %s", e)
 
+    async def _wait_service_started(self):
+        while True:
+            with self.lock:
+                if (
+                    getattr(self.driver, "service", None)
+                    and getattr(self.driver.service, "process", None)
+                    and self.driver.service.process.poll()
+                ):
+                    await asyncio.sleep(self.driver._delay or 0.25)
+                else:
+                    break
+
     async def listen(self):
 
         while self.running:
 
-            await asyncio.sleep(0)
+            await self._wait_service_started()
+            await asyncio.sleep(1)
 
             try:
                 with self.lock:
