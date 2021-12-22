@@ -16,9 +16,8 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
 
-__version__ = "3.1.0rc1"
+__version__ = "3.1.0"
 
-import asyncio
 import json
 import logging
 import os
@@ -28,19 +27,19 @@ import sys
 import tempfile
 import time
 import inspect
+import threading
 
-import requests
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
-import websockets
 
 from .cdp import CDP
 from .options import ChromeOptions
 from .patcher import IS_POSIX
 from .patcher import Patcher
 from .reactor import Reactor
+from .dprocess import start_detached
 
 __all__ = (
     "Chrome",
@@ -53,8 +52,6 @@ __all__ = (
 
 logger = logging.getLogger("uc")
 logger.setLevel(logging.getLogger().getEffectiveLevel())
-
-from .dprocess import start_detached
 
 
 class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
@@ -96,6 +93,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     _instances = set()
     session_id = None
+    debug = False
 
     def __init__(
         self,
@@ -107,11 +105,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         service_args=None,
         desired_capabilities=None,
         service_log_path=None,
-        keep_alive=False,
+        keep_alive=True,
         log_level=0,
         headless=False,
         version_main=None,
         patcher_force_close=False,
+        suppress_welcome=True,
+        debug=False,
         **kw
     ):
         """
@@ -121,13 +121,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         Parameters
         ----------
-        
+
         user_data_dir: str , optional, default: None (creates temp profile)
             if user_data_dir is a path to a valid chrome profile directory, use it,
             and turn off automatic removal mechanism at exit.
-            
+
         browser_executable_path: str, optional, default: None - use find_chrome_executable
-            Path to the browser executable. 
+            Path to the browser executable.
             If not specified, make sure the executable's folder is in $PATH
 
         port: int, optional, default: 0
@@ -175,8 +175,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             if the file is locked, it will force shutdown all instances.
             setting it is not recommended, unless you know the implications and think
             you might need it.
-        """
 
+        suppress_welcome: bool, optional , default: True
+            a "welcome" alert might show up on *nix-like systems asking whether you want to set
+            chrome as your default browser, and if you want to send even more data to google.
+            now, in case you are nag-fetishist, or a diagnostics data feeder to google, you can set this to False.
+            Note: if you don't handle the nag screen in time, the browser loses it's connection and throws an Exception.
+
+        """
+        self.debug = debug
         patcher = Patcher(
             executable_path=None,
             force=patcher_force_close,
@@ -214,7 +221,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         language, keep_user_data_dir = None, bool(user_data_dir)
 
-
         # see if a custom user profile is specified in options
         for arg in options.arguments:
 
@@ -243,7 +249,18 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if not user_data_dir:
 
-            if options.user_data_dir:
+            # backward compatiblity
+            # check if an old uc.ChromeOptions is used, and extract the user data dir
+
+            if hasattr(options, "user_data_dir") and getattr(
+                options, "user_data_dir", None
+            ):
+                import warnings
+
+                warnings.warn(
+                    "using ChromeOptions.user_data_dir might stop working in future versions."
+                    "use uc.Chrome(user_data_dir='/xyz/some/data') in case you need existing profile folder"
+                )
                 options.add_argument("--user-data-dir=%s" % options.user_data_dir)
                 keep_user_data_dir = True
                 logger.debug(
@@ -271,15 +288,19 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 language = "en-US"
 
         options.add_argument("--lang=%s" % language)
-        
+
         if not options.binary_location:
-            options.binary_location = browser_executable_path or find_chrome_executable()
-         
-        self._delay = delay
+            options.binary_location = (
+                browser_executable_path or find_chrome_executable()
+            )
+
+        self._delay = 3
 
         self.user_data_dir = user_data_dir
         self.keep_user_data_dir = keep_user_data_dir
 
+        if suppress_welcome:
+            options.arguments.extend(["--no-default-browser-check", "--no-first-run"])
         if headless or options.headless:
             options.headless = True
             options.add_argument("--window-size=1920,1080")
@@ -317,7 +338,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.browser_pid = start_detached(options.binary_location, *options.arguments)
 
-     
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
             port=port,
@@ -327,15 +347,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             service_log_path=service_log_path,
             keep_alive=keep_alive,
         )
-        
-        self.reactor = None
-        if enable_cdp_events:
 
+        self.reactor = None
+
+        if enable_cdp_events:
             if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
                 logging.getLogger(
                     "selenium.webdriver.remote.remote_connection"
                 ).setLevel(20)
-
             reactor = Reactor(self)
             reactor.start()
             self.reactor = reactor
@@ -343,16 +362,40 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if options.headless:
             self._configure_headless()
 
-        orig_get = self.get
+    def __getattribute__(self, item):
+        if not super().__getattribute__("debug"):
+            return super().__getattribute__(item)
+        else:
+            import inspect
+
+            original = super().__getattribute__(item)
+            if inspect.ismethod(original) and not inspect.isclass(original):
+
+                def newfunc(*args, **kwargs):
+                    logger.debug(
+                        "calling %s with args %s and kwargs %s\n"
+                        % (original.__qualname__, args, kwargs)
+                    )
+                    return original(*args, **kwargs)
+
+                return newfunc
+            return original
+
+    # @property
+    # def switch_to(self):
+    #     def callback():
+    #         self.get(self.current_url)
+    #     try:
+    #         return super().switch_to
+    #     finally:
+    #         threading.Timer(.1, callback).start()
 
     def _configure_headless(self):
 
         orig_get = self.get
-
         logger.info("setting properties for headless")
 
         def get_wrapped(*args, **kwargs):
-
             if self.execute_script("return navigator.webdriver"):
                 logger.info("patch navigator.webdriver")
                 self.execute_cdp_cmd(
@@ -385,23 +428,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                         ).replace("Headless", "")
                     },
                 )
-
-            if self.options.mock_permissions:
-                logger.info("patch permissions api")
-
-                self.execute_cdp_cmd(
-                    "Page.addScriptToEvaluateOnNewDocument",
-                    {
-                        "source": """
-                                // fix Notification permission in headless mode
-                                Object.defineProperty(Notification, 'permission', { get: () => "default"});
-                        """
-                    },
-                )
-
-            if self.options.emulate_touch:
-                logger.info("patch emulate touch")
-
                 self.execute_cdp_cmd(
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
@@ -411,108 +437,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                             })"""
                     },
                 )
-
-            if self.options.mock_canvas_fp:
-                logger.info("patch HTMLCanvasElement fingerprinting")
-
-                self.execute_cdp_cmd(
-                    "Page.addScriptToEvaluateOnNewDocument",
-                    {
-                        "source": """
-                        (function() {
-                            const ORIGINAL_CANVAS = HTMLCanvasElement.prototype[name];
-                            Object.defineProperty(HTMLCanvasElement.prototype, name, {
-                                    "value": function() {
-                                            var shift = {
-                                                    'r': Math.floor(Math.random() * 10) - 5,
-                                                    'g': Math.floor(Math.random() * 10) - 5,
-                                                    'b': Math.floor(Math.random() * 10) - 5,
-                                                    'a': Math.floor(Math.random() * 10) - 5
-                                            };
-                                            var width = this.width,
-                                                    height = this.height,
-                                                    context = this.getContext("2d");
-                                            var imageData = context.getImageData(0, 0, width, height);
-                                            for (var i = 0; i < height; i++) {
-                                                    for (var j = 0; j < width; j++) {
-                                                            var n = ((i * (width * 4)) + (j * 4));
-                                                            imageData.data[n + 0] = imageData.data[n + 0] + shift.r;
-                                                            imageData.data[n + 1] = imageData.data[n + 1] + shift.g;
-                                                            imageData.data[n + 2] = imageData.data[n + 2] + shift.b;
-                                                            imageData.data[n + 3] = imageData.data[n + 3] + shift.a;
-                                                    }
-                                            }
-                                            context.putImageData(imageData, 0, 0);
-                                            return ORIGINAL_CANVAS.apply(this, arguments);
-                                    }
-                            });
-                        })(this)
-                        """
-                    },
-                )
-
-            if self.options.mock_chrome_global:
-                self.execute_cdp_cmd(
-                    "Page.addScriptToEvaluateOnNewDocument",
-                    {
-                        "source": """
-
-                            Object.defineProperty(window, 'chrome', {
-                                value: new Proxy(window.chrome, {
-                                        has: (target, key) => true,
-                                        get: (target, key) => {
-                                                return {
-                                                        app: {
-                                                                isInstalled: false,
-                                                        },
-                                                        webstore: {
-                                                                onInstallStageChanged: {},
-                                                                onDownloadProgress: {},
-                                                        },
-                                                        runtime: {
-                                                                PlatformOs: {
-                                                                        MAC: 'mac',
-                                                                        WIN: 'win',
-                                                                        ANDROID: 'android',
-                                                                        CROS: 'cros',
-                                                                        LINUX: 'linux',
-                                                                        OPENBSD: 'openbsd',
-                                                                },
-                                                                PlatformArch: {
-                                                                        ARM: 'arm',
-                                                                        X86_32: 'x86-32',
-                                                                        X86_64: 'x86-64',
-                                                                },
-                                                                PlatformNaclArch: {
-                                                                        ARM: 'arm',
-                                                                        X86_32: 'x86-32',
-                                                                        X86_64: 'x86-64',
-                                                                },
-                                                                RequestUpdateCheckStatus: {
-                                                                        THROTTLED: 'throttled',
-                                                                        NO_UPDATE: 'no_update',
-                                                                        UPDATE_AVAILABLE: 'update_available',
-                                                                },
-                                                                OnInstalledReason: {
-                                                                        INSTALL: 'install',
-                                                                        UPDATE: 'update',
-                                                                        CHROME_UPDATE: 'chrome_update',
-                                                                        SHARED_MODULE_UPDATE: 'shared_module_update',
-                                                                },
-                                                                OnRestartRequiredReason: {
-                                                                        APP_UPDATE: 'app_update',
-                                                                        OS_UPDATE: 'os_update',
-                                                                        PERIODIC: 'periodic',
-                                                                },
-                                                        },
-                                                }
-                                        }
-                                })
-                            });
-                            """
-                    },
-                )
-
             return orig_get(*args, **kwargs)
 
         self.get = get_wrapped
@@ -605,19 +529,23 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def start_session(self, capabilities=None, browser_profile=None):
         if not capabilities:
             capabilities = self.options.to_capabilities()
-        super(Chrome, self).start_session(capabilities, browser_profile)
+        super(selenium.webdriver.chrome.webdriver.WebDriver, self).start_session(
+            capabilities, browser_profile
+        )
+        # super(Chrome, self).start_session(capabilities, browser_profile)
 
     def quit(self):
         logger.debug("closing webdriver")
         self.service.process.kill()
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
+                logger.debug("shutting down reactor")
                 self.reactor.event.set()
         except Exception:  # noqa
             pass
         try:
             logger.debug("killing browser")
-            os.kill(self.browser_pid)
+            os.kill(self.browser_pid, 15)
             # self.browser.terminate()
             # self.browser.wait(1)
 
@@ -633,17 +561,17 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         ):
             for _ in range(5):
                 try:
-                    logger.debug("removing profile : %s" % self.user_data_dir)
+
                     shutil.rmtree(self.user_data_dir, ignore_errors=False)
                 except FileNotFoundError:
                     pass
-                except PermissionError:
+                except (RuntimeError, OSError, PermissionError) as e:
                     logger.debug(
-                        "permission error. files are still in use/locked. retying..."
+                        "When removing the temp profile, a %s occured: %s\nretrying..."
+                        % (e.__class__.__name__, e)
                     )
-                except (RuntimeError, OSError) as e:
-                    logger.debug("%s retying..." % e)
                 else:
+                    logger.debug("successfully removed %s" % self.user_data_dir)
                     break
                 time.sleep(0.1)
 

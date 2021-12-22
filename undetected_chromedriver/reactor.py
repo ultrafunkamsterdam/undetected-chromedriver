@@ -54,9 +54,9 @@ class Reactor(threading.Thread):
         while True:
             with self.lock:
                 if (
-                    self.driver.service
-                    and self.driver.service.process
-                    and self.driver.process.process.poll()
+                    getattr(self.driver, "service", None)
+                    and getattr(self.driver.service, "process", None)
+                    and self.driver.service.process.poll()
                 ):
                     await asyncio.sleep(self.driver._delay or 0.25)
                 else:

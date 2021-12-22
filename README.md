@@ -10,31 +10,40 @@ Automatically downloads the driver binary and patches it.
 * Works also on Brave Browser and many other Chromium based browsers, some tweaking
 * Python 3.6++**
 
-### 3.1.0rc1 ####
+### 3.1.0 ####
 
-  **this version is for test purposes only and contains breaking changes**
-  - v2 is now the "main/default" module.
-        ```python
-        import undetected_chromedriver as uc
-        driver = uc.Chrome()
-        driver.get('https://nowsecure.nl')
-        ```
-  - The above is the README for this version. or use the regular instructions, but
-    skip the `with` black magic and skip references to v2.
-  - v1 moved to _compat for now.
-  - fixed wrong dependancies
-  - **~~~~ added "new" anti-detection mechanic ~~~~** 
-    
-  - the above ^^ makes all recent changes and additions obsolete
-  - Removed ChromeOptions black magic to fix compatiblity issues
+  **this version `might` break your code, test before update!**
 
-  - restored .get() to (near) original.
-       - most changes from 3.0.4 to 3.0.6 are obsolete, as t
+  - **added new anti-detection logic!**
+  
+  - v2 has become the main module, so no need for references to v2 anymore. this mean you can now simply use:
+    ```python
+    import undetected_chromedriver as uc
+    driver = uc.Chrome()
+    driver.get('https://nowsecure.nl')
+    ```
+    for backwards compatibility, v2 is not removed, but aliassed to the main module.
+  
+  - Fixed "welcome screen" nagging on non-windows OS-es. 
+    For those nagfetishists who ❤ welcome screens and feeding google with even more data, use Chrome(suppress_welcome=False).
+
+  - replaced `executable_path` in constructor in favor of `browser_executable_path`
+    which should not be used unless you are the edge case (yep, you are) who can't add your custom chrome installation folder to your PATH environment variable, or have an army of different browsers/versions and automatic lookup returns the wrong browser
+
+  - "v1" (?) moved to _compat for now.
+  
+  - fixed dependency versions  
+  
+  - ChromeOptions custom handling removed, so it is compatible with `webdriver.chromium.options.ChromiumOptions`. 
+
+  - removed Chrome.get() fu and restored back to "almost" original:
        - no `with` statements needed anymore, although it will still 
          work for the sake of backward-compatibility.
        - no sleeps, stop-start-sessions, delays, or async cdp black magic!
        - this will solve a lot of other "issues" as well.
+
   - test success to date: 100% 
+  
   - just to mention it another time, since some people have hard time reading:
     **headless is still WIP. Raising issues is needless**      
   
