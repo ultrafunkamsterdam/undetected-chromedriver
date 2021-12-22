@@ -49,7 +49,7 @@ setup(
     
     NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.
     """,
-    long_description=open(os.path.join(dirname, "README.md")).read(),
+    long_description=open(os.path.join(dirname, "README.md"),encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
