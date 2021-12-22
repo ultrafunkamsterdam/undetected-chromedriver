@@ -22,7 +22,7 @@ dirname = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(
     os.path.join(dirname, "undetected_chromedriver", "__init__.py"),
     mode="r",
-    encoding="latin1",
+    encoding="utf-8",
 ) as fp:
     try:
         version = re.findall(r"^__version__ = ['\"]([^'\"]*)['\"]", fp.read(), re.M)[0]
