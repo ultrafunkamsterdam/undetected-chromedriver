@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import subprocess
+
 """
 
          888                                                  888         d8b
@@ -16,7 +18,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
 
-__version__ = "3.1.0"
+__version__ = "3.1.2"
 
 import json
 import logging
@@ -111,6 +113,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         version_main=None,
         patcher_force_close=False,
         suppress_welcome=True,
+        detached_process=True,
         debug=False,
         **kw
     ):
@@ -336,7 +339,17 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not desired_capabilities:
             desired_capabilities = options.to_capabilities()
 
-        self.browser_pid = start_detached(options.binary_location, *options.arguments)
+        if not detached_process:
+            browser = subprocess.Popen(
+                [options.binary_location, *options.arguments],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                close_fds=IS_POSIX,
+            )
+            self.browser_pid = browser.pid
+        else:
+            self.browser_pid = start_detached(options.binary_location, *options.arguments)
 
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
@@ -363,6 +376,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self._configure_headless()
 
     def __getattribute__(self, item):
+
         if not super().__getattribute__("debug"):
             return super().__getattribute__(item)
         else:
@@ -380,15 +394,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
                 return newfunc
             return original
-
-    # @property
-    # def switch_to(self):
-    #     def callback():
-    #         self.get(self.current_url)
-    #     try:
-    #         return super().switch_to
-    #     finally:
-    #         threading.Timer(.1, callback).start()
 
     def _configure_headless(self):
 
@@ -537,7 +542,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def quit(self):
         logger.debug("closing webdriver")
         if hasattr(self, 'service') and getattr(self.service, 'process', None):
-                  self.service.process.kill()
+            self.service.process.kill()
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
                 logger.debug("shutting down reactor")
@@ -547,8 +552,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         try:
             logger.debug("killing browser")
             os.kill(self.browser_pid, 15)
-            # self.browser.terminate()
-            # self.browser.wait(1)
 
         except TimeoutError as e:
             logger.debug(e, exc_info=True)
@@ -584,19 +587,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         self.quit()
 
     def __enter__(self):
-        try:
-            curframe = inspect.currentframe()
-            callframe = inspect.getouterframes(curframe, 2)
-            caller = callframe[1][3]
-            logging.getLogger(__name__).debug("__enter__ caller: %s" % caller)
-            if caller == "get":
-                return
-        except (AttributeError, ValueError, KeyError, OSError) as e:
-            logging.getLogger(__name__).debug(e)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-
         self.service.stop()
         time.sleep(self._delay)
         self.service.start()
