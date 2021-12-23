@@ -50,10 +50,6 @@ Automatically downloads the driver binary and patches it.
   
   
 
-### psst, skilled users... there is a 3.1.0rc out to be tested. ! breaking changes ! ##
-- please read before use.
-- https://pypi.org/project/undetected-chromedriver/3.1.0rc1/
-
 
 
 
