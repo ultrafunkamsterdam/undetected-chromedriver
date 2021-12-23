@@ -536,7 +536,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def quit(self):
         logger.debug("closing webdriver")
-        self.service.process.kill()
+        if hasattr(self, 'service') and getattr(self.service, 'process', None):
+                  self.service.process.kill()
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
                 logger.debug("shutting down reactor")
