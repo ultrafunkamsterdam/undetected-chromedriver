@@ -113,7 +113,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         version_main=None,
         patcher_force_close=False,
         suppress_welcome=True,
-        detached_process=True,
+        no_subprocess=True,
         debug=False,
         **kw
     ):
@@ -184,6 +184,23 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             chrome as your default browser, and if you want to send even more data to google.
             now, in case you are nag-fetishist, or a diagnostics data feeder to google, you can set this to False.
             Note: if you don't handle the nag screen in time, the browser loses it's connection and throws an Exception.
+
+        use_subprocess: bool, optional , default: False,
+
+            False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
+                This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
+                program exits or using .quit()
+
+              unfortunately, there  is always an edge case in which one would like to write an single script with the only contents being:
+              --start script--
+              import undetected_chromedriver as uc
+              d = uc.Chrome()
+              d.get('https://somesite/')
+              ---end script --
+
+              and will be greeted with an error, since the program exists before chrome has a change to launch.
+              in that case you can set this to `True`. The browser will start via subprocess, and will keep running most of times.
+              ! setting it to True comes with NO support when being detected. !
 
         """
         self.debug = debug
@@ -339,7 +356,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not desired_capabilities:
             desired_capabilities = options.to_capabilities()
 
-        if not detached_process:
+        if not use_subprocess:
+            self.browser_pid = start_detached(options.binary_location, *options.arguments)
+        else:
             browser = subprocess.Popen(
                 [options.binary_location, *options.arguments],
                 stdin=subprocess.PIPE,
@@ -348,8 +367,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 close_fds=IS_POSIX,
             )
             self.browser_pid = browser.pid
-        else:
-            self.browser_pid = start_detached(options.binary_location, *options.arguments)
+
+
 
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
