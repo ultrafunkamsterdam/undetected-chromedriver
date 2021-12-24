@@ -113,7 +113,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         version_main=None,
         patcher_force_close=False,
         suppress_welcome=True,
-        no_subprocess=True,
+        use_subprocess=False,
         debug=False,
         **kw
     ):
