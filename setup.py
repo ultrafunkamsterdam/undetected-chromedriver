@@ -29,6 +29,10 @@ with codecs.open(
     except Exception:
         raise RuntimeError("unable to determine version")
 
+description = ('Selenium.webdriver.Chrome replacement with compatiblity for Brave, and other Chromium based browsers.',
+'Not triggered by CloudFlare/Imperva/hCaptcha and such.',
+'NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.'
+)
 
 setup(
     name="undetected-chromedriver",
@@ -43,11 +47,7 @@ setup(
     license="GPL-3.0",
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
-    description="""\
-    selenium.webdriver.Chrome replacement wiht compatiblity for Brave, and other Chromium baed browsers.
-    not triggered by CloudFlare/Imperva/hCaptcha and such.
-    NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.
-    """,
+    description=description,
 
     long_description=open(os.path.join(dirname, "README.md"), encoding="utf-8").read(),
 
