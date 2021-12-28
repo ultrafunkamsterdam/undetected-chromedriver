@@ -2,10 +2,9 @@ import selenium.webdriver.remote.webelement
 
 
 class WebElement(selenium.webdriver.remote.webelement.WebElement):
-
     @property
     def attrs(self):
-        if not hasattr(self, '_attrs'):
+        if not hasattr(self, "_attrs"):
             self._attrs = self._parent.execute_script(
                 """
                 var items = {}; 
@@ -14,6 +13,7 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
                  items[arguments[0].attributes[index].name] = arguments[0].attributes[index].value 
                 }; 
                 return items;
-                """, self
+                """,
+                self,
             )
         return self._attrs
