@@ -18,7 +18,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
 
-__version__ = "3.1.2"
+__version__ = "3.1.3"
 
 import json
 import logging
@@ -28,15 +28,12 @@ import shutil
 import sys
 import tempfile
 import time
-import inspect
-import threading
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
 
-from .cdp import CDP
 from .options import ChromeOptions
 from .patcher import IS_POSIX
 from .patcher import Patcher
@@ -48,7 +45,6 @@ __all__ = (
     "ChromeOptions",
     "Patcher",
     "Reactor",
-    "CDP",
     "find_chrome_executable",
 )
 
@@ -188,7 +184,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         use_subprocess: bool, optional , default: False,
 
             False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
-                This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
+                This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting down corectly after
                 program exits or using .quit()
 
               unfortunately, there  is always an edge case in which one would like to write an single script with the only contents being:
@@ -357,7 +353,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             desired_capabilities = options.to_capabilities()
 
         if not use_subprocess:
-            self.browser_pid = start_detached(options.binary_location, *options.arguments)
+            self.browser_pid = start_detached(
+                options.binary_location, *options.arguments
+            )
         else:
             browser = subprocess.Popen(
                 [options.binary_location, *options.arguments],
@@ -367,8 +365,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 close_fds=IS_POSIX,
             )
             self.browser_pid = browser.pid
-
-
 
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
@@ -528,11 +524,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         -------
 
         """
-        if not hasattr(self, "cdp"):
-            from .cdp import CDP
 
-            self.cdp = CDP(self.options)
-        self.cdp.tab_new(url)
+        self.execute_cdp_cmd('Target.createTarget', {'url': url or 'data:,'})
 
     def reconnect(self, timeout=0.1):
         try:
@@ -560,7 +553,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def quit(self):
         logger.debug("closing webdriver")
-        if hasattr(self, 'service') and getattr(self.service, 'process', None):
+        if hasattr(self, "service") and getattr(self.service, "process", None):
             self.service.process.kill()
         try:
             if self.reactor and isinstance(self.reactor, Reactor):

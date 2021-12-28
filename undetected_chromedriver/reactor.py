@@ -67,8 +67,6 @@ class Reactor(threading.Thread):
         while self.running:
 
             await self._wait_service_started()
-            await asyncio.sleep(1)
-
             try:
                 with self.lock:
                     log_entries = self.driver.get_log("performance")
