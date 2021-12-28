@@ -39,6 +39,7 @@ from .patcher import IS_POSIX
 from .patcher import Patcher
 from .reactor import Reactor
 from .dprocess import start_detached
+from .web_element import WebElement
 
 __all__ = (
     "Chrome",
@@ -94,24 +95,24 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     debug = False
 
     def __init__(
-        self,
-        user_data_dir=None,
-        browser_executable_path=None,
-        port=0,
-        options=None,
-        enable_cdp_events=False,
-        service_args=None,
-        desired_capabilities=None,
-        service_log_path=None,
-        keep_alive=True,
-        log_level=0,
-        headless=False,
-        version_main=None,
-        patcher_force_close=False,
-        suppress_welcome=True,
-        use_subprocess=False,
-        debug=False,
-        **kw
+            self,
+            user_data_dir=None,
+            browser_executable_path=None,
+            port=0,
+            options=None,
+            enable_cdp_events=False,
+            service_args=None,
+            desired_capabilities=None,
+            service_log_path=None,
+            keep_alive=True,
+            log_level=0,
+            headless=False,
+            version_main=None,
+            patcher_force_close=False,
+            suppress_welcome=True,
+            use_subprocess=False,
+            debug=False,
+            **kw
     ):
         """
         Creates a new instance of the chrome driver.
@@ -269,7 +270,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             # check if an old uc.ChromeOptions is used, and extract the user data dir
 
             if hasattr(options, "user_data_dir") and getattr(
-                options, "user_data_dir", None
+                    options, "user_data_dir", None
             ):
                 import warnings
 
@@ -307,7 +308,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if not options.binary_location:
             options.binary_location = (
-                browser_executable_path or find_chrome_executable()
+                    browser_executable_path or find_chrome_executable()
             )
 
         self._delay = 3
@@ -333,9 +334,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # fix exit_type flag to prevent tab-restore nag
         try:
             with open(
-                os.path.join(user_data_dir, "Default/Preferences"),
-                encoding="latin1",
-                mode="r+",
+                    os.path.join(user_data_dir, "Default/Preferences"),
+                    encoding="latin1",
+                    mode="r+",
             ) as fs:
                 config = json.load(fs)
                 if config["profile"]["exit_type"] is not None:
@@ -387,11 +388,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             reactor.start()
             self.reactor = reactor
 
+        self._web_element_cls = WebElement
+
         if options.headless:
             self._configure_headless()
 
-    def __getattribute__(self, item):
 
+    def __getattribute__(self, item):
         if not super().__getattribute__("debug"):
             return super().__getattribute__(item)
         else:
@@ -399,7 +402,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
             original = super().__getattribute__(item)
             if inspect.ismethod(original) and not inspect.isclass(original):
-
                 def newfunc(*args, **kwargs):
                     logger.debug(
                         "calling %s with args %s and kwargs %s\n"
@@ -492,6 +494,18 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             },
         )
 
+    def _remove_cdc_props(self):
+        self.execute_script("""
+        let objectToInspect = window,
+                        result = [];
+                    while(objectToInspect !== null) 
+                    { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
+                      objectToInspect = Object.getPrototypeOf(objectToInspect); }
+                    result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
+                                        &&delete window[p]&&console.log('removed',p))
+        """)
+
+
     def get(self, url):
         if self._get_cdc_props():
             self._hook_remove_cdc_props()
@@ -499,9 +513,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def add_cdp_listener(self, event_name, callback):
         if (
-            self.reactor
-            and self.reactor is not None
-            and isinstance(self.reactor, Reactor)
+                self.reactor
+                and self.reactor is not None
+                and isinstance(self.reactor, Reactor)
         ):
             self.reactor.add_event_handler(event_name, callback)
             return self.reactor.handlers
@@ -511,7 +525,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if self.reactor and isinstance(self.reactor, Reactor):
             self.reactor.handlers.clear()
 
-    def tab_new(self, url: str):
+    def tab_new(self, url: str, switch_to=False):
         """
         this opens a url in a new tab.
         apparently, that passes all tests directly!
@@ -519,13 +533,24 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         Parameters
         ----------
         url
-
+        switch_to: if True, driver switches to newly opened context (tab).
+                    if False, driver will stay in current context (tab)
         Returns
         -------
 
         """
 
-        self.execute_cdp_cmd('Target.createTarget', {'url': url or 'data:,'})
+        self.execute_cdp_cmd('Target.createTarget', {'url': 'data:,'})
+        cur_handle = self.current_window_handle
+        self.switch_to.window(self.window_handles[-1])
+        self.get(url)
+        if not switch_to:
+            self.switch_to.window(cur_handle)
+
+    def execute(self, command: str, params: dict = None):
+        if self.debug:
+            logger.debug("command: %s  - params: %s" % (command, params))
+        return super().execute(command, params)
 
     def reconnect(self, timeout=0.1):
         try:
@@ -571,9 +596,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             pass
 
         if (
-            hasattr(self, "keep_user_data_dir")
-            and hasattr(self, "user_data_dir")
-            and not self.keep_user_data_dir
+                hasattr(self, "keep_user_data_dir")
+                and hasattr(self, "user_data_dir")
+                and not self.keep_user_data_dir
         ):
             for _ in range(5):
                 try:
@@ -632,12 +657,12 @@ def find_chrome_executable():
             )
     else:
         for item in map(
-            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+                os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
         ):
             for subitem in (
-                "Google/Chrome/Application",
-                "Google/Chrome Beta/Application",
-                "Google/Chrome Canary/Application",
+                    "Google/Chrome/Application",
+                    "Google/Chrome Beta/Application",
+                    "Google/Chrome Canary/Application",
             ):
                 candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
