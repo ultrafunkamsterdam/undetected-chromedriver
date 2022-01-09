@@ -11,6 +11,7 @@ import sys
 import zipfile
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
+import wget
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,9 @@ class Patcher(object):
         zip_name %= "win32"
         exe_name %= ".exe"
     if platform.endswith("linux"):
+        zip_name %= "armv7l"
+        exe_name %= ""
+    elif platform.endswith("linux"):
         zip_name %= "linux64"
         exe_name %= ""
     if platform.endswith("darwin"):
@@ -53,6 +57,7 @@ class Patcher(object):
                     terminate processes which are holding lock
             version_main: 0 = auto
                 specify main chrome version (rounded, ex: 82)
+                https://objects.githubusercontent.com/github-production-release-asset-2e65be/9384267/73b45c75-12ea-40f1-adec-fa1e624c9630?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220109T204239Z&X-Amz-Expires=300&X-Amz-Signature=886f26483919a5931d92662d185ff928d06387556e9b6478f77fd51f186d4c10&X-Amz-SignedHeaders=host&actor_id=44285746&key_id=0&repo_id=9384267&response-content-disposition=attachment%3B%20filename%3Dchromedriver-v15.3.4-linux-armv7l.zip&response-content-type=application%2Foctet-stream
         """
 
         self.force = force
@@ -66,7 +71,7 @@ class Patcher(object):
                 if not executable_path[-4:] == ".exe":
                     executable_path += ".exe"
 
-        self.zip_path = os.path.join(self.data_path, self.zip_name)
+        self.zip_path = os.path.join(self.data_path, "chromedriver-v15.3.4-linux-armv7l.zip")
 
         if not executable_path:
             self.executable_path = os.path.abspath(
@@ -115,9 +120,8 @@ class Patcher(object):
         except FileNotFoundError:
             pass
 
-        release = self.fetch_release_number()
-        self.version_main = release.version[0]
-        self.version_full = release
+        self.version_main = "v15.3.4"
+        self.version_full = "v15.3.4"
         self.unzip_package(self.fetch_package())
         # i.patch()
         return self.patch()
@@ -152,10 +156,13 @@ class Patcher(object):
 
         :return: path to downloaded file
         """
-        u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
-        logger.debug("downloading from %s" % u)
-        # return urlretrieve(u, filename=self.data_path)[0]
-        return urlretrieve(u)[0]
+        
+        if os.path.isfile("chromedriver-v15.3.4-linux-armv7l.zip"):
+            fp = "chromedriver-v15.3.4-linux-armv7l.zip"
+        else:
+            fp = wget.download("https://github.com/electron/electron/releases/download/v15.3.4/chromedriver-v15.3.4-linux-armv7l.zip")
+       
+        return fp
 
     def unzip_package(self, fp):
         """
@@ -163,6 +170,8 @@ class Patcher(object):
 
         :return: path to unpacked executable
         """
+        
+        
         logger.debug("unzipping %s" % fp)
         try:
             os.unlink(self.zip_path)
