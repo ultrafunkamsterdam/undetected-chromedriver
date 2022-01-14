@@ -122,7 +122,9 @@ class Patcher(object):
 
         self.version_main = "v15.3.4"
         self.version_full = "v15.3.4"
-        self.unzip_package(self.fetch_package())
+
+        package = self.fetch_package()
+        self.unzip_package(package)
         # i.patch()
         return self.patch()
 
@@ -156,13 +158,15 @@ class Patcher(object):
 
         :return: path to downloaded file
         """
-        
-        if os.path.isfile("chromedriver-v15.3.4-linux-armv7l.zip"):
-            fp = "chromedriver-v15.3.4-linux-armv7l.zip"
+
+        url = "https://github.com/electron/electron/releases/download/v15.3.4/chromedriver-v15.3.4-linux-armv7l.zip"
+        file = url.split("/")[-1]
+        if os.path.exists(os.path.join(file)):
+            print(file, "already downloaded")
         else:
-            fp = wget.download("https://github.com/electron/electron/releases/download/v15.3.4/chromedriver-v15.3.4-linux-armv7l.zip")
+            file = wget.download(url)
        
-        return fp
+        return file
 
     def unzip_package(self, fp):
         """
@@ -170,19 +174,21 @@ class Patcher(object):
 
         :return: path to unpacked executable
         """
-        
-        
-        logger.debug("unzipping %s" % fp)
-        try:
-            os.unlink(self.zip_path)
-        except (FileNotFoundError, OSError):
-            pass
+        if os.path.isfile(os.path.dirname(self.executable_path)):
+            logger.debug("File %s ist schon vorhanden" % fp)
+        else:
+            
+            logger.debug("unzipping %s" % fp)
+            try:
+                os.unlink(self.zip_path)
+            except (FileNotFoundError, OSError):
+                pass
 
-        os.makedirs(self.data_path, mode=0o755, exist_ok=True)
+            os.makedirs(self.data_path, mode=0o755, exist_ok=True)
 
-        with zipfile.ZipFile(fp, mode="r") as zf:
-            zf.extract(self.exe_name, os.path.dirname(self.executable_path))
-        os.remove(fp)
+            with zipfile.ZipFile(fp, mode="r") as zf:
+                zf.extract(self.exe_name, os.path.dirname(self.executable_path))
+                
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
 
