@@ -85,10 +85,6 @@ class Patcher(Chrome_Version, object):
         zip_name %= "mac64"
         exe_name %= ""
 
-    print(url_repo,zip_name,exe_name)
-
-
-
     if platform.endswith("win32"):
         d = "~/appdata/roaming/undetected_chromedriver"
     elif platform.startswith("linux"):
