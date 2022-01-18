@@ -11,31 +11,83 @@ import sys
 import zipfile
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
-import wget
 
 logger = logging.getLogger(__name__)
 
 IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
 
+class Chrome_Version():
+    def windows():
+        """Alternative Methode um Chrome Version auf Windows zu bekommen"""
+        from win32com.client import Dispatch
+        
+        x64 = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+        x86 = r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
 
-class Patcher(object):
-    url_repo = "https://chromedriver.storage.googleapis.com"
-    zip_name = "chromedriver_%s.zip"
-    exe_name = "chromedriver%s"
+        def get_version_via_com(filename):
+            parser = Dispatch("Scripting.FileSystemObject")
+            try:
+                version = parser.GetFileVersion(filename)
+            except Exception:
+                return None
+            return version
+        
+        return list(filter(None, [get_version_via_com(p) for p in [x64, x86]]))[0]
+    
+    
+    
+    def chrome_version():
+        """Return Chromium Version"""
+        osname = sys.platform
+        if osname == 'darwin':
+            installpath = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
+        elif osname == 'win32':
+            installpath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+        elif osname == 'linux':
+            installpath = "/usr/bin/chromium-browser"
+        else:
+            raise NotImplemented(f"Unknown OS '{osname}'")
+
+        return int(os.popen(f"{installpath} --version").read().strip('Chromium').strip().split(" ")[0][0:2])
+    
+    def chrome_version_chromedriver_version(version):
+        chrome2chromdriver = {97 : "16.0.7", 94 : "15.3.4"}
+        nearest_version = min(chrome2chromdriver, key=lambda x:abs(x-version))
+        
+        return chrome2chromdriver[nearest_version]
+    
+class Patcher(Chrome_Version, object):
+    arch = os.uname().machine
+    
+    if arch == "x86_64":
+        url_repo = "https://chromedriver.storage.googleapis.com"
+        zip_name = "chromedriver_%s.zip"
+        exe_name = "chromedriver%s"
+    else:
+        url_repo             = "https://github.com/electron/electron/releases/download/%s/"
+        zip_name             = "chromedriver-%s-linux-%s.zip"
+        exe_name             = "chromedriver%s"
+        chromedriver_version = Chrome_Version.chrome_version_chromedriver_version(Chrome_Version.chrome_version())
 
     platform = sys.platform
     if platform.endswith("win32"):
         zip_name %= "win32"
         exe_name %= ".exe"
     if platform.endswith("linux"):
-        zip_name %= "armv7l"
-        exe_name %= ""
-    elif platform.endswith("linux"):
-        zip_name %= "linux64"
-        exe_name %= ""
+        if arch == "x86_64":
+            zip_name %= "linux64"
+            exe_name %= ""
+        else:
+            url_repo %= chromedriver_version
+            zip_name %= chromedriver_version, arch
+            exe_name %= ""
     if platform.endswith("darwin"):
         zip_name %= "mac64"
         exe_name %= ""
+
+    print(url_repo,zip_name,exe_name)
+
+
 
     if platform.endswith("win32"):
         d = "~/appdata/roaming/undetected_chromedriver"
@@ -49,7 +101,6 @@ class Patcher(object):
 
     def __init__(self, executable_path=None, force=False, version_main: int = 0):
         """
-
         Args:
             executable_path: None = automatic
                              a full file path to the chromedriver executable
@@ -57,7 +108,6 @@ class Patcher(object):
                     terminate processes which are holding lock
             version_main: 0 = auto
                 specify main chrome version (rounded, ex: 82)
-                https://objects.githubusercontent.com/github-production-release-asset-2e65be/9384267/73b45c75-12ea-40f1-adec-fa1e624c9630?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIWNJYAX4CSVEH53A%2F20220109%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20220109T204239Z&X-Amz-Expires=300&X-Amz-Signature=886f26483919a5931d92662d185ff928d06387556e9b6478f77fd51f186d4c10&X-Amz-SignedHeaders=host&actor_id=44285746&key_id=0&repo_id=9384267&response-content-disposition=attachment%3B%20filename%3Dchromedriver-v15.3.4-linux-armv7l.zip&response-content-type=application%2Foctet-stream
         """
 
         self.force = force
@@ -71,7 +121,7 @@ class Patcher(object):
                 if not executable_path[-4:] == ".exe":
                     executable_path += ".exe"
 
-        self.zip_path = os.path.join(self.data_path, "chromedriver-v15.3.4-linux-armv7l.zip")
+        self.zip_path = os.path.join(self.data_path, self.zip_name)
 
         if not executable_path:
             self.executable_path = os.path.abspath(
@@ -120,11 +170,10 @@ class Patcher(object):
         except FileNotFoundError:
             pass
 
-        self.version_main = "v15.3.4"
-        self.version_full = "v15.3.4"
-
-        package = self.fetch_package()
-        self.unzip_package(package)
+        release = self.fetch_release_number()
+        self.version_main = release.version[0]
+        self.version_full = release
+        self.unzip_package(self.fetch_package())
         # i.patch()
         return self.patch()
 
@@ -155,40 +204,29 @@ class Patcher(object):
     def fetch_package(self):
         """
         Downloads ChromeDriver from source
-
         :return: path to downloaded file
         """
-
-        url = "https://github.com/electron/electron/releases/download/v15.3.4/chromedriver-v15.3.4-linux-armv7l.zip"
-        file = url.split("/")[-1]
-        if os.path.exists(os.path.join(file)):
-            print(file, "already downloaded")
-        else:
-            file = wget.download(url)
-       
-        return file
+        u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
+        logger.debug("downloading from %s" % u)
+        # return urlretrieve(u, filename=self.data_path)[0]
+        return urlretrieve(u)[0]
 
     def unzip_package(self, fp):
         """
         Does what it says
-
         :return: path to unpacked executable
         """
-        if os.path.isfile(os.path.dirname(self.executable_path)):
-            logger.debug("File %s ist schon vorhanden" % fp)
-        else:
-            
-            logger.debug("unzipping %s" % fp)
-            try:
-                os.unlink(self.zip_path)
-            except (FileNotFoundError, OSError):
-                pass
+        logger.debug("unzipping %s" % fp)
+        try:
+            os.unlink(self.zip_path)
+        except (FileNotFoundError, OSError):
+            pass
 
-            os.makedirs(self.data_path, mode=0o755, exist_ok=True)
+        os.makedirs(self.data_path, mode=0o755, exist_ok=True)
 
-            with zipfile.ZipFile(fp, mode="r") as zf:
-                zf.extract(self.exe_name, os.path.dirname(self.executable_path))
-                
+        with zipfile.ZipFile(fp, mode="r") as zf:
+            zf.extract(self.exe_name, os.path.dirname(self.executable_path))
+        os.remove(fp)
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
 
@@ -197,7 +235,6 @@ class Patcher(object):
         """
         kills running instances.
         :param: executable name to kill, may be a path as well
-
         :return: True on success else False
         """
         exe_name = os.path.basename(exe_name)
@@ -217,7 +254,6 @@ class Patcher(object):
 
     def is_binary_patched(self, executable_path=None):
         """simple check if executable is patched.
-
         :return: False if not patched, else True
         """
         executable_path = executable_path or self.executable_path
@@ -231,7 +267,6 @@ class Patcher(object):
     def patch_exe(self):
         """
         Patches the ChromeDriver binary
-
         :return: False on failure, binary name on success
         """
         logger.info("patching driver executable %s" % self.executable_path)
