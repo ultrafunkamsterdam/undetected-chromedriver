@@ -17,33 +17,11 @@ logger = logging.getLogger(__name__)
 IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
 
 class Chrome_Version():
-    def windows():
-        """Alternative Methode um Chrome Version auf Windows zu bekommen"""
-        from win32com.client import Dispatch
-        
-        x64 = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-        x86 = r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
 
-        def get_version_via_com(filename):
-            parser = Dispatch("Scripting.FileSystemObject")
-            try:
-                version = parser.GetFileVersion(filename)
-            except Exception:
-                return None
-            return version
-        
-        return list(filter(None, [get_version_via_com(p) for p in [x64, x86]]))[0]
-    
-    
-    
     def chrome_version():
         """Return Chromium Version"""
         osname = sys.platform
-        if osname == 'darwin':
-            installpath = "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
-        elif osname == 'win32':
-            installpath = "C:\Program Files\Google\Chrome\Application\chrome.exe"
-        elif osname == 'linux':
+        if osname == 'linux':
             installpath = "/usr/bin/chromium-browser"
         else:
             raise NotImplemented(f"Unknown OS '{osname}'")
@@ -51,6 +29,7 @@ class Chrome_Version():
         return int(os.popen(f"{installpath} --version").read().strip('Chromium').strip().split(" ")[0][0:2])
     
     def chrome_version_chromedriver_version(version):
+        """Return needed Chromedriver Version"""
         chrome2chromdriver = {97 : "16.0.7", 94 : "15.3.4"}
         nearest_version = min(chrome2chromdriver, key=lambda x:abs(x-version))
         
