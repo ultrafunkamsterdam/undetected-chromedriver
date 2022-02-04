@@ -56,7 +56,7 @@ class Patcher(object):
         """
 
         self.force = force
-        self.executable_path = None
+        self.executable_path = executable_path
 
         if not executable_path:
             self.executable_path = os.path.join(self.data_path, self.exe_name)

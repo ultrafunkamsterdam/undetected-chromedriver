@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import subprocess
-
 """
 
          888                                                  888         d8b
@@ -18,7 +16,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
 
-__version__ = "3.1.2"
+__version__ = "3.1.0"
 
 import json
 import logging
@@ -113,8 +111,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         version_main=None,
         patcher_force_close=False,
         suppress_welcome=True,
-        use_subprocess=False,
         debug=False,
+        chromedriver_executable_path=None,
         **kw
     ):
         """
@@ -185,27 +183,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             now, in case you are nag-fetishist, or a diagnostics data feeder to google, you can set this to False.
             Note: if you don't handle the nag screen in time, the browser loses it's connection and throws an Exception.
 
-        use_subprocess: bool, optional , default: False,
-
-            False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
-                This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
-                program exits or using .quit()
-
-              unfortunately, there  is always an edge case in which one would like to write an single script with the only contents being:
-              --start script--
-              import undetected_chromedriver as uc
-              d = uc.Chrome()
-              d.get('https://somesite/')
-              ---end script --
-
-              and will be greeted with an error, since the program exists before chrome has a change to launch.
-              in that case you can set this to `True`. The browser will start via subprocess, and will keep running most of times.
-              ! setting it to True comes with NO support when being detected. !
+        chromedriver_executable_path: str, optional, default=None - use Patcher to download
+            Specify a chromedriver executable, already patched or to be patched
 
         """
         self.debug = debug
         patcher = Patcher(
-            executable_path=None,
+            executable_path=chromedriver_executable_path,
             force=patcher_force_close,
             version_main=version_main,
         )
@@ -356,19 +340,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not desired_capabilities:
             desired_capabilities = options.to_capabilities()
 
-        if not use_subprocess:
-            self.browser_pid = start_detached(options.binary_location, *options.arguments)
-        else:
-            browser = subprocess.Popen(
-                [options.binary_location, *options.arguments],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                close_fds=IS_POSIX,
-            )
-            self.browser_pid = browser.pid
-
-
+        self.browser_pid = start_detached(options.binary_location, *options.arguments)
 
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
@@ -395,7 +367,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self._configure_headless()
 
     def __getattribute__(self, item):
-
         if not super().__getattribute__("debug"):
             return super().__getattribute__(item)
         else:
@@ -413,6 +384,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
                 return newfunc
             return original
+
+    # @property
+    # def switch_to(self):
+    #     def callback():
+    #         self.get(self.current_url)
+    #     try:
+    #         return super().switch_to
+    #     finally:
+    #         threading.Timer(.1, callback).start()
 
     def _configure_headless(self):
 
@@ -560,8 +540,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def quit(self):
         logger.debug("closing webdriver")
-        if hasattr(self, 'service') and getattr(self.service, 'process', None):
-            self.service.process.kill()
+        self.service.process.kill()
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
                 logger.debug("shutting down reactor")
@@ -571,6 +550,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         try:
             logger.debug("killing browser")
             os.kill(self.browser_pid, 15)
+            # self.browser.terminate()
+            # self.browser.wait(1)
 
         except TimeoutError as e:
             logger.debug(e, exc_info=True)
@@ -606,9 +587,19 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         self.quit()
 
     def __enter__(self):
+        try:
+            curframe = inspect.currentframe()
+            callframe = inspect.getouterframes(curframe, 2)
+            caller = callframe[1][3]
+            logging.getLogger(__name__).debug("__enter__ caller: %s" % caller)
+            if caller == "get":
+                return
+        except (AttributeError, ValueError, KeyError, OSError) as e:
+            logging.getLogger(__name__).debug(e)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+
         self.service.stop()
         time.sleep(self._delay)
         self.service.start()
