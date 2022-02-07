@@ -43,8 +43,8 @@ class Patcher(Chrome_Version, object):
         zip_name = "chromedriver_%s.zip"
         exe_name = "chromedriver%s"
     else:
-        url_repo             = "https://github.com/electron/electron/releases/download/%s/"
-        zip_name             = "chromedriver-%s-linux-%s.zip"
+        url_repo             = "https://github.com/electron/electron/releases/download/v%s/"
+        zip_name             = "chromedriver-v%s-linux-%s.zip"
         exe_name             = "chromedriver%s"
         chromedriver_version = Chrome_Version.chrome_version_chromedriver_version(Chrome_Version.chrome_version())
 
@@ -144,10 +144,12 @@ class Patcher(Chrome_Version, object):
             # return False
         except FileNotFoundError:
             pass
-
-        release = self.fetch_release_number()
-        self.version_main = release.version[0]
-        self.version_full = release
+        if "arm" in self.arch:
+            pass
+        else:
+            release = self.fetch_release_number()
+            self.version_main = release.version[0]
+            self.version_full = release
         self.unzip_package(self.fetch_package())
         # i.patch()
         return self.patch()
@@ -180,8 +182,13 @@ class Patcher(Chrome_Version, object):
         """
         Downloads ChromeDriver from source
         :return: path to downloaded file
+        https://github.com/electron/electron/releases/download/v17.0.0/chromedriver-v17.0.0-linux-armv7l.zip
+        https://github.com/electron/electron/releases/download/15.3.4/chromedriver-15.3.4-linux-armv7l.zip
         """
-        u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
+        if "arm" in self.arch:
+            u = self.url_repo + self.zip_name
+        else:
+            u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
         logger.debug("downloading from %s" % u)
         # return urlretrieve(u, filename=self.data_path)[0]
         return urlretrieve(u)[0]
