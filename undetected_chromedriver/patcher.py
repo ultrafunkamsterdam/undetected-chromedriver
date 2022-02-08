@@ -22,11 +22,13 @@ class Chrome_Version():
         """Return Chromium Version"""
         osname = sys.platform
         if osname == 'linux':
-            installpath = "/usr/bin/chromium-browser"
+            pass
         else:
             raise NotImplemented(f"Unknown OS '{osname}'")
-
-        return int(os.popen(f"{installpath} --version").read().strip('Chromium').strip().split(" ")[0][0:2])
+        try:
+            return int(os.popen(f"/usr/bin/chromium-browser --version").read().strip('Chromium').strip().split(" ")[0][0:2])
+        except:
+            return int(os.popen(f"/usr/bin/google-chrome --version").read().strip('Chromium').strip().split(" ")[2][0:2])
     
     def chrome_version_chromedriver_version(version):
         """Return needed Chromedriver Version"""
