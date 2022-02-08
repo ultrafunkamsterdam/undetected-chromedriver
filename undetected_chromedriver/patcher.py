@@ -30,7 +30,7 @@ class Chrome_Version():
     
     def chrome_version_chromedriver_version(version):
         """Return needed Chromedriver Version"""
-        chrome2chromdriver = {97 : "16.0.7", 94 : "15.3.4"}
+        chrome2chromdriver = {97 : "16.0.7", 96 : "16.0.6", 94 : "15.3.4", 93 : "14.2.3", 92 : "14.0.0-beta.1", 91 : "13.0.1", 82 : "11.0.0-beta.7"}
         nearest_version = min(chrome2chromdriver, key=lambda x:abs(x-version))
         
         return chrome2chromdriver[nearest_version]
