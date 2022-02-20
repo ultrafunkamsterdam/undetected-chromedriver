@@ -9,6 +9,7 @@ import re
 import string
 import sys
 import zipfile
+import subprocess
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
 
@@ -18,27 +19,31 @@ IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
 
 class Chrome_Version():
 
-    def chrome_version():
-        """Return Chromium Version"""
-        osname = sys.platform
-        if osname == 'linux':
-            pass
-        else:
-            raise NotImplemented(f"Unknown OS '{osname}'")
-        try:
-            return int(os.popen(f"/usr/bin/chromium-browser --version").read().strip('Chromium').strip().split(" ")[0][0:2])
-        except:
-            return int(os.popen(f"/usr/bin/google-chrome --version").read().strip('Chromium').strip().split(" ")[2][0:2])
-    
-    def chrome_version_chromedriver_version(version):
+    def get_chrome_major_version():
+        """
+        Detects the major version number of the installed chrome/chromium browser.
+        :return: The browsers major version number or None
+        """
+        browser_executables = ['google-chrome', 'chrome', 'chrome-browser', 'google-chrome-stable', 'chromium', 'chromium-browser']
+        for browser_executable in browser_executables:
+            try:
+                version = subprocess.check_output([browser_executable, '--version'])
+                return int(re.match(r'.*?((?P<major>\d+)\.(\d+\.){2,3}\d+).*?', version.decode('utf-8')).group('major'))
+            except Exception:
+                pass
+
+    def get_chromedriver_version(version):
         """Return needed Chromedriver Version"""
-        chrome2chromdriver = {97 : "16.0.7", 96 : "16.0.6", 94 : "15.3.4", 93 : "14.2.3", 92 : "14.0.0-beta.1", 91 : "13.0.1", 82 : "11.0.0-beta.7"}
+        chrome2chromdriver = {98 : "17.0.0-beta.4", 97 : "16.0.7", 96 : "16.0.6", 95: "16.0.0-alpha.1", 94 : "15.3.4", 93 : "14.2.3", 92 : "14.0.0-beta.1", 91 : "13.0.1", 82 : "11.0.0-beta.7"}
         nearest_version = min(chrome2chromdriver, key=lambda x:abs(x-version))
         
         return chrome2chromdriver[nearest_version]
     
 class Patcher(Chrome_Version, object):
+    
     arch = os.uname().machine
+    if arch == "aarch64":
+        arch = "arm64"
     
     if arch == "x86_64":
         url_repo = "https://chromedriver.storage.googleapis.com"
@@ -48,7 +53,7 @@ class Patcher(Chrome_Version, object):
         url_repo             = "https://github.com/electron/electron/releases/download/v%s/"
         zip_name             = "chromedriver-v%s-linux-%s.zip"
         exe_name             = "chromedriver%s"
-        chromedriver_version = Chrome_Version.chrome_version_chromedriver_version(Chrome_Version.chrome_version())
+        chromedriver_version = Chrome_Version.get_chromedriver_version(Chrome_Version.get_chrome_major_version())
 
     platform = sys.platform
     if platform.endswith("win32"):
@@ -185,13 +190,13 @@ class Patcher(Chrome_Version, object):
         Downloads ChromeDriver from source
         :return: path to downloaded file
         https://github.com/electron/electron/releases/download/v17.0.0/chromedriver-v17.0.0-linux-armv7l.zip
-        https://github.com/electron/electron/releases/download/15.3.4/chromedriver-15.3.4-linux-armv7l.zip
         """
         if "arm" in self.arch:
             u = self.url_repo + self.zip_name
         else:
             u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
         logger.debug("downloading from %s" % u)
+        print(u)
         # return urlretrieve(u, filename=self.data_path)[0]
         return urlretrieve(u)[0]
 
