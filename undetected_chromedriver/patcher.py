@@ -217,6 +217,7 @@ class Patcher(Chrome_Version, object):
             zf.extract(self.exe_name, os.path.dirname(self.executable_path))
         os.remove(fp)
         os.chmod(self.executable_path, 0o755)
+        print(self.executable_path)
         return self.executable_path
 
     @staticmethod
