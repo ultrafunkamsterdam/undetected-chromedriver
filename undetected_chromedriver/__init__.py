@@ -228,8 +228,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         debug_port = selenium.webdriver.common.service.utils.free_port()
         debug_host = "127.0.0.1"
 
-        if not options.debugger_address:
-            options.debugger_address = "%s:%d" % (debug_host, debug_port)
+        #if not options.debugger_address:
+        #options.debugger_address = "%s:%d" % (debug_host, debug_port)
 
         if enable_cdp_events:
             options.set_capability(
