@@ -18,7 +18,9 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
 
-__version__ = "3.1.2"
+
+__version__ = "3.1.5r2"
+
 
 import json
 import logging
@@ -99,13 +101,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __init__(
         self,
+        options=None,
         user_data_dir=None,
+        driver_executable_path=None,
         browser_executable_path=None,
         port=0,
-        options=None,
         enable_cdp_events=False,
         service_args=None,
         desired_capabilities=None,
+        advanced_elements=False,
         service_log_path=None,
         keep_alive=True,
         log_level=0,
@@ -125,9 +129,17 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         Parameters
         ----------
 
+        options: ChromeOptions, optional, default: None - automatic useful defaults
+            this takes an instance of ChromeOptions, mainly to customize browser behavior.
+            anything other dan the default, for example extensions or startup options
+            are not supported in case of failure, and can probably lowers your undetectability.
+
+
         user_data_dir: str , optional, default: None (creates temp profile)
             if user_data_dir is a path to a valid chrome profile directory, use it,
             and turn off automatic removal mechanism at exit.
+
+        driver_executable_path: str, optional, default: None(=downloads and patches new binary)
 
         browser_executable_path: str, optional, default: None - use find_chrome_executable
             Path to the browser executable.
@@ -135,11 +147,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         port: int, optional, default: 0
             port you would like the service to run, if left as 0, a free port will be found.
-
-        options: ChromeOptions, optional, default: None - automatic useful defaults
-            this takes an instance of ChromeOptions, mainly to customize browser behavior.
-            anything other dan the default, for example extensions or startup options
-            are not supported in case of failure, and can probably lowers your undetectability.
 
         enable_cdp_events: bool, default: False
             :: currently for chrome only
@@ -149,11 +156,25 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 driver.add_cdp_listener("Network.dataReceived", yourcallback)
                 # yourcallback is an callable which accepts exactly 1 dict as parameter
 
+
         service_args: list of str, optional, default: None
             arguments to pass to the driver service
 
         desired_capabilities: dict, optional, default: None - auto from config
             Dictionary object with non-browser specific capabilities only, such as "item" or "loggingPref".
+
+        advanced_elements:  bool, optional, default: False
+            makes it easier to recognize elements like you know them from html/browser inspection, especially when working
+            in an interactive environment
+
+            default webelement repr:
+            <selenium.webdriver.remote.webelement.WebElement (session="85ff0f671512fa535630e71ee951b1f2", element="6357cb55-92c3-4c0f-9416-b174f9c1b8c4")>
+
+            advanced webelement repr
+            <WebElement(<a class="mobile-show-inline-block mc-update-infos init-ok" href="#" id="main-cat-switcher-mobile">)>
+
+            note: when retrieving large amounts of elements ( example: find_elements_by_tag("*") ) and print them, it does take a little more time.
+
 
         service_log_path: str, optional, default: None
              path to log information from the driver.
@@ -205,12 +226,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         """
         self.debug = debug
         patcher = Patcher(
-            executable_path=None,
+            executable_path=driver_executable_path,
             force=patcher_force_close,
             version_main=version_main,
         )
         patcher.auto()
-
+        self.patcher = patcher
         if not options:
             options = ChromeOptions()
 
@@ -357,7 +378,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             desired_capabilities = options.to_capabilities()
 
         if not use_subprocess:
-            self.browser_pid = start_detached(options.binary_location, *options.arguments)
+            self.browser_pid = start_detached(
+                options.binary_location, *options.arguments
+            )
         else:
             browser = subprocess.Popen(
                 [options.binary_location, *options.arguments],
@@ -367,8 +390,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 close_fds=IS_POSIX,
             )
             self.browser_pid = browser.pid
-
-
 
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
@@ -390,6 +411,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             reactor = Reactor(self)
             reactor.start()
             self.reactor = reactor
+
+        if advanced_elements:
+            from .webelement import WebElement
+            self._web_element_cls = WebElement
 
         if options.headless:
             self._configure_headless()
@@ -530,9 +555,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         """
         if not hasattr(self, "cdp"):
             from .cdp import CDP
-
-            self.cdp = CDP(self.options)
-        self.cdp.tab_new(url)
+            cdp = CDP(self.options)
+            cdp.tab_new(url)
 
     def reconnect(self, timeout=0.1):
         try:
@@ -560,7 +584,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def quit(self):
         logger.debug("closing webdriver")
-        if hasattr(self, 'service') and getattr(self.service, 'process', None):
+        if hasattr(self, "service") and getattr(self.service, "process", None):
             self.service.process.kill()
         try:
             if self.reactor and isinstance(self.reactor, Reactor):
@@ -598,10 +622,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     break
                 time.sleep(0.1)
 
+        # dereference patcher, so patcher can start cleaning up as well.
+        # this must come last, otherwise it will throw 'in use' errors
+        self.patcher = None
+
     def __del__(self):
         try:
             self.service.process.kill()
-        except:
+        except:  # noqa
             pass
         self.quit()
 
@@ -631,11 +659,20 @@ def find_chrome_executable():
     candidates = set()
     if IS_POSIX:
         for item in os.environ.get("PATH").split(os.pathsep):
-            for subitem in ("google-chrome", "chromium", "chromium-browser", "chrome"):
+            for subitem in (
+                "google-chrome",
+                "chromium",
+                "chromium-browser",
+                "chrome",
+                "google-chrome-stable",
+            ):
                 candidates.add(os.sep.join((item, subitem)))
         if "darwin" in sys.platform:
             candidates.update(
-                ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+                [
+                  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                  "/Applications/Chromium.app/Contents/MacOS/Chromium"
+                ]
             )
     else:
         for item in map(
@@ -645,6 +682,7 @@ def find_chrome_executable():
                 "Google/Chrome/Application",
                 "Google/Chrome Beta/Application",
                 "Google/Chrome Canary/Application",
+                   
             ):
                 candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:

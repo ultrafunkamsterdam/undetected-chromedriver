@@ -11,6 +11,8 @@ import sys
 import zipfile
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
+import secrets
+
 
 logger = logging.getLogger(__name__)
 
@@ -57,9 +59,12 @@ class Patcher(object):
 
         self.force = force
         self.executable_path = None
+        prefix = secrets.token_hex(8)
 
         if not executable_path:
-            self.executable_path = os.path.join(self.data_path, self.exe_name)
+            self.executable_path = os.path.join(
+                self.data_path, "_".join([prefix, self.exe_name])
+            )
 
         if not IS_POSIX:
             if executable_path:
@@ -119,7 +124,6 @@ class Patcher(object):
         self.version_main = release.version[0]
         self.version_full = release
         self.unzip_package(self.fetch_package())
-        # i.patch()
         return self.patch()
 
     def patch(self):
@@ -169,10 +173,13 @@ class Patcher(object):
         except (FileNotFoundError, OSError):
             pass
 
-        os.makedirs(self.data_path, mode=0o755, exist_ok=True)
-
+        os.makedirs(os.path.dirname(self.zip_path), mode=0o755, exist_ok=True)
         with zipfile.ZipFile(fp, mode="r") as zf:
-            zf.extract(self.exe_name, os.path.dirname(self.executable_path))
+            zf.extract(self.exe_name, os.path.dirname(self.zip_path))
+        os.rename(
+            os.path.join(self.data_path, self.exe_name),
+            self.executable_path
+        )
         os.remove(fp)
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
@@ -237,3 +244,17 @@ class Patcher(object):
             self.__class__.__name__,
             self.executable_path,
         )
+
+    def __del__(self):
+        try:
+            if not self._custom_exe_path:
+                # we will not delete custom exe paths.
+                # but this also voids support.
+                # downloading and patching makes sure you never use the same $cdc values, see patch_exe()
+                # after all, this program has a focus on detectability...
+                os.unlink(self.executable_path)
+
+        # except (OSError, RuntimeError, PermissionError):
+        #     pass
+        except:
+            raise
