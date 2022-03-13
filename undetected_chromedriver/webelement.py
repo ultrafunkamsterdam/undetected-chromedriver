@@ -36,4 +36,4 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
         strattrs = " ".join([f'{k}="{v}"' for k, v in self.attrs.items()])
         if strattrs:
             strattrs = " " + strattrs
-        return f"<{self.__class__.__name__}(<{self.tag_name}{strattrs}>)>"
+        return f"{self.__class__.__name__} <{self.tag_name}{strattrs}>"
