@@ -99,10 +99,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __init__(
         self,
+        options=None,
         user_data_dir=None,
+        driver_executable_path=None,
         browser_executable_path=None,
         port=0,
-        options=None,
         enable_cdp_events=False,
         service_args=None,
         desired_capabilities=None,
@@ -125,9 +126,17 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         Parameters
         ----------
 
+        options: ChromeOptions, optional, default: None - automatic useful defaults
+            this takes an instance of ChromeOptions, mainly to customize browser behavior.
+            anything other dan the default, for example extensions or startup options
+            are not supported in case of failure, and can probably lowers your undetectability.
+
+
         user_data_dir: str , optional, default: None (creates temp profile)
             if user_data_dir is a path to a valid chrome profile directory, use it,
             and turn off automatic removal mechanism at exit.
+
+        driver_executable_path: str, optional, default: None(=downloads and patches new binary)
 
         browser_executable_path: str, optional, default: None - use find_chrome_executable
             Path to the browser executable.
@@ -135,11 +144,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         port: int, optional, default: 0
             port you would like the service to run, if left as 0, a free port will be found.
-
-        options: ChromeOptions, optional, default: None - automatic useful defaults
-            this takes an instance of ChromeOptions, mainly to customize browser behavior.
-            anything other dan the default, for example extensions or startup options
-            are not supported in case of failure, and can probably lowers your undetectability.
 
         enable_cdp_events: bool, default: False
             :: currently for chrome only
@@ -205,12 +209,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         """
         self.debug = debug
         patcher = Patcher(
-            executable_path=None,
+            executable_path=driver_executable_path,
             force=patcher_force_close,
             version_main=version_main,
         )
         patcher.auto()
-
+        self.patcher = patcher
         if not options:
             options = ChromeOptions()
 
@@ -597,6 +601,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     logger.debug("successfully removed %s" % self.user_data_dir)
                     break
                 time.sleep(0.1)
+
+        # dereference patcher, so patcher can start cleaning up as well.
+        # this must come last, otherwise it will throw 'in use' errors
+        self.patcher = None
+
 
     def __del__(self):
         try:
