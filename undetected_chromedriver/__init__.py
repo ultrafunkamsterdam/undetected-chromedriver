@@ -18,7 +18,9 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
 
-__version__ = "3.1.5r1"
+
+__version__ = "3.1.5r2"
+
 
 import json
 import logging
@@ -161,7 +163,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         desired_capabilities: dict, optional, default: None - auto from config
             Dictionary object with non-browser specific capabilities only, such as "item" or "loggingPref".
 
-        advanced_webelements:  bool, optional, default: False
+        advanced_elements:  bool, optional, default: False
             makes it easier to recognize elements like you know them from html/browser inspection, especially when working
             in an interactive environment
 
@@ -412,7 +414,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if advanced_elements:
             from .webelement import WebElement
-
             self._web_element_cls = WebElement
 
         if options.headless:

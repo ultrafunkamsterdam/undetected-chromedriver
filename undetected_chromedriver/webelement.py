@@ -14,7 +14,7 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
 
     """
 
-    _attrs = {}
+
 
     @property
     def attrs(self):
