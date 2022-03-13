@@ -669,7 +669,10 @@ def find_chrome_executable():
                 candidates.add(os.sep.join((item, subitem)))
         if "darwin" in sys.platform:
             candidates.update(
-                ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"]
+                [
+                  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                  "/Applications/Chromium.app/Contents/MacOS/Chromium"
+                ]
             )
     else:
         for item in map(
@@ -679,6 +682,7 @@ def find_chrome_executable():
                 "Google/Chrome/Application",
                 "Google/Chrome Beta/Application",
                 "Google/Chrome Canary/Application",
+                   
             ):
                 candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
