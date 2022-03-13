@@ -62,7 +62,6 @@ class Patcher(object):
         prefix = secrets.token_hex(8)
 
         if not executable_path:
-
             self.executable_path = os.path.join(
                 self.data_path, "_".join([prefix, self.exe_name])
             )
@@ -72,7 +71,7 @@ class Patcher(object):
                 if not executable_path[-4:] == ".exe":
                     executable_path += ".exe"
 
-        # self.zip_path = os.path.join(self.data_path, self.zip_name)
+        self.zip_path = os.path.join(self.data_path, self.zip_name)
 
         if not executable_path:
             self.executable_path = os.path.abspath(
@@ -84,11 +83,6 @@ class Patcher(object):
         if executable_path:
             self._custom_exe_path = True
             self.executable_path = executable_path
-            self.data_path = os.path.dirname(executable_path)
-
-        self.zip_path = os.path.join(
-            os.path.dirname(self.executable_path), self.exe_name
-        )
         self.version_main = version_main
         self.version_full = None
 
@@ -130,7 +124,6 @@ class Patcher(object):
         self.version_main = release.version[0]
         self.version_full = release
         self.unzip_package(self.fetch_package())
-        # i.patch()
         return self.patch()
 
     def patch(self):
@@ -181,10 +174,12 @@ class Patcher(object):
             pass
 
         os.makedirs(os.path.dirname(self.zip_path), mode=0o755, exist_ok=True)
-
         with zipfile.ZipFile(fp, mode="r") as zf:
             zf.extract(self.exe_name, os.path.dirname(self.zip_path))
-            os.rename(self.zip_path, self.executable_path)
+        os.rename(
+            os.path.join(self.data_path, self.exe_name),
+            self.executable_path
+        )
         os.remove(fp)
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
