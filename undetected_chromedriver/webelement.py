@@ -13,6 +13,7 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
     <WebElement(<a class="mobile-show-inline-block mc-update-infos init-ok" href="#" id="main-cat-switcher-mobile">)>
 
     """
+
     _attrs = {}
 
     @property
@@ -36,5 +37,3 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
         if strattrs:
             strattrs = " " + strattrs
         return f"<{self.__class__.__name__}(<{self.tag_name}{strattrs}>)>"
-
-
