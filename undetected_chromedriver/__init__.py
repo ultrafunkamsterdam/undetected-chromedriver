@@ -355,6 +355,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
+        # add experimental options prefs
+        options.handle_prefs(user_data_dir)
+
         # fix exit_type flag to prevent tab-restore nag
         try:
             with open(
