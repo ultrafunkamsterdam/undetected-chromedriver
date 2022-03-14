@@ -71,7 +71,7 @@ class Patcher(object):
                 if not executable_path[-4:] == ".exe":
                     executable_path += ".exe"
 
-        self.zip_path = os.path.join(self.data_path, self.zip_name)
+        self.zip_path = os.path.join(self.data_path, prefix) 
 
         if not executable_path:
             self.executable_path = os.path.abspath(
@@ -173,14 +173,15 @@ class Patcher(object):
         except (FileNotFoundError, OSError):
             pass
 
-        os.makedirs(os.path.dirname(self.zip_path), mode=0o755, exist_ok=True)
+        os.makedirs(self.zip_path, mode=0o755, exist_ok=True)
         with zipfile.ZipFile(fp, mode="r") as zf:
-            zf.extract(self.exe_name, os.path.dirname(self.zip_path))
+            zf.extract(self.exe_name, self.zip_path)
         os.rename(
-            os.path.join(self.data_path, self.exe_name),
+            os.path.join(self.zip_path, self.exe_name),
             self.executable_path
         )
         os.remove(fp)
+        os.rmdir(self.zip_path)
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
 
