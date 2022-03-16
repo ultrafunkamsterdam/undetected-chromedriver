@@ -44,7 +44,7 @@ class ChromeOptions(_ChromiumOptions):
         if prefs:
 
             default_path = os.path.join(user_data_dir, "Default")
-            os.makedirs(default_path, exist_ok=False)
+            os.makedirs(default_path, exist_ok=True)
 
             # undot prefs dict keys
             undot_prefs = {}
