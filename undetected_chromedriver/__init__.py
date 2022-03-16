@@ -19,7 +19,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 
-__version__ = "3.1.5r2"
+__version__ = "3.1.5r4"
 
 
 import json
@@ -235,6 +235,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not options:
             options = ChromeOptions()
 
+
         try:
             if hasattr(options, "_session") and options._session is not None:
                 #  prevent reuse of options,
@@ -259,6 +260,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
+
+        if user_data_dir:
+            options.add_argument('--user-data-dir=%s' % user_data_dir)
 
         language, keep_user_data_dir = None, bool(user_data_dir)
 
@@ -354,6 +358,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             "--log-level=%d" % log_level
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
+
+        if hasattr(options, 'handle_prefs'):
+            options.handle_prefs(user_data_dir)
 
         # fix exit_type flag to prevent tab-restore nag
         try:
