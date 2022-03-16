@@ -250,7 +250,7 @@ class Patcher(object):
                 # but this also voids support.
                 # downloading and patching makes sure you never use the same $cdc values, see patch_exe()
                 # after all, this program has a focus on detectability...
-                for _ in range(1):
+                for _ in range(5):
                     try:
                         os.unlink(self.executable_path)
                         break
