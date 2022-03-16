@@ -14,8 +14,6 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
 
     """
 
-
-
     @property
     def attrs(self):
         if not hasattr(self, "_attrs"):
