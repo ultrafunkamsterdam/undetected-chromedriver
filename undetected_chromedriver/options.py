@@ -43,6 +43,7 @@ class ChromeOptions(_ChromiumOptions):
         prefs = self.experimental_options.get("prefs")
         if prefs:
 
+            user_data_dir = user_data_dir or self._user_data_dir
             default_path = os.path.join(user_data_dir, "Default")
             os.makedirs(default_path, exist_ok=True)
 
