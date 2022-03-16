@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import errno
 import subprocess
 
 """
@@ -30,8 +31,6 @@ import shutil
 import sys
 import tempfile
 import time
-import inspect
-import threading
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
@@ -39,11 +38,10 @@ import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
 
 from .cdp import CDP
-from .options import ChromeOptions
-from .patcher import IS_POSIX
-from .patcher import Patcher
-from .reactor import Reactor
 from .dprocess import start_detached
+from .options import ChromeOptions
+from .patcher import IS_POSIX, Patcher
+from .reactor import Reactor
 
 __all__ = (
     "Chrome",
@@ -119,7 +117,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         suppress_welcome=True,
         use_subprocess=False,
         debug=False,
-        **kw
+        **kw,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -355,6 +353,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
+        # add experimental options prefs
+        options.handle_prefs(user_data_dir)
+
         # fix exit_type flag to prevent tab-restore nag
         try:
             with open(
@@ -414,6 +415,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if advanced_elements:
             from .webelement import WebElement
+
             self._web_element_cls = WebElement
 
         if options.headless:
@@ -555,6 +557,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         """
         if not hasattr(self, "cdp"):
             from .cdp import CDP
+
             cdp = CDP(self.options)
             cdp.tab_new(url)
 
@@ -670,21 +673,21 @@ def find_chrome_executable():
         if "darwin" in sys.platform:
             candidates.update(
                 [
-                  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                  "/Applications/Chromium.app/Contents/MacOS/Chromium"
+                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                    "/Applications/Chromium.app/Contents/MacOS/Chromium",
                 ]
             )
     else:
         for item in map(
             os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
         ):
-            for subitem in (
-                "Google/Chrome/Application",
-                "Google/Chrome Beta/Application",
-                "Google/Chrome Canary/Application",
-                   
-            ):
-                candidates.add(os.sep.join((item, subitem, "chrome.exe")))
+            if item is not None:
+                for subitem in (
+                    "Google/Chrome/Application",
+                    "Google/Chrome Beta/Application",
+                    "Google/Chrome Canary/Application",
+                ):
+                    candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
         if os.path.exists(candidate) and os.access(candidate, os.X_OK):
             return os.path.normpath(candidate)

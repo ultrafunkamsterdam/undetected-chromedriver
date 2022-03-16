@@ -6,13 +6,13 @@ import logging
 import os
 import random
 import re
+import secrets
 import string
 import sys
+import time
 import zipfile
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
-import secrets
-
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ class Patcher(object):
                 if not executable_path[-4:] == ".exe":
                     executable_path += ".exe"
 
-        self.zip_path = os.path.join(self.data_path, self.zip_name)
+        self.zip_path = os.path.join(self.data_path, prefix)
 
         if not executable_path:
             self.executable_path = os.path.abspath(
@@ -146,7 +146,7 @@ class Patcher(object):
     def parse_exe_version(self):
         with io.open(self.executable_path, "rb") as f:
             for line in iter(lambda: f.readline(), b""):
-                match = re.search(br"platform_handle\x00content\x00([0-9.]*)", line)
+                match = re.search(rb"platform_handle\x00content\x00([0-9.]*)", line)
                 if match:
                     return LooseVersion(match[1].decode())
 
@@ -173,14 +173,12 @@ class Patcher(object):
         except (FileNotFoundError, OSError):
             pass
 
-        os.makedirs(os.path.dirname(self.zip_path), mode=0o755, exist_ok=True)
+        os.makedirs(self.zip_path, mode=0o755, exist_ok=True)
         with zipfile.ZipFile(fp, mode="r") as zf:
-            zf.extract(self.exe_name, os.path.dirname(self.zip_path))
-        os.rename(
-            os.path.join(self.data_path, self.exe_name),
-            self.executable_path
-        )
+            zf.extract(self.exe_name, self.zip_path)
+        os.rename(os.path.join(self.zip_path, self.exe_name), self.executable_path)
         os.remove(fp)
+        os.rmdir(self.zip_path)
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
 
@@ -252,7 +250,13 @@ class Patcher(object):
                 # but this also voids support.
                 # downloading and patching makes sure you never use the same $cdc values, see patch_exe()
                 # after all, this program has a focus on detectability...
-                os.unlink(self.executable_path)
+                for _ in range(5):
+                    try:
+                        os.unlink(self.executable_path)
+                        break
+
+                    except PermissionError as e:
+                        time.sleep(0.1)
 
         # except (OSError, RuntimeError, PermissionError):
         #     pass
