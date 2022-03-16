@@ -19,7 +19,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 
-__version__ = "3.1.5r2"
+__version__ = "3.1.5r3"
 
 
 import json
@@ -414,6 +414,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if advanced_elements:
             from .webelement import WebElement
+
             self._web_element_cls = WebElement
 
         if options.headless:
@@ -555,6 +556,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         """
         if not hasattr(self, "cdp"):
             from .cdp import CDP
+
             cdp = CDP(self.options)
             cdp.tab_new(url)
 
@@ -628,7 +630,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __del__(self):
         try:
-            self.service.process.kill()
+            super().quit()
+            # self.service.process.kill()
         except:  # noqa
             pass
         self.quit()
@@ -670,8 +673,8 @@ def find_chrome_executable():
         if "darwin" in sys.platform:
             candidates.update(
                 [
-                  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-                  "/Applications/Chromium.app/Contents/MacOS/Chromium"
+                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                    "/Applications/Chromium.app/Contents/MacOS/Chromium",
                 ]
             )
     else:
@@ -682,7 +685,6 @@ def find_chrome_executable():
                 "Google/Chrome/Application",
                 "Google/Chrome Beta/Application",
                 "Google/Chrome Canary/Application",
-                   
             ):
                 candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
