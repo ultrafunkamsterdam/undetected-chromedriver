@@ -369,6 +369,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     config["profile"]["exit_type"] = None
                 fs.seek(0, 0)
                 json.dump(config, fs)
+                fs.truncate()  # the file might be shorter
                 logger.debug("fixed exit_type flag")
         except Exception as e:
             logger.debug("did not find a bad exit_type flag ")
