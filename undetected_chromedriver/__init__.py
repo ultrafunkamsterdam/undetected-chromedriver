@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import errno
 import subprocess
 
 """
@@ -20,7 +19,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 
-__version__ = "3.1.5r2"
+__version__ = "3.1.5r4"
 
 
 import json
@@ -31,6 +30,8 @@ import shutil
 import sys
 import tempfile
 import time
+import inspect
+import threading
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
@@ -38,10 +39,11 @@ import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
 
 from .cdp import CDP
-from .dprocess import start_detached
 from .options import ChromeOptions
-from .patcher import IS_POSIX, Patcher
+from .patcher import IS_POSIX
+from .patcher import Patcher
 from .reactor import Reactor
+from .dprocess import start_detached
 
 __all__ = (
     "Chrome",
@@ -117,7 +119,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         suppress_welcome=True,
         use_subprocess=False,
         debug=False,
-        **kw,
+        **kw
     ):
         """
         Creates a new instance of the chrome driver.
@@ -233,6 +235,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not options:
             options = ChromeOptions()
 
+
         try:
             if hasattr(options, "_session") and options._session is not None:
                 #  prevent reuse of options,
@@ -257,6 +260,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
+
+        if user_data_dir:
+            options.add_argument('--user-data-dir=%s' % user_data_dir)
 
         language, keep_user_data_dir = None, bool(user_data_dir)
 
@@ -353,8 +359,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
-        # add experimental options prefs
-        options.handle_prefs(user_data_dir)
+        if hasattr(options, 'handle_prefs'):
+            options.handle_prefs(user_data_dir)
 
         # fix exit_type flag to prevent tab-restore nag
         try:
@@ -369,7 +375,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     config["profile"]["exit_type"] = None
                 fs.seek(0, 0)
                 json.dump(config, fs)
-                fs.truncate()  # the file might be shorter
                 logger.debug("fixed exit_type flag")
         except Exception as e:
             logger.debug("did not find a bad exit_type flag ")
@@ -632,7 +637,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __del__(self):
         try:
-            self.service.process.kill()
+            super().quit()
+            # self.service.process.kill()
         except:  # noqa
             pass
         self.quit()
@@ -682,13 +688,12 @@ def find_chrome_executable():
         for item in map(
             os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
         ):
-            if item is not None:
-                for subitem in (
-                    "Google/Chrome/Application",
-                    "Google/Chrome Beta/Application",
-                    "Google/Chrome Canary/Application",
-                ):
-                    candidates.add(os.sep.join((item, subitem, "chrome.exe")))
+            for subitem in (
+                "Google/Chrome/Application",
+                "Google/Chrome Beta/Application",
+                "Google/Chrome Canary/Application",
+            ):
+                candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
         if os.path.exists(candidate) and os.access(candidate, os.X_OK):
             return os.path.normpath(candidate)
