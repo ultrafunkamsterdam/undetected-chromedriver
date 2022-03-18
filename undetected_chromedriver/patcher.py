@@ -6,13 +6,14 @@ import logging
 import os
 import random
 import re
-import secrets
 import string
 import sys
 import time
 import zipfile
 from distutils.version import LooseVersion
 from urllib.request import urlopen, urlretrieve
+import secrets
+
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,9 @@ class Patcher(object):
         self.force = force
         self.executable_path = None
         prefix = secrets.token_hex(8)
+
+        if not os.path.exists(self.data_path):
+            os.makedirs(self.data_path, exist_ok=True)
 
         if not executable_path:
             self.executable_path = os.path.join(
@@ -244,21 +248,29 @@ class Patcher(object):
         )
 
     def __del__(self):
-        try:
-            if not self._custom_exe_path:
-                # we will not delete custom exe paths.
-                # but this also voids support.
-                # downloading and patching makes sure you never use the same $cdc values, see patch_exe()
-                # after all, this program has a focus on detectability...
-                for _ in range(5):
-                    try:
-                        os.unlink(self.executable_path)
-                        break
 
-                    except PermissionError as e:
-                        time.sleep(0.1)
-
-        # except (OSError, RuntimeError, PermissionError):
-        #     pass
-        except:
-            raise
+        if self._custom_exe_path:
+            # if the driver binary is specified by user
+            # we assume it is important enough to not delete it
+            return
+        else:
+            timeout = 3  # stop trying after this many seconds
+            t = time.monotonic()
+            while True:
+                now = time.monotonic()
+                if now - t > timeout:
+                    # we don't want to wait until the end of time
+                    logger.debug(
+                        "could not unlink %s in time (%d seconds)"
+                        % (self.executable_path, timeout)
+                    )
+                    break
+                try:
+                    os.unlink(self.executable_path)
+                    logger.debug("successfully unlinked %s" % self.executable_path)
+                    break
+                except (OSError, RuntimeError, PermissionError):
+                    time.sleep(0.1)
+                    continue
+                except FileNotFoundError:
+                    break
