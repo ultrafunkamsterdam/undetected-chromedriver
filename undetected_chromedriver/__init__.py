@@ -22,6 +22,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 __version__ = "3.1.5r4"
 
 
+import inspect
 import json
 import logging
 import os
@@ -29,9 +30,8 @@ import re
 import shutil
 import sys
 import tempfile
-import time
-import inspect
 import threading
+import time
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
@@ -39,11 +39,10 @@ import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
 
 from .cdp import CDP
-from .options import ChromeOptions
-from .patcher import IS_POSIX
-from .patcher import Patcher
-from .reactor import Reactor
 from .dprocess import start_detached
+from .options import ChromeOptions
+from .patcher import IS_POSIX, Patcher
+from .reactor import Reactor
 
 __all__ = (
     "Chrome",
@@ -119,7 +118,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         suppress_welcome=True,
         use_subprocess=False,
         debug=False,
-        **kw
+        **kw,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -235,7 +234,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not options:
             options = ChromeOptions()
 
-
         try:
             if hasattr(options, "_session") and options._session is not None:
                 #  prevent reuse of options,
@@ -262,7 +260,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         options.add_argument("--remote-debugging-port=%s" % debug_port)
 
         if user_data_dir:
-            options.add_argument('--user-data-dir=%s' % user_data_dir)
+            options.add_argument("--user-data-dir=%s" % user_data_dir)
 
         language, keep_user_data_dir = None, bool(user_data_dir)
 
@@ -359,7 +357,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
-        if hasattr(options, 'handle_prefs'):
+        if hasattr(options, "handle_prefs"):
             options.handle_prefs(user_data_dir)
 
         # fix exit_type flag to prevent tab-restore nag
@@ -375,7 +373,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     config["profile"]["exit_type"] = None
                 fs.seek(0, 0)
                 json.dump(config, fs)
-                fs.truncate()  # the file might be shorter
+                # fs.truncate()  # the file might be shorter
                 logger.debug("fixed exit_type flag")
         except Exception as e:
             logger.debug("did not find a bad exit_type flag ")
@@ -490,9 +488,101 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
                         "source": """
-                            Object.defineProperty(navigator, 'maxTouchPoints', {
-                                    get: () => 1
-                            })"""
+                            Object.defineProperty(navigator, 'maxTouchPoints', {get: () => 1});
+                            Object.defineProperty(navigator.connection, 'rtt', {get: () => 100});
+
+                            // https://github.com/microlinkhq/browserless/blob/master/packages/goto/src/evasions/chrome-runtime.js
+                            window.chrome = {
+                                app: {
+                                    isInstalled: false,
+                                    InstallState: {
+                                        DISABLED: 'disabled',
+                                        INSTALLED: 'installed',
+                                        NOT_INSTALLED: 'not_installed'
+                                    },
+                                    RunningState: {
+                                        CANNOT_RUN: 'cannot_run',
+                                        READY_TO_RUN: 'ready_to_run',
+                                        RUNNING: 'running'
+                                    }
+                                },
+                                runtime: {
+                                    OnInstalledReason: {
+                                        CHROME_UPDATE: 'chrome_update',
+                                        INSTALL: 'install',
+                                        SHARED_MODULE_UPDATE: 'shared_module_update',
+                                        UPDATE: 'update'
+                                    },
+                                    OnRestartRequiredReason: {
+                                        APP_UPDATE: 'app_update',
+                                        OS_UPDATE: 'os_update',
+                                        PERIODIC: 'periodic'
+                                    },
+                                    PlatformArch: {
+                                        ARM: 'arm',
+                                        ARM64: 'arm64',
+                                        MIPS: 'mips',
+                                        MIPS64: 'mips64',
+                                        X86_32: 'x86-32',
+                                        X86_64: 'x86-64'
+                                    },
+                                    PlatformNaclArch: {
+                                        ARM: 'arm',
+                                        MIPS: 'mips',
+                                        MIPS64: 'mips64',
+                                        X86_32: 'x86-32',
+                                        X86_64: 'x86-64'
+                                    },
+                                    PlatformOs: {
+                                        ANDROID: 'android',
+                                        CROS: 'cros',
+                                        LINUX: 'linux',
+                                        MAC: 'mac',
+                                        OPENBSD: 'openbsd',
+                                        WIN: 'win'
+                                    },
+                                    RequestUpdateCheckStatus: {
+                                        NO_UPDATE: 'no_update',
+                                        THROTTLED: 'throttled',
+                                        UPDATE_AVAILABLE: 'update_available'
+                                    }
+                                }
+                            }
+
+                            // https://github.com/microlinkhq/browserless/blob/master/packages/goto/src/evasions/navigator-permissions.js
+                            if (!window.Notification) {
+                                window.Notification = {
+                                    permission: 'denied'
+                                }
+                            }
+
+                            const originalQuery = window.navigator.permissions.query
+                            window.navigator.permissions.__proto__.query = parameters =>
+                                parameters.name === 'notifications'
+                                    ? Promise.resolve({ state: window.Notification.permission })
+                                    : originalQuery(parameters)
+
+                            const oldCall = Function.prototype.call
+                            function call() {
+                                return oldCall.apply(this, arguments)
+                            }
+                            Function.prototype.call = call
+
+                            const nativeToStringFunctionString = Error.toString().replace(/Error/g, 'toString')
+                            const oldToString = Function.prototype.toString
+
+                            function functionToString() {
+                                if (this === window.navigator.permissions.query) {
+                                    return 'function query() { [native code] }'
+                                }
+                                if (this === functionToString) {
+                                    return nativeToStringFunctionString
+                                }
+                                return oldCall.call(oldToString, this)
+                            }
+                            // eslint-disable-next-line
+                            Function.prototype.toString = functionToString
+                            """
                     },
                 )
             return orig_get(*args, **kwargs)
