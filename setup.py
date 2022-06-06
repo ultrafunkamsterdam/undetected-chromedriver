@@ -30,7 +30,7 @@ with codecs.open(
         raise RuntimeError("unable to determine version")
 
 description = (
-    "Selenium.webdriver.Chrome replacement with compatiblity for Brave, and other Chromium based browsers.",
+    "Selenium.webdriver.Chrome replacement with compatibility for Brave, and other Chromium based browsers.",
     "Not triggered by CloudFlare/Imperva/hCaptcha and such.",
     "NOTE: results may vary due to many factors. No guarantees are given, except for ongoing efforts in understanding detection algorithms.",
 )
