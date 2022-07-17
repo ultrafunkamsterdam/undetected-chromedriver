@@ -37,6 +37,7 @@ import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
+import selenium.webdriver.remote.command
 
 from .cdp import CDP
 from .options import ChromeOptions
@@ -547,7 +548,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def clear_cdp_listeners(self):
         if self.reactor and isinstance(self.reactor, Reactor):
             self.reactor.handlers.clear()
-
+    
+    def window_new(self):
+        self.execute(
+           selenium.webdriver.remote.command.Command.NEW_WINDOW,
+              {"type": "window"}
+        )
+         
+         
     def tab_new(self, url: str):
         """
         this opens a url in a new tab.
