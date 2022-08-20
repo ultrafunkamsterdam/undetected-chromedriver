@@ -20,8 +20,10 @@ Automatically downloads the driver binary and patches it.
   - v2 has become the main module, so no need for references to v2 anymore. this mean you can now simply use:
     ```python
     import undetected_chromedriver as uc
-    driver = uc.Chrome()
-    driver.get('https://nowsecure.nl')
+    if __name__ == '__main__':
+        # For multiprocessing
+        driver = uc.Chrome()
+        driver.get("https://nowsecure.nl")
     ```
     for backwards compatibility, v2 is not removed, but aliassed to the main module.
   
