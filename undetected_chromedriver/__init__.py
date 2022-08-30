@@ -19,7 +19,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 
-__version__ = "3.1.5r4"
+__version__ = "3.1.5r5"
 
 
 import inspect
@@ -37,6 +37,7 @@ import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
+from selenium.webdriver.chrome.service import Service
 
 from .cdp import CDP
 from .dprocess import start_detached
@@ -107,6 +108,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         port=0,
         enable_cdp_events=False,
         service_args=None,
+        service_creationflags=None,
         desired_capabilities=None,
         advanced_elements=False,
         service_log_path=None,
@@ -246,7 +248,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         options._session = self
 
         if not options.debugger_address:
-            debug_port = port if port != 0 else selenium.webdriver.common.service.utils.free_port()
+            debug_port = (
+                port
+                if port != 0
+                else selenium.webdriver.common.service.utils.free_port()
+            )
             debug_host = "127.0.0.1"
             options.debugger_address = "%s:%d" % (debug_host, debug_port)
         else:
@@ -254,7 +260,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             debug_port = int(debug_port)
 
         if enable_cdp_events:
-            options.set_capability("goog:loggingPrefs", {"performance": "ALL", "browser": "ALL"})
+            options.set_capability(
+                "goog:loggingPrefs", {"performance": "ALL", "browser": "ALL"}
+            )
 
         options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
@@ -279,12 +287,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 m = re.search("(?:--)?user-data-dir(?:[ =])?(.*)", arg)
                 try:
                     user_data_dir = m[1]
-                    logger.debug("user-data-dir found in user argument %s => %s" % (arg, m[1]))
+                    logger.debug(
+                        "user-data-dir found in user argument %s => %s" % (arg, m[1])
+                    )
                     keep_user_data_dir = True
 
                 except IndexError:
                     logger.debug(
-                        "no user data dir could be extracted from supplied argument %s " % arg
+                        "no user data dir could be extracted from supplied argument %s "
+                        % arg
                     )
 
         if not user_data_dir:
@@ -292,7 +303,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             # backward compatiblity
             # check if an old uc.ChromeOptions is used, and extract the user data dir
 
-            if hasattr(options, "user_data_dir") and getattr(options, "user_data_dir", None):
+            if hasattr(options, "user_data_dir") and getattr(
+                options, "user_data_dir", None
+            ):
                 import warnings
 
                 warnings.warn(
@@ -301,7 +314,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 )
                 options.add_argument("--user-data-dir=%s" % options.user_data_dir)
                 keep_user_data_dir = True
-                logger.debug("user_data_dir property found in options object: %s" % user_data_dir)
+                logger.debug(
+                    "user_data_dir property found in options object: %s" % user_data_dir
+                )
 
             else:
                 user_data_dir = os.path.normpath(tempfile.mkdtemp())
@@ -326,7 +341,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         options.add_argument("--lang=%s" % language)
 
         if not options.binary_location:
-            options.binary_location = browser_executable_path or find_chrome_executable()
+            options.binary_location = (
+                browser_executable_path or find_chrome_executable()
+            )
 
         self._delay = 3
 
@@ -344,7 +361,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             # on linux using privileged user like root (which i don't recommend)
 
         options.add_argument(
-            "--log-level=%d" % log_level or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
+            "--log-level=%d" % log_level
+            or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
         if hasattr(options, "handle_prefs"):
@@ -374,7 +392,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             desired_capabilities = options.to_capabilities()
 
         if not use_subprocess:
-            self.browser_pid = start_detached(options.binary_location, *options.arguments)
+            self.browser_pid = start_detached(
+                options.binary_location, *options.arguments
+            )
         else:
             browser = subprocess.Popen(
                 [options.binary_location, *options.arguments],
@@ -385,6 +405,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             )
             self.browser_pid = browser.pid
 
+        if service_creationflags:
+            service = Service(
+                patcher.executable_path, port, service_args, service_log_path
+            )
+            service.creationflags = service_creationflags
+        else:
+            service = None
+
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
             port=port,
@@ -393,13 +421,16 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             desired_capabilities=desired_capabilities,
             service_log_path=service_log_path,
             keep_alive=keep_alive,
+            service=service,  # needed or the service will be re-created
         )
 
         self.reactor = None
 
         if enable_cdp_events:
             if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
-                logging.getLogger("selenium.webdriver.remote.remote_connection").setLevel(20)
+                logging.getLogger(
+                    "selenium.webdriver.remote.remote_connection"
+                ).setLevel(20)
             reactor = Reactor(self)
             reactor.start()
             self.reactor = reactor
@@ -465,9 +496,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 self.execute_cdp_cmd(
                     "Network.setUserAgentOverride",
                     {
-                        "userAgent": self.execute_script("return navigator.userAgent").replace(
-                            "Headless", ""
-                        )
+                        "userAgent": self.execute_script(
+                            "return navigator.userAgent"
+                        ).replace("Headless", "")
                     },
                 )
                 self.execute_cdp_cmd(
@@ -612,7 +643,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         return super().get(url)
 
     def add_cdp_listener(self, event_name, callback):
-        if self.reactor and self.reactor is not None and isinstance(self.reactor, Reactor):
+        if (
+            self.reactor
+            and self.reactor is not None
+            and isinstance(self.reactor, Reactor)
+        ):
             self.reactor.add_event_handler(event_name, callback)
             return self.reactor.handlers
         return False
@@ -757,7 +792,9 @@ def find_chrome_executable():
                 ]
             )
     else:
-        for item in map(os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")):
+        for item in map(
+            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+        ):
             if item is not None:
                 for subitem in (
                     "Google/Chrome/Application",
