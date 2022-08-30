@@ -93,7 +93,7 @@ To prevent unnecessary hair-pulling and issue-raising, please mind the **[import
 
 ### The Version 2 way ###
 Literally, this is all you have to do. 
-Settings are included and your browser executable is found automagically.
+Settings are included and your browser executable is found automatically.
 This is also the snippet i recommend using in case you experience an issue.
 ```python
 import undetected_chromedriver.v2 as uc
