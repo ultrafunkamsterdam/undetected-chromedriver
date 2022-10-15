@@ -11,7 +11,23 @@ Automatically downloads the driver binary and patches it.
 * Works also on Brave Browser and many other Chromium based browsers, some tweaking
 * Python 3.6++**
 
-### 3.1.0 ####
+
+### 3.1.6 ###
+### still passing strong ###
+
+- use_subprocess now defaults to True. too many people don't understand multiprocessing and __name__ == '__main__, and after testing, it seems not to make a difference anymore in chrome 104+
+
+- added no_sandbox, which defaults to True, and this without the annoying "you are using unsecure command line ..." bar.
+
+- update [Docker image](https://hub.docker.com/r/ultrafunk/undetected-chromedriver).
+  you can now vnc or rdp into your container to see the actual browser window
+[![demo](https://i.imgur.com/51Ang6R.gif)](https://i.imgur.com/W7vriN9.mp4)
+
+- of course, "regular" mode works as well
+[![demo](https://i.imgur.com/2qSNyuK.gif)](https://i.imgur.com/2qSNyuK.mp4)
+
+
+### 3.1.0 ###
 
   **this version `might` break your code, test before update!**
 
@@ -91,42 +107,38 @@ To prevent unnecessary hair-pulling and issue-raising, please mind the **[import
 
 <br>
 
-### The Version 2 way ###
+### easy ###
 Literally, this is all you have to do. 
 Settings are included and your browser executable is found automagically.
 This is also the snippet i recommend using in case you experience an issue.
 ```python
 import undetected_chromedriver.v2 as uc
 driver = uc.Chrome()
-driver.get('https://nowsecure.nl')  # known url using cloudflare's "under attack mode"
+driver.get('https://nowsecure.nl')  # my own test test site with max anti-bot protection
 ```
 
-### The Version 2 more advanced way, including setting profie folder ###
+### more advanced way, including setting profie folder ###
 Literally, this is all you have to do. 
 If a specified folder does not exist, a NEW profile is created.
 Data dirs which are specified like this will not be autoremoved on exit.
 
 
 ```python
-import undetected_chromedriver.v2 as uc
+import undetected_chromedriver as uc
 options = uc.ChromeOptions()
 
 # setting profile
 options.user_data_dir = "c:\\temp\\profile"
 
-# another way to set profile is the below (which takes precedence if both variants are used
-options.add_argument('--user-data-dir=c:\\temp\\profile2')
-
-# just some options passing in to skip annoying popups
-options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
+# use specific (older) version
 driver = uc.Chrome(options=options, version_main=94)  # version_main allows to specify your chrome version instead of following chrome global version
 
-driver.get('https://nowsecure.nl')  # known url using cloudflare's "under attack mode"
+driver.get('https://nowsecure.nl')   # my own test test site with max anti-bot protection
 
 ```
 
 
-### The Version 2 expert mode, including Devtool/Wire events!  ###
+### expert mode, including Devtool/Wire events  ###
 Literally, this is all you have to do. 
 You can now listen and subscribe to the low level devtools-protocol.
 I just recently found out that is also on planning for future release of the official chromedriver.
@@ -135,7 +147,7 @@ However i implemented my own for now. Since i needed it myself for investigation
 
 ```python
 
-import undetected_chromedriver.v2 as uc
+import undetected_chromedriver as uc
 from pprint import pformat
 
 driver = uc.Chrome(enable_cdp_events=True)
