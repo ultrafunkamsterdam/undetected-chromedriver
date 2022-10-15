@@ -19,7 +19,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 
-__version__ = "3.1.5r4"
+__version__ = "3.1.6"
 
 
 import json
@@ -206,11 +206,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             now, in case you are nag-fetishist, or a diagnostics data feeder to google, you can set this to False.
             Note: if you don't handle the nag screen in time, the browser loses it's connection and throws an Exception.
 
-        use_subprocess: bool, optional , default: False,
+        use_subprocess: bool, optional , default: True,
 
             False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
                 This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
                 program exits or using .quit()
+                you should be knowing what you're doing, and know how python works.
 
               unfortunately, there  is always an edge case in which one would like to write an single script with the only contents being:
               --start script--
@@ -222,7 +223,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
               and will be greeted with an error, since the program exists before chrome has a change to launch.
               in that case you can set this to `True`. The browser will start via subprocess, and will keep running most of times.
               ! setting it to True comes with NO support when being detected. !
-
+        
+        no_sandbox: bool, optional, default=True 
+             uses the --no-sandbox option, and additionally does suppress the "unsecure option" status bar
+             this option has a default of True since many people seem to run this as root (....) , and chrome does not start
+             when running as root without using --no-sandbox flag.
         """
         self.debug = debug
         patcher = Patcher(
@@ -346,6 +351,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if suppress_welcome:
             options.arguments.extend(["--no-default-browser-check", "--no-first-run"])
+        if no_sandbox:
+            options.arguments.extend(["--no-sandbox", "--test-type"])
         if headless or options.headless:
             options.headless = True
             options.add_argument("--window-size=1920,1080")
