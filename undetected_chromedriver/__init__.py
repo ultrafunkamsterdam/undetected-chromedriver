@@ -119,6 +119,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         suppress_welcome=True,
         use_subprocess=False,
         debug=False,
+        no_sandbox=True,
         **kw
     ):
         """
