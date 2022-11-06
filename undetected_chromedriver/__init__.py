@@ -409,7 +409,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             service = Service(
                 patcher.executable_path, port, service_args, service_log_path
             )
-            service.creationflags = service_creationflags
+            for attr_name in ("creationflags", "creation_flags"):
+                if hasattr(service, attr_name):
+                    setattr(service, attr_name, service_creationflags)
+                    break         
         else:
             service = None
 
