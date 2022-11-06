@@ -64,7 +64,9 @@ class ChromeOptions(_ChromiumOptions):
             # undot prefs dict keys
             undot_prefs = {}
             for key, value in prefs.items():
-                undot_prefs.update(self._undot_key(key, value))
+                undot_prefs = self._merge_nested(
+                    undot_prefs, self._undot_key(key, value)
+                )
 
             prefs_file = os.path.join(default_path, "Preferences")
             if os.path.exists(prefs_file):
