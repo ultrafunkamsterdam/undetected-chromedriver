@@ -37,7 +37,7 @@ import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
-from selenium.webdriver.chrome.service import Service
+import selenium.webdriver.chrome.service
 import selenium.webdriver.remote.command
 
 from .cdp import CDP
@@ -119,7 +119,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         version_main=None,
         patcher_force_close=False,
         suppress_welcome=True,
-        use_subprocess=False,
+        use_subprocess=True,
         debug=False,
         no_sandbox=True,
         **kw
@@ -211,7 +211,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         use_subprocess: bool, optional , default: True,
 
-            False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
+            False makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
                 This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
                 program exits or using .quit()
                 you should be knowing what you're doing, and know how python works.
@@ -254,17 +254,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         options._session = self
 
+        debug_port = port or selenium.webdriver.common.service.utils.free_port()
+        debug_host = "127.0.0.1"
+
         if not options.debugger_address:
-            debug_port = (
-                port
-                if port != 0
-                else selenium.webdriver.common.service.utils.free_port()
-            )
-            debug_host = "127.0.0.1"
             options.debugger_address = "%s:%d" % (debug_host, debug_port)
-        else:
-            debug_host, debug_port = options.debugger_address.split(":")
-            debug_port = int(debug_port)
 
         if enable_cdp_events:
             options.set_capability(
@@ -415,7 +409,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.browser_pid = browser.pid
 
         if service_creationflags:
-            service = Service(
+            service = selenium.webdriver.chrome.service.Service(
                 patcher.executable_path, port, service_args, service_log_path
             )
             for attr_name in ("creationflags", "creation_flags"):
@@ -674,7 +668,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
               {"type": "window"}
         )
          
-         
     def tab_new(self, url: str):
         """
         this opens a url in a new tab.
@@ -764,7 +757,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __del__(self):
         try:
-            self.service.process.kill()
+            super().quit()
+            # self.service.process.kill()
         except:  # noqa
             pass
         self.quit()
