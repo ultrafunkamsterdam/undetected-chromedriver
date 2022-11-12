@@ -22,6 +22,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 __version__ = "3.1.6"
 
 
+import inspect
 import json
 import logging
 import os
@@ -29,9 +30,8 @@ import re
 import shutil
 import sys
 import tempfile
-import time
-import inspect
 import threading
+import time
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
@@ -40,11 +40,10 @@ import selenium.webdriver.remote.webdriver
 import selenium.webdriver.remote.command
 
 from .cdp import CDP
-from .options import ChromeOptions
-from .patcher import IS_POSIX
-from .patcher import Patcher
-from .reactor import Reactor
 from .dprocess import start_detached
+from .options import ChromeOptions
+from .patcher import IS_POSIX, Patcher
+from .reactor import Reactor
 
 __all__ = (
     "Chrome",
@@ -109,6 +108,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         port=0,
         enable_cdp_events=False,
         service_args=None,
+        service_creationflags=None,
         desired_capabilities=None,
         advanced_elements=False,
         service_log_path=None,
@@ -118,7 +118,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         version_main=None,
         patcher_force_close=False,
         suppress_welcome=True,
-        use_subprocess=False,
+        use_subprocess=True,
         debug=False,
         no_sandbox=True,
         **kw
@@ -210,7 +210,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         use_subprocess: bool, optional , default: True,
 
-            False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
+            False makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
                 This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
                 program exits or using .quit()
                 you should be knowing what you're doing, and know how python works.
@@ -242,7 +242,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not options:
             options = ChromeOptions()
 
-
         try:
             if hasattr(options, "_session") and options._session is not None:
                 #  prevent reuse of options,
@@ -254,7 +253,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         options._session = self
 
-        debug_port = selenium.webdriver.common.service.utils.free_port()
+        debug_port = port or selenium.webdriver.common.service.utils.free_port()
         debug_host = "127.0.0.1"
 
         if not options.debugger_address:
@@ -269,7 +268,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         options.add_argument("--remote-debugging-port=%s" % debug_port)
 
         if user_data_dir:
-            options.add_argument('--user-data-dir=%s' % user_data_dir)
+            options.add_argument("--user-data-dir=%s" % user_data_dir)
 
         language, keep_user_data_dir = None, bool(user_data_dir)
 
@@ -368,7 +367,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
-        if hasattr(options, 'handle_prefs'):
+        if hasattr(options, "handle_prefs"):
             options.handle_prefs(user_data_dir)
 
         # fix exit_type flag to prevent tab-restore nag
@@ -384,6 +383,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     config["profile"]["exit_type"] = None
                 fs.seek(0, 0)
                 json.dump(config, fs)
+                fs.truncate()  # the file might be shorter
                 logger.debug("fixed exit_type flag")
         except Exception as e:
             logger.debug("did not find a bad exit_type flag ")
@@ -407,6 +407,17 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             )
             self.browser_pid = browser.pid
 
+        if service_creationflags:
+            service = selenium.webdriver.chrome.service.Service(
+                patcher.executable_path, port, service_args, service_log_path
+            )
+            for attr_name in ("creationflags", "creation_flags"):
+                if hasattr(service, attr_name):
+                    setattr(service, attr_name, service_creationflags)
+                    break         
+        else:
+            service = None
+
         super(Chrome, self).__init__(
             executable_path=patcher.executable_path,
             port=port,
@@ -415,6 +426,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             desired_capabilities=desired_capabilities,
             service_log_path=service_log_path,
             keep_alive=keep_alive,
+            service=service,  # needed or the service will be re-created
         )
 
         self.reactor = None
@@ -498,9 +510,101 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
                         "source": """
-                            Object.defineProperty(navigator, 'maxTouchPoints', {
-                                    get: () => 1
-                            })"""
+                            Object.defineProperty(navigator, 'maxTouchPoints', {get: () => 1});
+                            Object.defineProperty(navigator.connection, 'rtt', {get: () => 100});
+
+                            // https://github.com/microlinkhq/browserless/blob/master/packages/goto/src/evasions/chrome-runtime.js
+                            window.chrome = {
+                                app: {
+                                    isInstalled: false,
+                                    InstallState: {
+                                        DISABLED: 'disabled',
+                                        INSTALLED: 'installed',
+                                        NOT_INSTALLED: 'not_installed'
+                                    },
+                                    RunningState: {
+                                        CANNOT_RUN: 'cannot_run',
+                                        READY_TO_RUN: 'ready_to_run',
+                                        RUNNING: 'running'
+                                    }
+                                },
+                                runtime: {
+                                    OnInstalledReason: {
+                                        CHROME_UPDATE: 'chrome_update',
+                                        INSTALL: 'install',
+                                        SHARED_MODULE_UPDATE: 'shared_module_update',
+                                        UPDATE: 'update'
+                                    },
+                                    OnRestartRequiredReason: {
+                                        APP_UPDATE: 'app_update',
+                                        OS_UPDATE: 'os_update',
+                                        PERIODIC: 'periodic'
+                                    },
+                                    PlatformArch: {
+                                        ARM: 'arm',
+                                        ARM64: 'arm64',
+                                        MIPS: 'mips',
+                                        MIPS64: 'mips64',
+                                        X86_32: 'x86-32',
+                                        X86_64: 'x86-64'
+                                    },
+                                    PlatformNaclArch: {
+                                        ARM: 'arm',
+                                        MIPS: 'mips',
+                                        MIPS64: 'mips64',
+                                        X86_32: 'x86-32',
+                                        X86_64: 'x86-64'
+                                    },
+                                    PlatformOs: {
+                                        ANDROID: 'android',
+                                        CROS: 'cros',
+                                        LINUX: 'linux',
+                                        MAC: 'mac',
+                                        OPENBSD: 'openbsd',
+                                        WIN: 'win'
+                                    },
+                                    RequestUpdateCheckStatus: {
+                                        NO_UPDATE: 'no_update',
+                                        THROTTLED: 'throttled',
+                                        UPDATE_AVAILABLE: 'update_available'
+                                    }
+                                }
+                            }
+
+                            // https://github.com/microlinkhq/browserless/blob/master/packages/goto/src/evasions/navigator-permissions.js
+                            if (!window.Notification) {
+                                window.Notification = {
+                                    permission: 'denied'
+                                }
+                            }
+
+                            const originalQuery = window.navigator.permissions.query
+                            window.navigator.permissions.__proto__.query = parameters =>
+                                parameters.name === 'notifications'
+                                    ? Promise.resolve({ state: window.Notification.permission })
+                                    : originalQuery(parameters)
+
+                            const oldCall = Function.prototype.call
+                            function call() {
+                                return oldCall.apply(this, arguments)
+                            }
+                            Function.prototype.call = call
+
+                            const nativeToStringFunctionString = Error.toString().replace(/Error/g, 'toString')
+                            const oldToString = Function.prototype.toString
+
+                            function functionToString() {
+                                if (this === window.navigator.permissions.query) {
+                                    return 'function query() { [native code] }'
+                                }
+                                if (this === functionToString) {
+                                    return nativeToStringFunctionString
+                                }
+                                return oldCall.call(oldToString, this)
+                            }
+                            // eslint-disable-next-line
+                            Function.prototype.toString = functionToString
+                            """
                     },
                 )
             return orig_get(*args, **kwargs)
@@ -562,7 +666,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
            selenium.webdriver.remote.command.Command.NEW_WINDOW,
               {"type": "window"}
         )
-         
          
     def tab_new(self, url: str):
         """
@@ -704,12 +807,13 @@ def find_chrome_executable():
         for item in map(
             os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
         ):
-            for subitem in (
-                "Google/Chrome/Application",
-                "Google/Chrome Beta/Application",
-                "Google/Chrome Canary/Application",
-            ):
-                candidates.add(os.sep.join((item, subitem, "chrome.exe")))
+            if item is not None:
+                for subitem in (
+                    "Google/Chrome/Application",
+                    "Google/Chrome Beta/Application",
+                    "Google/Chrome Canary/Application",
+                ):
+                    candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
         if os.path.exists(candidate) and os.access(candidate, os.X_OK):
             return os.path.normpath(candidate)

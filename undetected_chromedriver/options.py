@@ -7,6 +7,25 @@ import os
 
 from selenium.webdriver.chromium.options import ChromiumOptions as _ChromiumOptions
 
+def _undot_key(key, value):
+    """turn a (dotted key, value) into a proper nested dict"""
+    if "." in key:
+        key, rest = key.split(".", 1)
+        value = _undot_key(rest, value)
+    return {key: value}
+
+def _nested_dict_merge(a, b):
+    """
+    merge b into a
+    leaf values in a are overwritten with values from b
+    """
+    for key in b:
+        if key in a and isinstance(a[key], dict) and isinstance(b[key], dict):
+            _nested_dict_merge(a[key], b[key])
+        else:
+            a[key] = b[key]
+    return a
+
 
 class ChromeOptions(_ChromiumOptions):
     _session = None
@@ -31,14 +50,6 @@ class ChromeOptions(_ChromiumOptions):
         apath = os.path.abspath(path)
         self._user_data_dir = os.path.normpath(apath)
 
-    @staticmethod
-    def _undot_key(key, value):
-        """turn a (dotted key, value) into a proper nested dict"""
-        if "." in key:
-            key, rest = key.split(".", 1)
-            value = ChromeOptions._undot_key(rest, value)
-        return {key: value}
-
     def handle_prefs(self, user_data_dir):
         prefs = self.experimental_options.get("prefs")
         if prefs:
@@ -50,12 +61,12 @@ class ChromeOptions(_ChromiumOptions):
             # undot prefs dict keys
             undot_prefs = {}
             for key, value in prefs.items():
-                undot_prefs.update(self._undot_key(key, value))
+                undot_prefs = _nested_dict_merge(undot_prefs, _undot_key(key, value))
 
             prefs_file = os.path.join(default_path, "Preferences")
             if os.path.exists(prefs_file):
                 with open(prefs_file, encoding="latin1", mode="r") as f:
-                    undot_prefs.update(json.load(f))
+                    undot_prefs = _nested_dict_merge(json.load(f), undot_prefs)
 
             with open(prefs_file, encoding="latin1", mode="w") as f:
                 json.dump(undot_prefs, f)
