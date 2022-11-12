@@ -37,7 +37,6 @@ import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
-import selenium.webdriver.chrome.service
 import selenium.webdriver.remote.command
 
 from .cdp import CDP
