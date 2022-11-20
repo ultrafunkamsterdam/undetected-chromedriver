@@ -19,7 +19,11 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 
+<<<<<<< HEAD
 __version__ = "3.1.5r5"
+=======
+__version__ = "3.1.6"
+>>>>>>> 2742ff582d3d104ed8708b0ad7922b2166d65a52
 
 
 import inspect
@@ -37,7 +41,9 @@ import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
+
 from selenium.webdriver.chrome.service import Service
+import selenium.webdriver.remote.command
 
 from .cdp import CDP
 from .dprocess import start_detached
@@ -118,9 +124,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         version_main=None,
         patcher_force_close=False,
         suppress_welcome=True,
-        use_subprocess=False,
+        use_subprocess=True,
         debug=False,
-        **kw,
+        no_sandbox=True,
+        **kw
     ):
         """
         Creates a new instance of the chrome driver.
@@ -207,11 +214,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             now, in case you are nag-fetishist, or a diagnostics data feeder to google, you can set this to False.
             Note: if you don't handle the nag screen in time, the browser loses it's connection and throws an Exception.
 
-        use_subprocess: bool, optional , default: False,
+        use_subprocess: bool, optional , default: True,
 
             False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
                 This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
                 program exits or using .quit()
+                you should be knowing what you're doing, and know how python works.
 
               unfortunately, there  is always an edge case in which one would like to write an single script with the only contents being:
               --start script--
@@ -223,7 +231,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
               and will be greeted with an error, since the program exists before chrome has a change to launch.
               in that case you can set this to `True`. The browser will start via subprocess, and will keep running most of times.
               ! setting it to True comes with NO support when being detected. !
-
+        
+        no_sandbox: bool, optional, default=True 
+             uses the --no-sandbox option, and additionally does suppress the "unsecure option" status bar
+             this option has a default of True since many people seem to run this as root (....) , and chrome does not start
+             when running as root without using --no-sandbox flag.
         """
         self.debug = debug
         patcher = Patcher(
@@ -352,6 +364,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if suppress_welcome:
             options.arguments.extend(["--no-default-browser-check", "--no-first-run"])
+        if no_sandbox:
+            options.arguments.extend(["--no-sandbox", "--test-type"])
         if headless or options.headless:
             options.headless = True
             options.add_argument("--window-size=1920,1080")
@@ -658,7 +672,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def clear_cdp_listeners(self):
         if self.reactor and isinstance(self.reactor, Reactor):
             self.reactor.handlers.clear()
-
+    
+    def window_new(self):
+        self.execute(
+           selenium.webdriver.remote.command.Command.NEW_WINDOW,
+              {"type": "window"}
+        )
+         
+         
     def tab_new(self, url: str):
         """
         this opens a url in a new tab.
