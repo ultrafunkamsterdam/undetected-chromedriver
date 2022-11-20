@@ -19,11 +19,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 
-<<<<<<< HEAD
-__version__ = "3.1.5r5"
-=======
 __version__ = "3.1.6"
->>>>>>> 2742ff582d3d104ed8708b0ad7922b2166d65a52
 
 
 import inspect
@@ -127,7 +123,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         use_subprocess=True,
         debug=False,
         no_sandbox=True,
-        **kw
+        **kw,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -231,8 +227,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
               and will be greeted with an error, since the program exists before chrome has a change to launch.
               in that case you can set this to `True`. The browser will start via subprocess, and will keep running most of times.
               ! setting it to True comes with NO support when being detected. !
-        
-        no_sandbox: bool, optional, default=True 
+
+        no_sandbox: bool, optional, default=True
              uses the --no-sandbox option, and additionally does suppress the "unsecure option" status bar
              this option has a default of True since many people seem to run this as root (....) , and chrome does not start
              when running as root without using --no-sandbox flag.
@@ -426,7 +422,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             for attr_name in ("creationflags", "creation_flags"):
                 if hasattr(service, attr_name):
                     setattr(service, attr_name, service_creationflags)
-                    break         
+                    break
         else:
             service = None
 
@@ -672,14 +668,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def clear_cdp_listeners(self):
         if self.reactor and isinstance(self.reactor, Reactor):
             self.reactor.handlers.clear()
-    
+
     def window_new(self):
         self.execute(
-           selenium.webdriver.remote.command.Command.NEW_WINDOW,
-              {"type": "window"}
+            selenium.webdriver.remote.command.Command.NEW_WINDOW, {"type": "window"}
         )
-         
-         
+
     def tab_new(self, url: str):
         """
         this opens a url in a new tab.
