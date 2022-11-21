@@ -25,7 +25,7 @@ def headless_uc(request: FixtureRequest):
     request.instance.driver = uc.Chrome(options=options)
 
     def teardown():
-        request.instance.driver.sapipve_screenshot(FAILED_SCREENSHOT_NAME)
+        request.instance.driver.save_screenshot(FAILED_SCREENSHOT_NAME)
         request.instance.driver.quit()
 
     request.addfinalizer(teardown)
