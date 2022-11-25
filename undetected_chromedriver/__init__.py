@@ -811,7 +811,7 @@ def find_chrome_executable():
             )
     else:
         for item in map(
-            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA", "ProgramW6432")
         ):
             if item is not None:
                 for subitem in (
