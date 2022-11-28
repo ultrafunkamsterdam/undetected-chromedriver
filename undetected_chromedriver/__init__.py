@@ -2,6 +2,11 @@
 from __future__ import annotations
 
 import subprocess
+from typing import List
+from typing import Optional
+
+from selenium.webdriver.common.by import By
+
 
 """
 
@@ -18,9 +23,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
 
-
-__version__ = "3.1.7"
-
+__version__ = "3.2.0"
 
 import inspect
 import json
@@ -30,15 +33,12 @@ import re
 import shutil
 import sys
 import tempfile
-import threading
 import time
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 import selenium.webdriver.common.service
 import selenium.webdriver.remote.webdriver
-
-from selenium.webdriver.chrome.service import Service
 import selenium.webdriver.remote.command
 
 from .cdp import CDP
@@ -46,6 +46,8 @@ from .dprocess import start_detached
 from .options import ChromeOptions
 from .patcher import IS_POSIX, Patcher
 from .reactor import Reactor
+from .webelement import WebElement, UCWebElement
+
 
 __all__ = (
     "Chrome",
@@ -282,7 +284,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         # see if a custom user profile is specified in options
         for arg in options.arguments:
-
             if "lang" in arg:
                 m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
                 try:
@@ -307,7 +308,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     )
 
         if not user_data_dir:
-
             # backward compatiblity
             # check if an old uc.ChromeOptions is used, and extract the user data dir
 
@@ -416,7 +416,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.browser_pid = browser.pid
 
         if service_creationflags:
-            service = Service(
+            service = selenium.webdriver.common.service.Service(
                 patcher.executable_path, port, service_args, service_log_path
             )
             for attr_name in ("creationflags", "creation_flags"):
@@ -449,15 +449,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.reactor = reactor
 
         if advanced_elements:
-            from .webelement import WebElement
-
+            self._web_element_cls = UCWebElement
+        else:
             self._web_element_cls = WebElement
 
         if options.headless:
             self._configure_headless()
 
     def __getattribute__(self, item):
-
         if not super().__getattribute__("debug"):
             return super().__getattribute__(item)
         else:
@@ -477,7 +476,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             return original
 
     def _configure_headless(self):
-
         orig_get = self.get
         logger.info("setting properties for headless")
 
@@ -641,7 +639,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 "source": """
                     let objectToInspect = window,
                         result = [];
-                    while(objectToInspect !== null) 
+                    while(objectToInspect !== null)
                     { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
                       objectToInspect = Object.getPrototypeOf(objectToInspect); }
                     result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
@@ -718,24 +716,21 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # super(Chrome, self).start_session(capabilities, browser_profile)
 
     def quit(self):
-        logger.debug("closing webdriver")
-        if hasattr(self, "service") and getattr(self.service, "process", None):
+        try:
             self.service.process.kill()
-        try:
-            if self.reactor and isinstance(self.reactor, Reactor):
-                logger.debug("shutting down reactor")
-                self.reactor.event.set()
-        except Exception:  # noqa
+            logger.debug("webdriver process ended")
+        except (AttributeError, RuntimeError, OSError):
             pass
         try:
-            logger.debug("killing browser")
+            self.reactor.event.set()
+            logger.debug("shutting down reactor")
+        except AttributeError:
+            pass
+        try:
             os.kill(self.browser_pid, 15)
-
-        except TimeoutError as e:
+            logger.debug("gracefully closed browser")
+        except Exception as e:  # noqa
             logger.debug(e, exc_info=True)
-        except Exception:  # noqa
-            pass
-
         if (
             hasattr(self, "keep_user_data_dir")
             and hasattr(self, "user_data_dir")
@@ -743,7 +738,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         ):
             for _ in range(5):
                 try:
-
                     shutil.rmtree(self.user_data_dir, ignore_errors=False)
                 except FileNotFoundError:
                     pass
