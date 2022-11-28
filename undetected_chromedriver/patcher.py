@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 # this module is part of undetected_chromedriver
 
+from distutils.version import LooseVersion
 import io
 import logging
 import os
 import random
 import re
+import secrets
 import string
 import sys
 import time
+from urllib.request import urlopen
+from urllib.request import urlretrieve
 import zipfile
-from distutils.version import LooseVersion
-from urllib.request import urlopen, urlretrieve
-import secrets
 
 
 logger = logging.getLogger(__name__)

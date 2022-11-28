@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import subprocess
-from typing import List
-from typing import Optional
 
 from selenium.webdriver.common.by import By
 
@@ -25,7 +23,6 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 __version__ = "3.2.0"
 
-import inspect
 import json
 import logging
 import os
