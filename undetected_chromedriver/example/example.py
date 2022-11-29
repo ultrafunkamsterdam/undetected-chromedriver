@@ -1,10 +1,12 @@
 import time
 
-from selenium.webdriver.remote.webdriver import By
-import selenium.webdriver.support.expected_conditions as EC  # noqa
-from selenium.webdriver.support.wait import WebDriverWait
-
 import undetected_chromedriver as uc
+import selenium.webdriver.support.expected_conditions as EC  # noqa
+
+from selenium.webdriver.remote.webdriver import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import WebDriverException
+
 
 
 driver = uc.Chrome()
@@ -27,14 +29,14 @@ driver.execute_script(
     """
     let container = document.querySelector('#rso');
     let el = document.createElement('div');
-    el.style = 'width:500px;display:block;background:red;color:white;z-index:999;transition:all 2s ease;padding:2em;font-size:1.5em';
-    el.textContent = "these are excluded from offical support ;)";
+    el.style = 'width:500px;display:block;background:red;color:white;z-index:999;transition:all 2s ease;padding:1em;font-size:1.5em';
+    el.textContent = "Excluded from support...!";
     container.insertAdjacentElement('afterBegin', el);
     
 """
 )
 
-time.sleep(2)
+time.sleep(2)  # never use this. this is for demonstration purposes only
 
 for item in results_container.children("a", recursive=True):
     print(item)
@@ -60,8 +62,6 @@ inp_search.clear()
 inp_search.send_keys("hot girls\n")  # \n as equivalent of ENTER
 
 body = driver.find_element(By.TAG_NAME, "body")
-# inp_search = driver.find_element(By.XPATH, '//input[@title="Search"]')
-# inp_search.send_keys("hot nude girls")  # \n as equivalent of ENTER
 body.find_elements(By.XPATH, '//a[contains(text(), "Images")]')[0].click_safe()
 
 # you can't reuse the body from above, because we are on another page right now
@@ -71,7 +71,7 @@ image_search_body = WebDriverWait(driver, 5).until(
 )
 
 # gets all images and prints the src
-print("getting image data, hold on...")
+print("getting image sources data, hold on...")
 
 for item in image_search_body.children("img", recursive=True):
 
@@ -105,8 +105,16 @@ for idx in range(1, 10):
     # skip the first handle which is our original window
     print("opening ", USELESS_SITES[idx])
     driver.switch_to.window(driver.window_handles[idx])
-    driver.get(USELESS_SITES[idx])
 
+    # because of geographical location, (corporate) firewalls and 1001 
+    # other reasons why a connection could be dropped we will use a try/except clause here.
+    try:
+        driver.get(USELESS_SITES[idx])
+    except WebDriverException as e:
+        print((
+            'webdriver exception. this is not an issue in chromedriver, but rather '
+            'an issue specific to your current connection. message:', e.args))
+        continue
 
 for handle in driver.window_handles[1:]:
     driver.switch_to.window(handle)

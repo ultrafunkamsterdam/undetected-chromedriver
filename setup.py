@@ -44,6 +44,7 @@ setup(
         "requests",
         "websockets",
     ],
+    package_data={"undetected_chromedriver": [os.path.join("example", "example.py")]},
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
     license="GPL-3.0",
     author="UltrafunkAmsterdam",
