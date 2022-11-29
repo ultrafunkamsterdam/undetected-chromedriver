@@ -152,8 +152,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             If not specified, make sure the executable's folder is in $PATH
 
         port: int, optional, default: 0
-            port you would like the service to run, if left as 0, a free port will be found.
-
+            port to be used by the chromedriver executable, this is NOT the debugger port.
+            leave it at 0 unless you know what you are doing.
+            the default value of 0 automatically picks an available port.
+             
         enable_cdp_events: bool, default: False
             :: currently for chrome only
             this enables the handling of wire messages
@@ -805,7 +807,7 @@ def find_chrome_executable():
             )
     else:
         for item in map(
-            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
+            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA", "PROGRAMW6432")
         ):
             if item is not None:
                 for subitem in (
