@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import annotations
-
-import subprocess
-
-from selenium.webdriver.common.by import By
-
 
 """
 
@@ -20,6 +14,7 @@ Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y
 by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
+from __future__ import annotations
 
 __version__ = "3.2.0"
 
@@ -31,6 +26,9 @@ import shutil
 import sys
 import tempfile
 import time
+import subprocess
+
+from selenium.webdriver.common.by import By
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
@@ -44,7 +42,6 @@ from .options import ChromeOptions
 from .patcher import IS_POSIX, Patcher
 from .reactor import Reactor
 from .webelement import WebElement, UCWebElement
-
 
 __all__ = (
     "Chrome",
@@ -152,7 +149,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             port to be used by the chromedriver executable, this is NOT the debugger port.
             leave it at 0 unless you know what you are doing.
             the default value of 0 automatically picks an available port.
-             
+
         enable_cdp_events: bool, default: False
             :: currently for chrome only
             this enables the handling of wire messages
@@ -455,25 +452,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if options.headless:
             self._configure_headless()
 
-    def __getattribute__(self, item):
-        if not super().__getattribute__("debug"):
-            return super().__getattribute__(item)
-        else:
-            import inspect
-
-            original = super().__getattribute__(item)
-            if inspect.ismethod(original) and not inspect.isclass(original):
-
-                def newfunc(*args, **kwargs):
-                    logger.debug(
-                        "calling %s with args %s and kwargs %s\n"
-                        % (original.__qualname__, args, kwargs)
-                    )
-                    return original(*args, **kwargs)
-
-                return newfunc
-            return original
-
     def _configure_headless(self):
         orig_get = self.get
         logger.info("setting properties for headless")
@@ -616,9 +594,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
-    def __dir__(self):
-        return object.__dir__(self)
-
     def _get_cdc_props(self):
         return self.execute_script(
             """
@@ -754,12 +729,24 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # this must come last, otherwise it will throw 'in use' errors
         self.patcher = None
 
-    def __del__(self):
-        try:
-            self.service.process.kill()
-        except:  # noqa
-            pass
-        self.quit()
+    def __getattribute__(self, item):
+        if not super().__getattribute__("debug"):
+            return super().__getattribute__(item)
+        else:
+            import inspect
+
+            original = super().__getattribute__(item)
+            if inspect.ismethod(original) and not inspect.isclass(original):
+
+                def newfunc(*args, **kwargs):
+                    logger.debug(
+                        "calling %s with args %s and kwargs %s\n"
+                        % (original.__qualname__, args, kwargs)
+                    )
+                    return original(*args, **kwargs)
+
+                return newfunc
+            return original
 
     def __enter__(self):
         return self
@@ -772,6 +759,16 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def __hash__(self):
         return hash(self.options.debugger_address)
+
+    def __dir__(self):
+        return object.__dir__(self)
+
+    def __del__(self):
+        try:
+            self.service.process.kill()
+        except:  # noqa
+            pass
+        self.quit()
 
 
 def find_chrome_executable():
@@ -804,7 +801,8 @@ def find_chrome_executable():
             )
     else:
         for item in map(
-            os.environ.get, ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA", "PROGRAMW6432")
+            os.environ.get,
+            ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA", "PROGRAMW6432"),
         ):
             if item is not None:
                 for subitem in (
