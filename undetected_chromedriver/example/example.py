@@ -29,7 +29,7 @@ driver.execute_script(
     """
     let container = document.querySelector('#rso');
     let el = document.createElement('div');
-    el.style = 'width:500px;display:block;background:red;color:white;z-index:999;transition:all 2s ease;padding:2em;font-size:1.5em';
+    el.style = 'width:500px;display:block;background:red;color:white;z-index:999;transition:all 2s ease;padding:1em;font-size:1.5em';
     el.textContent = "Excluded from support...!";
     container.insertAdjacentElement('afterBegin', el);
     
