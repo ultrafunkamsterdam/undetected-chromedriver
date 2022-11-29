@@ -81,4 +81,4 @@ def _recursive_children(element, tag: str = None, _results=None):
         else:
             results.add(element)
         results |= _recursive_children(element, tag, results)
-    return results
+    return list(results)

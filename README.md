@@ -11,6 +11,33 @@ Automatically downloads the driver binary and patches it.
 * Works also on Brave Browser and many other Chromium based browsers, some tweaking
 * Python 3.6++**
 
+### 3.2.0 ###
+
+* added an example containing some typical webdriver code, answers to commonly asked questions, 
+pitfalls + showcasing some tricks to ditch the need for multithreading.
+
+###[>>>> example code here <<<<](https://github.com/ultrafunkamsterdam/undetected-chromedriver/blob/3.2.0/undetected_chromedriver/example.py) 
+
+* added WebElement.click_safe() method, which you can try in case you get detected
+  after clicking a link. This is not guaranteed t o work.
+
+* added WebElement.children(self, tag=None, recursive=False)
+  to easily get/find child nodes. 
+  example:
+    ```
+    body = driver.find_element('tag name', 'body')
+    
+    # get the 6th child (any tag) of body, and grab all img's within (recursive). 
+    images = body.children()[6].children('img', True)
+    srcs = list(map(lambda _:_.attrs.get('src'))
+    ```
+     
+* added example.py where i can point people at
+  when asking silly questions
+  (no, its actually quite cool, everyone should see it)
+
+* some refactoring
+
 
 ### 3.1.6 ###
 ### still passing strong ###
