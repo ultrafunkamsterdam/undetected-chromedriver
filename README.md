@@ -16,7 +16,7 @@ Automatically downloads the driver binary and patches it.
 * added an example containing some typical webdriver code, answers to commonly asked questions, 
 pitfalls + showcasing some tricks to ditch the need for multithreading.
 
-###[>>>> example code here <<<<](https://github.com/ultrafunkamsterdam/undetected-chromedriver/blob/master/undetected_chromedriver/example/example.py) 
+### [>>>> example code here <<<<](https://github.com/ultrafunkamsterdam/undetected-chromedriver/blob/master/undetected_chromedriver/example/example.py) 
 
 * added WebElement.click_safe() method, which you can try in case you get detected
   after clicking a link. This is not guaranteed t o work.
