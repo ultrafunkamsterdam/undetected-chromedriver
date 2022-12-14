@@ -1,5 +1,5 @@
 import time
-
+import sys
 import undetected_chromedriver as uc
 import selenium.webdriver.support.expected_conditions as EC  # noqa
 
@@ -8,7 +8,13 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import WebDriverException
 
 
+TAKE_IT_EASY = True   # so the demo is 'follow-able' instead of some flashes and boom => done. set it how you like
 
+if TAKE_IT_EASY:
+    sleep = time.sleep
+else:
+    sleep = lambda *a,**kw: print("we could be sleeping here, but we don't")
+    
 driver = uc.Chrome()
 driver.get("https://www.google.com")
 
@@ -36,7 +42,7 @@ driver.execute_script(
 """
 )
 
-time.sleep(2)  # never use this. this is for demonstration purposes only
+sleep(2)  # never use this. this is for demonstration purposes only
 
 for item in results_container.children("a", recursive=True):
     print(item)
@@ -92,14 +98,14 @@ USELESS_SITES = [
 ]
 
 print("opening 9 additinal windows and control them")
-time.sleep(1)  # never use this. this is for demonstration purposes only
+sleep(1)  # never use this. this is for demonstration purposes only
 for _ in range(9):
     driver.window_new()
 
 print("now we got 10 windows")
-time.sleep(1)
+sleep(1)
 print("using the new windows to open 9 other useless sites")
-time.sleep(1)  # never use this. this is for demonstration purposes only
+sleep(1)  # never use this. this is for demonstration purposes only
 
 for idx in range(1, 10):
     # skip the first handle which is our original window
@@ -119,16 +125,16 @@ for idx in range(1, 10):
 for handle in driver.window_handles[1:]:
     driver.switch_to.window(handle)
     print("look. %s is working" % driver.current_url)
-    time.sleep(1)  # never use this. it is here only so you can follow along
+    sleep(1)  # never use this. it is here only so you can follow along
 
 
 print("close windows (including the initial one!), but keep the last new opened window")
-time.sleep(4)  # never use this. wait until nowsecure passed the bot checks
+sleep(4)  # never use this. wait until nowsecure passed the bot checks
 
 for handle in driver.window_handles[:-1]:
     driver.switch_to.window(handle)
     print("look. %s is closing" % driver.current_url)
-    time.sleep(1)
+    sleep(1)
     driver.close()
 
 
@@ -136,11 +142,11 @@ for handle in driver.window_handles[:-1]:
 driver.switch_to.window(driver.window_handles[0])
 print("now we only got ", driver.current_url, "left")
 
-time.sleep(1)
+sleep(1)
 
 driver.get("https://www.nowsecure.nl")
 
-time.sleep(5)
+sleep(5)
 
 print("lets go to UC project page")
 
