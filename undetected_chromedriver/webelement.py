@@ -18,8 +18,8 @@ class WebElement(selenium.webdriver.remote.webelement.WebElement):
         if tag:
             script += ".filter( node => node.tagName === '%s')" % tag.upper()
         if recursive:
-            return _recursive_children(self, tag)
-        return self._parent.execute_script(script, self)
+            return list(_recursive_children(self, tag))
+        return list(self._parent.execute_script(script, self))
 
 
 class UCWebElement(WebElement):
@@ -81,4 +81,4 @@ def _recursive_children(element, tag: str = None, _results=None):
         else:
             results.add(element)
         results |= _recursive_children(element, tag, results)
-    return list(results)
+    return results
