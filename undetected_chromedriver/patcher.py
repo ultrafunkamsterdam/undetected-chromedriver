@@ -29,7 +29,7 @@ class Patcher(object):
     if platform.endswith("win32"):
         zip_name %= "win32"
         exe_name %= ".exe"
-    if platform.endswith("linux"):
+    if platform.startswith("linux"):
         zip_name %= "linux64"
         exe_name %= ""
     if platform.endswith("darwin"):
