@@ -16,6 +16,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 from __future__ import annotations
 
+
 __version__ = "3.2.0"
 
 import json
@@ -23,25 +24,28 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
-import subprocess
-
-from selenium.webdriver.common.by import By
+from weakref import finalize
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
+from selenium.webdriver.common.by import By
 import selenium.webdriver.common.service
-import selenium.webdriver.remote.webdriver
 import selenium.webdriver.remote.command
+import selenium.webdriver.remote.webdriver
 
 from .cdp import CDP
 from .dprocess import start_detached
 from .options import ChromeOptions
-from .patcher import IS_POSIX, Patcher
+from .patcher import IS_POSIX
+from .patcher import Patcher
 from .reactor import Reactor
-from .webelement import WebElement, UCWebElement
+from .webelement import UCWebElement
+from .webelement import WebElement
+
 
 __all__ = (
     "Chrome",
@@ -231,6 +235,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
              this option has a default of True since many people seem to run this as root (....) , and chrome does not start
              when running as root without using --no-sandbox flag.
         """
+
+        finalize(self, self._ensure_close, self)
         self.debug = debug
         patcher = Patcher(
             executable_path=driver_executable_path,
@@ -769,6 +775,17 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         except:  # noqa
             pass
         self.quit()
+
+    @classmethod
+    def _ensure_close(cls, self):
+        # needs to be a classmethod so finalize can find the reference
+        logger.info("ensuring close")
+        if (
+            hasattr(self, "service")
+            and hasattr(self.service, "process")
+            and hasattr(self.service.process, "kill")
+        ):
+            self.service.process.kill()
 
 
 def find_chrome_executable():

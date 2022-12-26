@@ -39,7 +39,7 @@ class Patcher(object):
 
     if platform.endswith("win32"):
         d = "~/appdata/roaming/undetected_chromedriver"
-    elif 'LAMBDA_TASK_ROOT' in os.environ:
+    elif "LAMBDA_TASK_ROOT" in os.environ:
         d = "/tmp/undetected_chromedriver"
     elif platform.startswith("linux"):
         d = "~/.local/share/undetected_chromedriver"
