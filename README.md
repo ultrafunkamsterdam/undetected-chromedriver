@@ -35,7 +35,9 @@ pitfalls + showcasing some tricks to ditch the need for multithreading.
 * added example.py where i can point people at
   when asking silly questions
   (no, its actually quite cool, everyone should see it)
-
+* added support for lambda platform
+* added support for x86_32
+* added support for systems reporting as linux2
 * some refactoring
 
 
