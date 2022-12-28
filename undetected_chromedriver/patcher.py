@@ -18,7 +18,7 @@ import zipfile
 
 logger = logging.getLogger(__name__)
 
-IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
+IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux", "linux2"))
 
 
 class Patcher(object):
@@ -30,7 +30,7 @@ class Patcher(object):
     if platform.endswith("win32"):
         zip_name %= "win32"
         exe_name %= ".exe"
-    if platform.endswith("linux"):
+    if platform.endswith(("linux", "linux2")):
         zip_name %= "linux64"
         exe_name %= ""
     if platform.endswith("darwin"):
@@ -41,7 +41,7 @@ class Patcher(object):
         d = "~/appdata/roaming/undetected_chromedriver"
     elif "LAMBDA_TASK_ROOT" in os.environ:
         d = "/tmp/undetected_chromedriver"
-    elif platform.startswith("linux"):
+    elif platform.startswith(("linux","linux2")):
         d = "~/.local/share/undetected_chromedriver"
     elif platform.endswith("darwin"):
         d = "~/Library/Application Support/undetected_chromedriver"
