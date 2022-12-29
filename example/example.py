@@ -28,7 +28,7 @@ def main(args=None):
     driver.get("https://www.google.com")
 
     # accept the terms
-    driver.find_elements(By.XPATH, '//*[contains(text(), "Accept all")]')[-1].click()
+    driver.find_elements(By.XPATH, '//*[contains(text(), "Reject all")]')[-1].click()  # ;)
 
     inp_search = driver.find_element(By.XPATH, '//input[@title="Search"]')
 
