@@ -17,7 +17,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 from __future__ import annotations
 
 
-__version__ = "3.2.1"
+__version__ = "3.2.2"
 
 import json
 import logging
@@ -608,29 +608,23 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             while(objectToInspect !== null)
             { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
               objectToInspect = Object.getPrototypeOf(objectToInspect); }
-            return result.filter(i => i.match(/.+_.+_(Array|Promise|Symbol)/ig))
+            return result.filter(i => i.match(/^[a-z]{3}_[a-zA-Z0-9]{22}_.*/i))
             """
         )
 
-    def _hook_remove_cdc_props(self):
+    def _hook_remove_cdc_props(self, cdc_props):
+        if len(cdc_props) < 1:
+            return
+        cdc_props_js_array = '[' + ', '.join('"' + p + '"' for p in cdc_props) + ']'
         self.execute_cdp_cmd(
             "Page.addScriptToEvaluateOnNewDocument",
             {
-                "source": """
-                    let objectToInspect = window,
-                        result = [];
-                    while(objectToInspect !== null)
-                    { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-                      objectToInspect = Object.getPrototypeOf(objectToInspect); }
-                    result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
-                                        &&delete window[p]&&console.log('removed',p))
-                    """
+                "source": cdc_props_js_array + ".forEach(p => delete window[p] && console.log('removed', p));"
             },
         )
 
     def get(self, url):
-        if self._get_cdc_props():
-            self._hook_remove_cdc_props()
+        self._hook_remove_cdc_props(self._get_cdc_props())
         return super().get(url)
 
     def add_cdp_listener(self, event_name, callback):
