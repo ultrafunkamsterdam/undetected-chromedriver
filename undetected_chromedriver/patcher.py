@@ -204,14 +204,6 @@ class Patcher(object):
             r = os.system("taskkill /f /im %s" % exe_name)
         return not r
 
-    @staticmethod
-    def gen_random_cdc():
-        cdc = random.choices(string.ascii_lowercase, k=26)
-        cdc[-6:-4] = map(str.upper, cdc[-6:-4])
-        cdc[2] = cdc[0]
-        cdc[3] = "_"
-        return "".join(cdc).encode()
-
     def is_binary_patched(self, executable_path=None):
         """simple check if executable is patched.
 
@@ -219,30 +211,48 @@ class Patcher(object):
         """
         executable_path = executable_path or self.executable_path
         with io.open(executable_path, "rb") as fh:
-            for line in iter(lambda: fh.readline(), b""):
-                if b"cdc_" in line:
-                    return False
-            else:
-                return True
+            if b"window.cdc_adoQpoasnfa76pfcZLmcfl_" in fh.read():
+                return False
+        return True
 
     def patch_exe(self):
         """
         Patches the ChromeDriver binary
 
-        :return: False on failure, binary name on success
+        :return: True on success
         """
         logger.info("patching driver executable %s" % self.executable_path)
+        start = time.time()
 
-        linect = 0
-        replacement = self.gen_random_cdc()
+        cdc_js_replacements = [  # (old, new, end_empty_filler_byte)
+            [b"(function () {window.cdc_adoQpoasnfa76pfcZLmcfl_Array = window.Array;"
+             b"window.cdc_adoQpoasnfa76pfcZLmcfl_Promise = window.Promise;"
+             b"window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol = window.Symbol;}) ();", b"", b" "],
+
+            [b"window.cdc_adoQpoasnfa76pfcZLmcfl_Array ||", b"", b" "],  # b" " = whitespace = does nothing in .js
+
+            [b"window.cdc_adoQpoasnfa76pfcZLmcfl_Promise ||", b"", b" "],
+
+            [b"window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol ||", b"", b" "]
+        ]  # https://github.com/search?q=repo%3Achromium%2Fchromium+%2Fcdc_adoQpoasnfa76pfcZLmcfl_%2F&type=code
+
+        # (old, new+filler_bytes) [Make replacement equal in length by appending 'filler bytes'
+        for i in cdc_js_replacements:
+            diff = len(i[0]) - len(i[1])
+            if diff > 0:
+                i[1] = i[1] + (i[2] * diff)
+            del i[2]
+
         with io.open(self.executable_path, "r+b") as fh:
-            for line in iter(lambda: fh.readline(), b""):
-                if b"cdc_" in line:
-                    fh.seek(-len(line), 1)
-                    newline = re.sub(b"cdc_.{22}", replacement, line)
-                    fh.write(newline)
-                    linect += 1
-            return linect
+            file_bin = fh.read()
+            for r in cdc_js_replacements:
+                file_bin = file_bin.replace(r[0], r[1])
+            fh.seek(0)
+            fh.write(file_bin)
+
+        time_taken_s = time.time() - start
+        logger.info(f"finished patching driver executable in {time_taken_s:.3f}s")
+        return True
 
     def __repr__(self):
         return "{0:s}({1:s})".format(

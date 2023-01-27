@@ -600,31 +600,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
-    def _get_cdc_props(self):
-        return self.execute_script(
-            """
-            let objectToInspect = window,
-                result = [];
-            while(objectToInspect !== null)
-            { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-              objectToInspect = Object.getPrototypeOf(objectToInspect); }
-            return result.filter(i => i.match(/^[a-z]{3}_[a-zA-Z0-9]{22}_.*/i))
-            """
-        )
-
-    def _hook_remove_cdc_props(self, cdc_props):
-        if len(cdc_props) < 1:
-            return
-        cdc_props_js_array = '[' + ', '.join('"' + p + '"' for p in cdc_props) + ']'
-        self.execute_cdp_cmd(
-            "Page.addScriptToEvaluateOnNewDocument",
-            {
-                "source": cdc_props_js_array + ".forEach(p => delete window[p] && console.log('removed', p));"
-            },
-        )
-
     def get(self, url):
-        self._hook_remove_cdc_props(self._get_cdc_props())
         return super().get(url)
 
     def add_cdp_listener(self, event_name, callback):
