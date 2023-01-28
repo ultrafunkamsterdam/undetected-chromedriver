@@ -224,29 +224,14 @@ class Patcher(object):
         logger.info("patching driver executable %s" % self.executable_path)
         start = time.time()
 
-        cdc_js_replacements = [  # (old, new, end_empty_filler_byte)
-            [b"(function () {window.cdc_adoQpoasnfa76pfcZLmcfl_Array = window.Array;"
-             b"window.cdc_adoQpoasnfa76pfcZLmcfl_Promise = window.Promise;"
-             b"window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol = window.Symbol;}) ();", b"", b" "],
-
-            [b"window.cdc_adoQpoasnfa76pfcZLmcfl_Array ||", b"", b" "],  # b" " = whitespace = does nothing in .js
-
-            [b"window.cdc_adoQpoasnfa76pfcZLmcfl_Promise ||", b"", b" "],
-
-            [b"window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol ||", b"", b" "]
-        ]  # https://github.com/search?q=repo%3Achromium%2Fchromium+%2Fcdc_adoQpoasnfa76pfcZLmcfl_%2F&type=code
-
-        # (old, new+filler_bytes) [Make replacement equal in length by appending 'filler bytes'
-        for i in cdc_js_replacements:
-            diff = len(i[0]) - len(i[1])
-            if diff > 0:
-                i[1] = i[1] + (i[2] * diff)
-            del i[2]
+        def gen_js_whitespaces(match):
+            return b" " * len(match.group())
 
         with io.open(self.executable_path, "r+b") as fh:
             file_bin = fh.read()
-            for r in cdc_js_replacements:
-                file_bin = file_bin.replace(r[0], r[1])
+            file_bin = re.sub(b"window\.cdc_[a-zA-Z0-9]{22}_(Array|Promise|Symbol) = window\.(Array|Promise|Symbol);",
+                              gen_js_whitespaces, file_bin)
+            file_bin = re.sub(b"window\.cdc_[a-zA-Z0-9]{22}_(Array|Promise|Symbol) \|\|", gen_js_whitespaces, file_bin)
             fh.seek(0)
             fh.write(file_bin)
 
