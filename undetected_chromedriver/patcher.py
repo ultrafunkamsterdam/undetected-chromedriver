@@ -225,13 +225,21 @@ class Patcher(object):
         start = time.time()
 
         def gen_js_whitespaces(match):
-            return b" " * len(match.group())
+            return b"\n" * len(match.group())
+
+        def gen_call_function_js_cache_name(match):
+            rep_len = len(match.group()) - 3
+            ran_len = random.randint(6, rep_len)
+            bb = b"'" + bytes(str().join(random.choices(population=string.ascii_letters, k=ran_len)), 'ascii') + b"';" \
+                 + (b"\n" * (rep_len - ran_len))
+            return bb
 
         with io.open(self.executable_path, "r+b") as fh:
             file_bin = fh.read()
             file_bin = re.sub(b"window\.cdc_[a-zA-Z0-9]{22}_(Array|Promise|Symbol) = window\.(Array|Promise|Symbol);",
                               gen_js_whitespaces, file_bin)
             file_bin = re.sub(b"window\.cdc_[a-zA-Z0-9]{22}_(Array|Promise|Symbol) \|\|", gen_js_whitespaces, file_bin)
+            file_bin = re.sub(b"'\\$cdc_[a-zA-Z0-9]{22}_';", gen_call_function_js_cache_name, file_bin)
             fh.seek(0)
             fh.write(file_bin)
 
