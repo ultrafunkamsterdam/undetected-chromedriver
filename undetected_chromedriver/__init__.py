@@ -17,7 +17,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 from __future__ import annotations
 
 
-__version__ = "3.2.1"
+__version__ = "3.2.2"
 
 import json
 import logging
@@ -600,37 +600,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
-    def _get_cdc_props(self):
-        return self.execute_script(
-            """
-            let objectToInspect = window,
-                result = [];
-            while(objectToInspect !== null)
-            { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-              objectToInspect = Object.getPrototypeOf(objectToInspect); }
-            return result.filter(i => i.match(/.+_.+_(Array|Promise|Symbol)/ig))
-            """
-        )
-
-    def _hook_remove_cdc_props(self):
-        self.execute_cdp_cmd(
-            "Page.addScriptToEvaluateOnNewDocument",
-            {
-                "source": """
-                    let objectToInspect = window,
-                        result = [];
-                    while(objectToInspect !== null)
-                    { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-                      objectToInspect = Object.getPrototypeOf(objectToInspect); }
-                    result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
-                                        &&delete window[p]&&console.log('removed',p))
-                    """
-            },
-        )
-
     def get(self, url):
-        if self._get_cdc_props():
-            self._hook_remove_cdc_props()
         return super().get(url)
 
     def add_cdp_listener(self, event_name, callback):
