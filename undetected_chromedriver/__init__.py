@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 
          888                                                  888         d8b
@@ -14,7 +13,9 @@ Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y
 by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 """
+
 from __future__ import annotations
+print("CALLED")
 
 
 __version__ = "3.2.1"
@@ -28,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import fasteners
 from weakref import finalize
 
 import selenium.webdriver.chrome.service
@@ -37,6 +39,7 @@ import selenium.webdriver.common.service
 import selenium.webdriver.remote.command
 import selenium.webdriver.remote.webdriver
 
+from .proxy import ProxyExtension
 from .cdp import CDP
 from .dprocess import start_detached
 from .options import ChromeOptions
@@ -123,6 +126,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         use_subprocess=True,
         debug=False,
         no_sandbox=True,
+        proxy=None,
+        is_focused=True,
         **kw,
     ):
         """
@@ -234,17 +239,31 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
              uses the --no-sandbox option, and additionally does suppress the "unsecure option" status bar
              this option has a default of True since many people seem to run this as root (....) , and chrome does not start
              when running as root without using --no-sandbox flag.
+            
+        proxy: str, optional, default=None
+            uses --proxies, alongside with an extension if proxy contains user or password
+
+        is_focused: bool, optional, default=True
+            set browser to --disable-backgrounding-occluded-windows, which make the browser to stay focused. some website may detect 
+            you if your browser is not focused, and may trigger their detection system. The occlusion thread tells Windows that it wants 
+            to know about various Windows events. The UI thread tells Windows that it wants to know when there are major state changes, 
+            e.g., the monitor is powered off, or the user locks the screen
         """
 
         finalize(self, self._ensure_close, self)
         self.debug = debug
-        patcher = Patcher(
-            executable_path=driver_executable_path,
-            force=patcher_force_close,
-            version_main=version_main,
-        )
-        patcher.auto()
-        self.patcher = patcher
+        uc_lock = fasteners.InterProcessLock(
+            "downloaded_files/driver_fixing.lock"
+            )
+        with uc_lock:
+            patcher = Patcher(
+                executable_path=driver_executable_path,
+                force=patcher_force_close,
+                version_main=version_main,
+            )
+            patcher.auto()
+            self.patcher = patcher
+
         if not options:
             options = ChromeOptions()
 
@@ -278,6 +297,29 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
+
+
+        if proxy:
+            try:
+                if '@' in proxy:
+                    user_password, ip_port = proxy.split("@")
+                    user, password = user_password.split(':')
+                    ip, port = ip_port.split(':') 
+                    proxy_extension = ProxyExtension(ip, int(port), user, password)
+                    options.add_argument(f"--load-extension={proxy_extension.directory}")
+                else:
+                    ip, port = proxy.split(':') 
+                
+                port = int(port)
+                options.add_argument(f"--proxy-server=%s' % '{ip}:{int(port)}")
+            except Exception as e:
+                raise ValueError("Proxy Configuration is failed, please make sure the input is username:password@ip, port")
+            
+            
+
+        if is_focused:
+            options.add_argument("--disable-backgrounding-occluded-windows")
+
 
         if user_data_dir:
             options.add_argument("--user-data-dir=%s" % user_data_dir)
