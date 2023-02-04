@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# this module is part of undetected_chromedriver
+
+from distutils.version import LooseVersion
 import io
 import logging
 import os
@@ -6,55 +10,64 @@ import re
 import string
 import sys
 import time
+from urllib.request import urlopen
+from urllib.request import urlretrieve
+import zipfile
 from urllib.error import URLError
 
+
 logger = logging.getLogger(__name__)
-IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
+
+IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux", "linux2"))
 
 
-class Patcher:
+class Patcher(object):
     url_repo = "https://chromedriver.storage.googleapis.com"
     zip_name = "chromedriver_%s.zip"
     exe_name = "chromedriver%s"
-    sys_plat = sys.platform
-    # downloads_folder = "~/.undetected_drivers"
-    if sys_plat.endswith("win32"):
+
+    platform = sys.platform
+    if platform.endswith("win32"):
         zip_name %= "win32"
         exe_name %= ".exe"
-        # downloads_folder = "~/appdata/roaming/undetected_drivers"
-    if sys_plat.endswith("linux"):
+    if platform.endswith(("linux", "linux2")):
         zip_name %= "linux64"
         exe_name %= ""
-        # downloads_folder = "~/.local/share/undetected_drivers"
-    if sys_plat.endswith("darwin"):
+    if platform.endswith("darwin"):
         zip_name %= "mac64"
         exe_name %= ""
-        # downloads_folder = "~/Library/Application Support/undetected_drivers"
-    downloads_folder = os.path.join(os.path.abspath("."), "downloaded_files")
-    if not os.path.exists(downloads_folder):
-        os.makedirs(downloads_folder)
-    data_path = os.path.abspath(os.path.expanduser(downloads_folder))
 
-    def __init__(self, executable_path=None, force=False, version_main=0):
+    if platform.endswith("win32"):
+        d = "~/appdata/roaming/undetected_chromedriver"
+    elif "LAMBDA_TASK_ROOT" in os.environ:
+        d = "/tmp/undetected_chromedriver"
+    elif platform.startswith(("linux", "linux2")):
+        d = "~/.local/share/undetected_chromedriver"
+    elif platform.endswith("darwin"):
+        d = "~/Library/Application Support/undetected_chromedriver"
+    else:
+        d = "~/.undetected_chromedriver"
+    data_path = os.path.abspath(os.path.expanduser(d))
+
+    def __init__(self, executable_path=None, force=False, version_main: int = 0):
         """
         Args:
             executable_path: None = automatic
-                A full file path to the chromedriver executable
+                             a full file path to the chromedriver executable
             force: False
-                Terminate processes which are holding lock
+                    terminate processes which are holding lock
             version_main: 0 = auto
-                Specify main chrome version (rounded, ex: 82)
+                specify main chrome version (rounded, ex: 82)
         """
-        import secrets
 
         self.force = force
-        self.executable_path = None
-        prefix = secrets.token_hex(8)
 
-        
+        prefix = "undetected"
+
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path, exist_ok=True)
 
+        self.executable_path = executable_path
         if not executable_path:
             self.executable_path = os.path.join(
                 self.data_path, "_".join([prefix, self.exe_name])
@@ -67,10 +80,10 @@ class Patcher:
 
         self.zip_path = os.path.join(self.data_path, prefix)
 
-        if not executable_path:
-            self.executable_path = os.path.abspath(
-                os.path.join(".", self.executable_path)
-            )
+        # if not executable_path:
+        #     self.executable_path = os.path.abspath(
+        #         os.path.join(".", self.executable_path)
+        #     )
 
         self._custom_exe_path = False
 
@@ -80,10 +93,10 @@ class Patcher:
         self.version_main = version_main
         self.version_full = None
 
-
-
     def auto(self, executable_path=None, force=False, version_main=None):
+    
         if executable_path:
+            
             self.executable_path = executable_path
             self._custom_exe_path = True
 
@@ -94,27 +107,29 @@ class Patcher:
             else:
                 return
 
-
         if version_main:
             self.version_main = version_main
         if force is True:
             self.force = force
+
         try:
             os.unlink(self.executable_path)
-        except PermissionError:  # noqa
+        except PermissionError:
             if self.force:
                 self.force_kill_instances(self.executable_path)
-                not_force = not self.force
-                return self.auto(force=not_force)
+                return self.auto(force=not self.force)
             try:
                 if self.is_binary_patched():
-                    return True  # Running AND patched
-            except PermissionError:  # noqa
+                    # assumes already running AND patched
+                    return True
+            except PermissionError:
                 pass
-        except FileNotFoundError:  # noqa
+            # return False
+        except FileNotFoundError:
             pass
+
         release = self.fetch_release_number()
-        self.version_main = release.split(".")[0]
+        self.version_main = release.version[0]
         self.version_full = release
         self.unzip_package(self.fetch_package())
         return self.patch()
@@ -124,51 +139,59 @@ class Patcher:
         return self.is_binary_patched()
 
     def fetch_release_number(self):
-        from urllib.request import urlopen
-
+        """
+        Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
+        :return: version string
+        :rtype: LooseVersion
+        """
         path = "/latest_release"
         if self.version_main:
-            path += "_%s" % self.version_main
+            path += f"_{self.version_main}"
         path = path.upper()
         logger.debug("getting release number from %s" % path)
-        return urlopen(self.url_repo + path).read().decode()
+        return LooseVersion(urlopen(self.url_repo + path).read().decode())
+
+    def parse_exe_version(self):
+        with io.open(self.executable_path, "rb") as f:
+            for line in iter(lambda: f.readline(), b""):
+                match = re.search(rb"platform_handle\x00content\x00([0-9.]*)", line)
+                if match:
+                    return LooseVersion(match[1].decode())
 
     def fetch_package(self, retry=10):
         """
         Downloads chromedriver from source.
         :return: path to downloaded file
+        Recursively continues until 10 fails.
         """
         try:
-            from urllib.request import urlretrieve
 
             u = "%s/%s/%s" % (
                 self.url_repo, self.version_full, self.zip_name
             )
             logger.debug("downloading from %s" % u)
             return urlretrieve(u)[0]
-        except URLError as e:
+        except URLError:
             if retry == 0:
-                raise e
+                raise URLError
             else:
                 return self.fetch_package(retry-1)
 
     def unzip_package(self, fp):
         """
+        Does what it says
         :return: path to unpacked executable
         """
-        import zipfile
-
         logger.debug("unzipping %s" % fp)
         try:
             os.unlink(self.zip_path)
-        except (FileNotFoundError, OSError):  # noqa
+        except (FileNotFoundError, OSError):
             pass
+
         os.makedirs(self.zip_path, mode=0o755, exist_ok=True)
         with zipfile.ZipFile(fp, mode="r") as zf:
             zf.extract(self.exe_name, self.zip_path)
-        os.rename(
-            os.path.join(self.zip_path, self.exe_name), self.executable_path
-        )
+        os.rename(os.path.join(self.zip_path, self.exe_name), self.executable_path)
         os.remove(fp)
         os.rmdir(self.zip_path)
         os.chmod(self.executable_path, 0o755)
@@ -177,6 +200,7 @@ class Patcher:
     @staticmethod
     def force_kill_instances(exe_name):
         """
+        kills running instances.
         :param: executable name to kill, may be a path as well
         :return: True on success else False
         """
@@ -189,55 +213,59 @@ class Patcher:
 
     @staticmethod
     def gen_random_cdc():
-        import string
+        # make cdc_variables without underscores
+        cdc = random.choices(string.ascii_letters, k=27)
 
-        cdc = random.choices(string.ascii_lowercase, k=26)
-        cdc[-6:-4] = map(str.upper, cdc[-6:-4])
-        cdc[2] = cdc[0]
-        cdc[3] = "_"
+        # cdc[-6:-4] = map(str.upper, cdc[-6:-4])
+        # cdc[2] = cdc[0]
+        # cdc[3] = "_"
         return "".join(cdc).encode()
 
     def is_binary_patched(self, executable_path=None):
         executable_path = executable_path or self.executable_path
         with io.open(executable_path, "rb") as fh:
-            if b"window.cdc_adoQpoasnfa76pfcZLmcfl_" in fh.read():
-                return False
-        return True
+            return fh.read().find(b"undetected chromedriver") != -1
 
     def patch_exe(self):
-        """Patches the ChromeDriver binary"""
-        def gen_js_whitespaces(match):
-            return b"\n" * len(match.group())
-
-        def gen_call_function_js_cache_name(match):
-            rep_len = len(match.group()) - 3
-            ran_len = random.randint(6, rep_len)
-            bb = b"'" + bytes(str().join(random.choices(
-                population=string.ascii_letters, k=ran_len
-            )), 'ascii') + b"';" + (b"\n" * (rep_len - ran_len))
-            return bb
-
+        start = time.perf_counter()
+        logger.info("patching driver executable %s" % self.executable_path)
         with io.open(self.executable_path, "r+b") as fh:
-            file_bin = fh.read()
-            file_bin = re.sub(
-                b"window\\.cdc_[a-zA-Z0-9]{22}_(Array|Promise|Symbol)"
-                b" = window\\.(Array|Promise|Symbol);",
-                gen_js_whitespaces,
-                file_bin,
-            )
-            file_bin = re.sub(
-                b"window\\.cdc_[a-zA-Z0-9]{22}_(Array|Promise|Symbol) \\|\\|",
-                gen_js_whitespaces,
-                file_bin,
-            )
-            file_bin = re.sub(
-                b"'\\$cdc_[a-zA-Z0-9]{22}_';",
-                gen_call_function_js_cache_name,
-                file_bin,
-            )
-            fh.seek(0)
-            fh.write(file_bin)
-        return True
+            content = fh.read()
+            match_injected_codeblock = re.search(rb"{window.*;}", content)
+            if match_injected_codeblock:
+                target_bytes = match_injected_codeblock[0]
+                new_target_bytes = (
+                    b'{console.log("undetected chromedriver 1337!")}'.ljust(
+                        len(target_bytes), b" "
+                    )
+                )
+                new_content = content.replace(target_bytes, new_target_bytes)
+                if new_content == content:
+                    logger.warning(
+                        "something went wrong patching the driver binary. could not find injection code block"
+                    )
+                else:
+                    logger.debug(
+                        "found block:\n%s\nreplacing with:\n%s"
+                        % (target_bytes, new_target_bytes)
+                    )
+                    fh.seek(0)
+                    fh.write(new_content)
+
+                    # we just keep the cdc variables as they can't be injected anyways so no harm
+                    # keeping for reference
+                    # fh.seek(0)
+                    # for line in iter( lambda: fh.readline() , b"" ):
+                    #     if b'cdc_' in line:
+                    #         fh.seek( -len( line ) , 1 )
+                    #         new_line = re.sub( b"cdc_.{22}_" , self.gen_random_cdc() , line )
+                    #         logger.debug( 'replaced %s\n\twith:%s' % (line , new_line) )
+                    #         fh.write( new_line )
+            else:
+                logger.info("%s seems already patched ?!?!" % self.executable_path)
+        logger.debug(
+            "patching took us {:.2f} seconds".format(time.perf_counter() - start)
+        )
 
     def __repr__(self):
         return "{0:s}({1:s})".format(
@@ -245,19 +273,18 @@ class Patcher:
             self.executable_path,
         )
 
-
-
     def __del__(self):
         if self._custom_exe_path:
             # if the driver binary is specified by user
             # we assume it is important enough to not delete it
             return
         else:
-            timeout = 3
+            timeout = 3  # stop trying after this many seconds
             t = time.monotonic()
             while True:
                 now = time.monotonic()
                 if now - t > timeout:
+                    # we don't want to wait until the end of time
                     logger.debug(
                         "could not unlink %s in time (%d seconds)"
                         % (self.executable_path, timeout)
@@ -265,13 +292,10 @@ class Patcher:
                     break
                 try:
                     os.unlink(self.executable_path)
-                    logger.debug(
-                        "successfully unlinked %s"
-                        % self.executable_path
-                    )
+                    logger.debug("successfully unlinked %s" % self.executable_path)
                     break
-                except (OSError, RuntimeError, PermissionError):  # noqa
+                except (OSError, RuntimeError, PermissionError):
                     time.sleep(0.1)
                     continue
-                except FileNotFoundError:  # noqa
+                except FileNotFoundError:
                     break

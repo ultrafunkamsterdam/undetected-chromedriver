@@ -16,7 +16,9 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 from __future__ import annotations
 
-__version__ = "3.2.1"
+
+__version__ = "3.4"
+
 import json
 import logging
 import os
@@ -26,7 +28,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import fasteners
 from weakref import finalize
 
 import selenium.webdriver.chrome.service
@@ -36,7 +37,6 @@ import selenium.webdriver.common.service
 import selenium.webdriver.remote.command
 import selenium.webdriver.remote.webdriver
 
-from .proxy import ProxyExtension
 from .cdp import CDP
 from .dprocess import start_detached
 from .options import ChromeOptions
@@ -256,19 +256,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         
         finalize(self, self._ensure_close, self)
         self.debug = debug
-        uc_lock = fasteners.InterProcessLock(
-            "downloaded_files/driver_fixing.lock"
-            )
-        with uc_lock:
-            if not patcher:
-                patcher = Patcher(
-                    executable_path=driver_executable_path,
-                    force=patcher_force_close,
-                    version_main=version_main,
-                )
 
-            patcher.auto()
-            self.patcher = patcher
+        if not patcher:
+            patcher = Patcher(
+                executable_path=driver_executable_path,
+                force=patcher_force_close,
+                version_main=version_main,
+            )
+        patcher.auto()
+        self.patcher = patcher
 
         if not options:
             options = ChromeOptions()
@@ -651,37 +647,37 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
-    def _get_cdc_props(self):
-        return self.execute_script(
-            """
-            let objectToInspect = window,
-                result = [];
-            while(objectToInspect !== null)
-            { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-              objectToInspect = Object.getPrototypeOf(objectToInspect); }
-            return result.filter(i => i.match(/.+_.+_(Array|Promise|Symbol)/ig))
-            """
-        )
+    # def _get_cdc_props(self):
+    #     return self.execute_script(
+    #         """
+    #         let objectToInspect = window,
+    #             result = [];
+    #         while(objectToInspect !== null)
+    #         { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
+    #           objectToInspect = Object.getPrototypeOf(objectToInspect); }
+    #         return result.filter(i => i.match(/.+_.+_(Array|Promise|Symbol)/ig))
+    #         """
+    #     )
 
-    def _hook_remove_cdc_props(self):
-        self.execute_cdp_cmd(
-            "Page.addScriptToEvaluateOnNewDocument",
-            {
-                "source": """
-                    let objectToInspect = window,
-                        result = [];
-                    while(objectToInspect !== null)
-                    { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-                      objectToInspect = Object.getPrototypeOf(objectToInspect); }
-                    result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
-                                        &&delete window[p]&&console.log('removed',p))
-                    """
-            },
-        )
+    # def _hook_remove_cdc_props(self):
+    #     self.execute_cdp_cmd(
+    #         "Page.addScriptToEvaluateOnNewDocument",
+    #         {
+    #             "source": """
+    #                 let objectToInspect = window,
+    #                     result = [];
+    #                 while(objectToInspect !== null)
+    #                 { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
+    #                   objectToInspect = Object.getPrototypeOf(objectToInspect); }
+    #                 result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
+    #                                     &&delete window[p]&&console.log('removed',p))
+    #                 """
+    #         },
+    #     )
 
     def get(self, url):
-        if self._get_cdc_props():
-            self._hook_remove_cdc_props()
+        # if self._get_cdc_props():
+        #     self._hook_remove_cdc_props()
         return super().get(url)
 
     def add_cdp_listener(self, event_name, callback):
