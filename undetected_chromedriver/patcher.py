@@ -6,12 +6,13 @@ import re
 import string
 import sys
 import time
+from urllib.error import URLError
 
 logger = logging.getLogger(__name__)
 IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux"))
 
 
-class Patcher(object):
+class Patcher:
     url_repo = "https://chromedriver.storage.googleapis.com"
     zip_name = "chromedriver_%s.zip"
     exe_name = "chromedriver%s"
@@ -132,18 +133,24 @@ class Patcher(object):
         logger.debug("getting release number from %s" % path)
         return urlopen(self.url_repo + path).read().decode()
 
-    def fetch_package(self):
+    def fetch_package(self, retry=10):
         """
         Downloads chromedriver from source.
         :return: path to downloaded file
         """
-        from urllib.request import urlretrieve
+        try:
+            from urllib.request import urlretrieve
 
-        u = "%s/%s/%s" % (
-            self.url_repo, self.version_full, self.zip_name
-        )
-        logger.debug("downloading from %s" % u)
-        return urlretrieve(u)[0]
+            u = "%s/%s/%s" % (
+                self.url_repo, self.version_full, self.zip_name
+            )
+            logger.debug("downloading from %s" % u)
+            return urlretrieve(u)[0]
+        except URLError as e:
+            if retry == 0:
+                raise e
+            else:
+                return self.fetch_package(retry-1)
 
     def unzip_package(self, fp):
         """

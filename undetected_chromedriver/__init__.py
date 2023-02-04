@@ -125,6 +125,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         no_sandbox=True,
         proxy=None,
         is_focused=True,
+        patcher:Patcher=None,
         **kw,
     ):
         """
@@ -245,19 +246,27 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             you if your browser is not focused, and may trigger their detection system. The occlusion thread tells Windows that it wants 
             to know about various Windows events. The UI thread tells Windows that it wants to know when there are major state changes, 
             e.g., the monitor is powered off, or the user locks the screen
+        
+        patcher: object, optional, default=None
+            you may inject your own patcher, if you would like.
+            Nessecary implementations: 
+                .auto() --> To execute your own patch method
+                executable_path --> path to executable chrome
         """
-
+        
         finalize(self, self._ensure_close, self)
         self.debug = debug
         uc_lock = fasteners.InterProcessLock(
             "downloaded_files/driver_fixing.lock"
             )
         with uc_lock:
-            patcher = Patcher(
-                executable_path=driver_executable_path,
-                force=patcher_force_close,
-                version_main=version_main,
-            )
+            if not patcher:
+                patcher = Patcher(
+                    executable_path=driver_executable_path,
+                    force=patcher_force_close,
+                    version_main=version_main,
+                )
+
             patcher.auto()
             self.patcher = patcher
 
