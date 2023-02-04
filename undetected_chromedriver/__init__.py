@@ -15,7 +15,6 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 
 from __future__ import annotations
-print("CALLED")
 
 
 __version__ = "3.2.1"
