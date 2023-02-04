@@ -647,7 +647,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
-        # def _get_cdc_props(self):
+    # def _get_cdc_props(self):
     #     return self.execute_script(
     #         """
     #         let objectToInspect = window,
