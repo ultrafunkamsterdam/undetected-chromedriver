@@ -655,7 +655,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     #         while(objectToInspect !== null)
     #         { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
     #           objectToInspect = Object.getPrototypeOf(objectToInspect); }
-    #         return result.filter(i => i.match(/.+_.+_(Array|Promise|Symbol)/ig))
+    #         return result.filter(i => i.match(/^([a-zA-Z]){27}(Array|Promise|Symbol)$/ig))
     #         """
     #     )
 
@@ -669,7 +669,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     #                 while(objectToInspect !== null)
     #                 { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
     #                   objectToInspect = Object.getPrototypeOf(objectToInspect); }
-    #                 result.forEach(p => p.match(/.+_.+_(Array|Promise|Symbol)/ig)
+    #                 result.forEach(p => p.match(/^([a-zA-Z]){27}(Array|Promise|Symbol)$/ig)
     #                                     &&delete window[p]&&console.log('removed',p))
     #                 """
     #         },
