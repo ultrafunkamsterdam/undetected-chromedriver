@@ -647,7 +647,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
-    # def _get_cdc_props(self):
+        # def _get_cdc_props(self):
     #     return self.execute_script(
     #         """
     #         let objectToInspect = window,
@@ -655,10 +655,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     #         while(objectToInspect !== null)
     #         { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
     #           objectToInspect = Object.getPrototypeOf(objectToInspect); }
+    #
     #         return result.filter(i => i.match(/^([a-zA-Z]){27}(Array|Promise|Symbol)$/ig))
     #         """
     #     )
-
+    #
     # def _hook_remove_cdc_props(self):
     #     self.execute_cdp_cmd(
     #         "Page.addScriptToEvaluateOnNewDocument",
