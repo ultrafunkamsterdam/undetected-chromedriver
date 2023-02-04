@@ -16,9 +16,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 
 from __future__ import annotations
 
-
 __version__ = "3.2.1"
-
 import json
 import logging
 import os
@@ -293,6 +291,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.set_capability(
                 "goog:loggingPrefs", {"performance": "ALL", "browser": "ALL"}
             )
+            self.enable_cdp_events = True
+        else:
+            self.enable_cdp_events = False
 
         options.add_argument("--remote-debugging-host=%s" % debug_host)
         options.add_argument("--remote-debugging-port=%s" % debug_port)
@@ -737,7 +738,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # super(Chrome, self).start_session(capabilities, browser_profile)
 
     def quit(self):
+        if self.enable_cdp_events:
+            self.clear_cdp_listeners()
+        
+
         try:
+            self.service.process.terminate()
+            self.service.process.wait()
             self.service.process.kill()
             logger.debug("webdriver process ended")
         except (AttributeError, RuntimeError, OSError):
@@ -772,6 +779,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     break
                 time.sleep(0.1)
 
+        
+        self.service.stop()
         # dereference patcher, so patcher can start cleaning up as well.
         # this must come last, otherwise it will throw 'in use' errors
         self.patcher = None
