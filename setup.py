@@ -44,7 +44,6 @@ setup(
         "requests",
         "websockets",
         "fasteners",
-        "pywin32"
     ],
     package_data={"undetected_chromedriver": [os.path.join("example", "example.py")]},
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
