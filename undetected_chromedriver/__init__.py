@@ -17,7 +17,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 from __future__ import annotations
 
 
-__version__ = "3.4.1"
+__version__ = "3.4.2"
 
 import json
 import logging
@@ -238,13 +238,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         finalize(self, self._ensure_close, self)
         self.debug = debug
-        patcher = Patcher(
+        self.patcher = Patcher(
             executable_path=driver_executable_path,
             force=patcher_force_close,
             version_main=version_main,
         )
-        patcher.auto()
-        self.patcher = patcher
+        self.patcher.auto()
+        # self.patcher = patcher
         if not options:
             options = ChromeOptions()
 
@@ -419,7 +419,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if service_creationflags:
             service = selenium.webdriver.common.service.Service(
-                patcher.executable_path, port, service_args, service_log_path
+                self.patcher.executable_path, port, service_args, service_log_path
             )
             for attr_name in ("creationflags", "creation_flags"):
                 if hasattr(service, attr_name):
@@ -429,7 +429,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             service = None
 
         super(Chrome, self).__init__(
-            executable_path=patcher.executable_path,
+            executable_path=self.patcher.executable_path,
             port=port,
             options=options,
             service_args=service_args,
