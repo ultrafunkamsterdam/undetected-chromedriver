@@ -80,10 +80,10 @@ class Patcher(object):
 
         self.zip_path = os.path.join(self.data_path, prefix)
 
-        # if not executable_path:
-        #     self.executable_path = os.path.abspath(
-        #         os.path.join(".", self.executable_path)
-        #     )
+        if not executable_path:
+            self.executable_path = os.path.abspath(
+                os.path.join(".", self.executable_path)
+            )
 
         self._custom_exe_path = False
 
