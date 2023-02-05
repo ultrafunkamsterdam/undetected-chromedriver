@@ -54,6 +54,7 @@ __all__ = (
     "Reactor",
     "CDP",
     "find_chrome_executable",
+    "auto_version",
 )
 
 logger = logging.getLogger("uc")
@@ -238,13 +239,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         finalize(self, self._ensure_close, self)
         self.debug = debug
-        patcher = Patcher(
-            executable_path=driver_executable_path,
-            force=patcher_force_close,
-            version_main=version_main,
-        )
-        patcher.auto()
-        self.patcher = patcher
+
         if not options:
             options = ChromeOptions()
 
@@ -354,6 +349,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.binary_location = (
                 browser_executable_path or find_chrome_executable()
             )
+        if version_main == None:
+            version_main = self.auto_version(executable_path=options.binary_location)
+        patcher = Patcher(
+            executable_path=driver_executable_path,
+            force=patcher_force_close,
+            version_main=version_main,
+        )
+        patcher.auto()
+        self.patcher = patcher
 
         self._delay = 3
 
@@ -695,6 +699,27 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             capabilities, browser_profile
         )
         # super(Chrome, self).start_session(capabilities, browser_profile)
+
+
+    def auto_version(self,executable_path):
+        try:
+            import re
+            if IS_POSIX:
+                version_command = f'{executable_path} --version'
+            else:
+                version_command = 'powershell -command "&{(Get-Item \'' + executable_path.replace('\\','\\\\') + '\').VersionInfo.ProductVersion}" '
+            run_cmd = subprocess.Popen(version_command,shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.read()
+            if type(run_cmd) == type(bytes()):
+                run_cmd = run_cmd.decode()
+            version_main = re.findall('(\d+)\.',run_cmd)
+            if len(version_main) > 0:
+                version_main = version_main[0]
+                return version_main
+            else:
+                return None
+        except:
+            return None
+
 
     def quit(self):
         try:
