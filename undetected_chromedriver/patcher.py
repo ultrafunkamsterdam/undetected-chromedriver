@@ -225,7 +225,7 @@ class Patcher(object):
         logger.info("patching driver executable %s" % self.executable_path)
         with io.open(self.executable_path, "r+b") as fh:
             content = fh.read()
-            match_injected_codeblock = re.search(rb"{window.*;}", content)
+            match_injected_codeblock = re.search(rb"\{window\.cdc.*?;\}", content)
             if match_injected_codeblock:
                 target_bytes = match_injected_codeblock[0]
                 new_target_bytes = (
