@@ -3,7 +3,6 @@
 https://github.com/ultrafunkamsterdam/undetected-chromedriver
 
 
-
 Optimized Selenium Chromedriver patch which does not trigger anti-bot services like Distill Network / Imperva / DataDome / Botprotect.io
 Automatically downloads the driver binary and patches it.
 
@@ -11,6 +10,16 @@ Automatically downloads the driver binary and patches it.
 * Works also on Brave Browser and many other Chromium based browsers, some tweaking
 * Python 3.6++**
 
+
+
+## 3.4.5 ##
+- What a week. Had the recent advancedments in Automation-Detection algorithms pwned (so i thought) with 3.4.0, but apparently, for some OS-es this caused an error when    interacting with elements. Had to revert back using a different method, fix bugs, and now eventually was still able to stick to the initial idea (+ fixing bugs)
+- Update to chrome 110 caused another surprise, this time for HEADLESS users.
+- although headless is unsupported officially, i did patch it!
+- happy to announce IT IS NOW UNDETECTED AS WELL (but still unsupported ;))
+- special thanks here to [@mdmintz](https://github.com/mdmintz) and [@abdulzain6](https://github.com/abdulzain6)
+- also special thanks to [@sebdelsol](https://github.com/sebdelsol) for his help troughout the issues section completely voluntarily, you must be crazy :)
+  
 ### 3.4.0 ###
 **Big update! be careful as it -potentially- could break your code.**
 
