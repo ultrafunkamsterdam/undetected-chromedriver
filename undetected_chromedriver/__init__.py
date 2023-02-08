@@ -29,6 +29,7 @@ import sys
 import tempfile
 import time
 from weakref import finalize
+from fake_useragent import UserAgent
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
@@ -100,6 +101,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     _instances = set()
     session_id = None
     debug = False
+    fake_user_agent = True
 
     def __init__(
         self,
@@ -123,6 +125,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         use_subprocess=True,
         debug=False,
         no_sandbox=True,
+        fake_user_agent=fake_user_agent,
         **kw,
     ):
         """
@@ -234,6 +237,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
              uses the --no-sandbox option, and additionally does suppress the "unsecure option" status bar
              this option has a default of True since many people seem to run this as root (....) , and chrome does not start
              when running as root without using --no-sandbox flag.
+
+        fake_user_agent: bool, optional, default=True
+            Up-to-date simple useragent faker with real world database
         """
 
         finalize(self, self._ensure_close, self)
@@ -369,6 +375,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.arguments.extend(["--no-default-browser-check", "--no-first-run"])
         if no_sandbox:
             options.arguments.extend(["--no-sandbox", "--test-type"])
+        if fake_user_agent:
+            # --user-agent: A string used to override the default user agent with a custom one
+            options.add_argument(f'--user-agent={UserAgent().random}')
 
         if headless or options.headless:
             if self.patcher.version_main < 108:
@@ -405,7 +414,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 json.dump(config, fs)
                 fs.truncate()  # the file might be shorter
                 logger.debug("fixed exit_type flag")
-        except Exception as e:
+        except Exception:
             logger.debug("did not find a bad exit_type flag ")
 
         self.options = options
@@ -496,15 +505,16 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     },
                 )
 
-                logger.info("patch user-agent string")
-                self.execute_cdp_cmd(
-                    "Network.setUserAgentOverride",
-                    {
-                        "userAgent": self.execute_script(
-                            "return navigator.userAgent"
-                        ).replace("Headless", "")
-                    },
-                )
+                if not Chrome.fake_user_agent:
+                    logger.info("patch user-agent string")
+                    self.execute_cdp_cmd(
+                        "Network.setUserAgentOverride",
+                        {
+                            "userAgent": self.execute_script(
+                                "return navigator.userAgent"
+                            ).replace("Headless", "")
+                        },
+                    )
                 self.execute_cdp_cmd(
                     "Page.addScriptToEvaluateOnNewDocument",
                     {
