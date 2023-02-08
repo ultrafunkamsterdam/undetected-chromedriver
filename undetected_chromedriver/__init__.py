@@ -123,7 +123,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         use_subprocess=True,
         debug=False,
         no_sandbox=True,
-        
         **kw,
     ):
         """
@@ -287,9 +286,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         # see if a custom user profile is specified in options
         for arg in options.arguments:
-            if any([_ in arg for _ in ('--headless', 'headless')]):
-                options.arguments.remove(arg)
-                options.headless = True
             if "lang" in arg:
                 m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
                 try:
@@ -358,7 +354,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.binary_location = (
                 browser_executable_path or find_chrome_executable()
             )
+
         self._delay = 3
+
         self.user_data_dir = user_data_dir
         self.keep_user_data_dir = keep_user_data_dir
 
@@ -367,16 +365,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if no_sandbox:
             options.arguments.extend(["--no-sandbox", "--test-type"])
         if headless or options.headless:
-            if self.patcher.version_main < 108:
-                options.add_argument('--headless=chrome')
-            elif self.patcher.version_main >= 108:
-                options.add_argument( '--headless=new' )
-    
+            options.headless = True
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--start-maximized")
             options.add_argument("--no-sandbox")
             # fixes "could not connect to chrome" error when running
             # on linux using privileged user like root (which i don't recommend)
+
         options.add_argument(
             "--log-level=%d" % log_level
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
