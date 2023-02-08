@@ -177,10 +177,21 @@ class Patcher(object):
         os.makedirs(self.zip_path, mode=0o755, exist_ok=True)
         with zipfile.ZipFile(fp, mode="r") as zf:
             zf.extract(self.exe_name, self.zip_path)
-        os.rename(os.path.join(self.zip_path, self.exe_name), self.executable_path)
-        os.remove(fp)
-        os.rmdir(self.zip_path)
-        os.chmod(self.executable_path, 0o755)
+        try:
+            os.rename(os.path.join(self.zip_path, self.exe_name), self.executable_path)
+            os.remove( fp )
+        except PermissionError:
+            # file in use, ignore and pass
+            # as same file can be used by multiple instance
+            pass
+        try:
+            os.rmdir( self.zip_path )
+            os.chmod( self.executable_path , 0o755 )
+        except PermissionError:
+            #  sometimes: no access on the path, or driver still running
+            #  in other process
+            #  ignore. so start using the existing file
+            pass
         return self.executable_path
 
     @staticmethod
