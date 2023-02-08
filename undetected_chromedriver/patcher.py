@@ -50,7 +50,6 @@ class Patcher(object):
 
     def __init__(self, executable_path=None, force=False, version_main: int = 0):
         """
-
         Args:
             executable_path: None = automatic
                              a full file path to the chromedriver executable
@@ -59,15 +58,13 @@ class Patcher(object):
             version_main: 0 = auto
                 specify main chrome version (rounded, ex: 82)
         """
-
         self.force = force
-
+        self._custom_exe_path = False
         prefix = "undetected"
 
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path, exist_ok=True)
 
-        self.executable_path = executable_path
         if not executable_path:
             self.executable_path = os.path.join(
                 self.data_path, "_".join([prefix, self.exe_name])
@@ -84,8 +81,6 @@ class Patcher(object):
             self.executable_path = os.path.abspath(
                 os.path.join(".", self.executable_path)
             )
-
-        self._custom_exe_path = False
 
         if executable_path:
             self._custom_exe_path = True
