@@ -17,7 +17,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 from __future__ import annotations
 
 
-__version__ = "3.4.2"
+__version__ = "3.4.4"
 
 import json
 import logging
@@ -470,18 +470,18 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     {
                         "source": """
 
-                            Object.defineProperty(window, 'navigator', {
-                                value: new Proxy(navigator, {
-                                        has: (target, key) => (key === 'webdriver' ? false : key in target),
-                                        get: (target, key) =>
-                                                key === 'webdriver' ?
-                                                false :
-                                                typeof target[key] === 'function' ?
-                                                target[key].bind(target) :
-                                                target[key]
-                                        })
-                            });
-
+                           Object.defineProperty(window, "navigator", {
+                                Object.defineProperty(window, "navigator", {
+                                  value: new Proxy(navigator, {
+                                    has: (target, key) => (key === "webdriver" ? false : key in target),
+                                    get: (target, key) =>
+                                      key === "webdriver"
+                                        ? false
+                                        : typeof target[key] === "function"
+                                        ? target[key].bind(target)
+                                        : target[key],
+                                  }),
+                                });
                     """
                     },
                 )
