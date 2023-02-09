@@ -207,7 +207,8 @@ class Patcher(object):
         executable_path = executable_path or self.executable_path
         try:
             with io.open(executable_path, "rb") as fh:
-                return fh.read().find(b"undetected chromedriver") != -1
+                content = fh.read()
+                return content.find(b"undetected chromedriver") != -1 or not re.search(rb"\{window\.cdc.*?;\}", content)
         except FileNotFoundError:
             return False
 
@@ -225,6 +226,10 @@ class Patcher(object):
                         len(target_bytes), b" "
                     )
                 )
+            else:
+                logger.info("Binary seems to be patched already. Suspected bytes not found!")
+                return
+                
             new_content = content.replace(target_bytes, new_target_bytes)
             if new_content == content:
                 logger.warning(
