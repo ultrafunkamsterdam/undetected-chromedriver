@@ -10,7 +10,12 @@ Automatically downloads the driver binary and patches it.
 * Works also on Brave Browser and many other Chromium based browsers, some tweaking
 * Python 3.6++**
 
-
+- - -
+## Message for all ##
+I will be putting limits on the issue tracker. It has beeen abused too long.  
+any good news?  
+Yes, i've opened [discussions](https://github.com/ultrafunkamsterdam/undetected-chromedriver/discussions) which i think will help us better in the long run.  
+- - -
 
 ## 3.4.5 ##
 - What a week. Had the recent advancedments in Automation-Detection algorithms pwned (so i thought) with 3.4.0, but apparently, for some OS-es this caused an error when    interacting with elements. Had to revert back using a different method, fix bugs, and now eventually was still able to stick to the initial idea (+ fixing bugs)
