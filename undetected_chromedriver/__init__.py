@@ -689,8 +689,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not hasattr(self, "cdp"):
             from .cdp import CDP
 
-            cdp = CDP(self.options)
-            cdp.tab_new(url)
+            CDP(self.options).tab_new(url)
 
     def reconnect(self, timeout=0.1):
         try:
