@@ -365,7 +365,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if no_sandbox:
             options.arguments.extend(["--no-sandbox", "--test-type"])
         if headless or options.headless:
-            options.headless = True
+            if self.patcher.version_main >= 109:
+                options.add_argument("--headless=new")
+            else:
+                options.add_argument("--headless=chrome")
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--start-maximized")
             options.add_argument("--no-sandbox")
