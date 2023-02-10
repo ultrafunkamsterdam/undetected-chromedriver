@@ -254,6 +254,7 @@ class Patcher(object):
     def patch_exe(self):
         start = time.perf_counter()
         logger.info("patching driver executable %s" % self.executable_path)
+    
         with io.open(self.executable_path, "r+b") as fh:
             content = fh.read()
             match_injected_codeblock = re.search(rb"\{window\.cdc.*?;\}", content)
@@ -264,16 +265,17 @@ class Patcher(object):
                         len(target_bytes), b" "
                     )
                 )
-            new_content = content.replace(target_bytes, new_target_bytes)
-            if new_content == content:
-                logger.warning(
-                    "something went wrong patching the driver binary. could not find injection code block"
-                )
-            else:
-                logger.debug(
-                    "found block:\n%s\nreplacing with:\n%s"
-                    % (target_bytes.strip(), new_target_bytes.strip())
-                )
+
+                new_content = content.replace(target_bytes, new_target_bytes)
+                if new_content == content:
+                    logger.warning(
+                        "something went wrong patching the driver binary. could not find injection code block"
+                    )
+                else:
+                    logger.debug(
+                        "found block:\n%s\nreplacing with:\n%s"
+                        % (target_bytes.strip(), new_target_bytes.strip())
+                    )
                 fh.seek(0)
                 fh.write(new_content)
         logger.debug(

@@ -388,8 +388,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # on linux using privileged user like root (which i don't recommend)
 
         options.add_argument(
-            "--log-level=%d"
-            % log_level  ##or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
+            "--log-level=%d" % log_level
+            or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
         if hasattr(options, "handle_prefs"):
