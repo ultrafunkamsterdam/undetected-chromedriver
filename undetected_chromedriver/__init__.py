@@ -236,14 +236,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
              when running as root without using --no-sandbox flag.
         """
 
-        finalize(self, self._ensure_close, self)
         self.debug = debug
         self.patcher = Patcher(
             executable_path=driver_executable_path,
             force=patcher_force_close,
             version_main=version_main,
         )
+
         self.patcher.auto()
+
         # self.patcher = patcher
         if not options:
             options = ChromeOptions()
@@ -334,7 +335,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 )
 
             else:
-                user_data_dir = os.path.normpath(tempfile.mkdtemp())
+                user_data_dir = os.path.normpath(
+                    tempfile.mkdtemp(dir=self.patcher.data_path)
+                )
+                tempfile.mkstemp()
                 keep_user_data_dir = False
                 arg = "--user-data-dir=%s" % user_data_dir
                 options.add_argument(arg)
@@ -376,15 +380,16 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             elif self.patcher.version_main >= 108:
                 options.add_argument("--headless=new")
 
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--start-maximized")
-        options.add_argument("--no-sandbox")
+        else:
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--start-maximized")
+
         # fixes "could not connect to chrome" error when running
         # on linux using privileged user like root (which i don't recommend)
 
         options.add_argument(
-            "--log-level=%d" % log_level
-            or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
+            "--log-level=%d"
+            % log_level  ##or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
         if hasattr(options, "handle_prefs"):
@@ -418,15 +423,35 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 options.binary_location, *options.arguments
             )
         else:
+            params = {}
+            if headless or options.headless:
+                # somehow when using PIPES, DEVNULL or any redirect
+                # an annoying console window pops up
+                # so no pipes when using headless
+                params.update({})
+            else:
+                params.update(
+                    {
+                        "stderr": subprocess.PIPE,
+                        "stdout": subprocess.PIPE,
+                        "stdin": subprocess.PIPE,
+                    }
+                )
+            logger.info(
+                "chrome starting using cmdline : \n%s\n"
+                % [options.binary_location, *options.arguments]
+            )
             browser = subprocess.Popen(
                 [options.binary_location, *options.arguments],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
                 close_fds=IS_POSIX,
+                **params,
             )
             self.browser_pid = browser.pid
-
+        finalize(
+            self,
+            type(self)._ensure_close,
+            f"{self.patcher.executable_path}_{self.browser_pid}",
+        )
         if service_creationflags:
             service = selenium.webdriver.common.service.Service(
                 self.patcher.executable_path, port, service_args, service_log_path
@@ -708,43 +733,45 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def quit(self):
         try:
-            self.service.process.kill()
-            logger.debug("webdriver process ended")
-        except (AttributeError, RuntimeError, OSError):
-            pass
-        try:
-            self.reactor.event.set()
-            logger.debug("shutting down reactor")
-        except AttributeError:
-            pass
-        try:
-            os.kill(self.browser_pid, 15)
-            logger.debug("gracefully closed browser")
-        except Exception as e:  # noqa
-            logger.debug(e, exc_info=True)
-        if (
-            hasattr(self, "keep_user_data_dir")
-            and hasattr(self, "user_data_dir")
-            and not self.keep_user_data_dir
-        ):
-            for _ in range(5):
-                try:
-                    shutil.rmtree(self.user_data_dir, ignore_errors=False)
-                except FileNotFoundError:
-                    pass
-                except (RuntimeError, OSError, PermissionError) as e:
-                    logger.debug(
-                        "When removing the temp profile, a %s occured: %s\nretrying..."
-                        % (e.__class__.__name__, e)
-                    )
-                else:
-                    logger.debug("successfully removed %s" % self.user_data_dir)
-                    break
-                time.sleep(0.1)
+            try:
+                self.service.process.kill()
+                logger.debug("webdriver process ended")
+            except (AttributeError, RuntimeError, OSError):
+                pass
 
-        # dereference patcher, so patcher can start cleaning up as well.
-        # this must come last, otherwise it will throw 'in use' errors
-        self.patcher = None
+            try:
+                self.reactor.event.set()
+                logger.debug("shutting down reactor")
+            except AttributeError:
+                pass
+
+            try:
+                os.kill(self.browser_pid, 15)
+                logger.debug("gracefully closed browser")
+            except Exception as e:  # noqa
+                logger.debug(e, exc_info=True)
+
+            if (
+                hasattr(self, "keep_user_data_dir")
+                and hasattr(self, "user_data_dir")
+                and not self.keep_user_data_dir
+            ):
+                for _ in range(5):
+                    try:
+                        shutil.rmtree(self.user_data_dir, ignore_errors=False)
+                    except FileNotFoundError:
+                        pass
+                    except (RuntimeError, OSError, PermissionError) as e:
+                        logger.debug(
+                            "When removing the temp profile, a %s occured: %s\nretrying..."
+                            % (e.__class__.__name__, e)
+                        )
+                    else:
+                        logger.debug("successfully removed %s" % self.user_data_dir)
+                        break
+                    time.sleep(0.1)
+        finally:
+            self.patcher = None
 
     def __getattribute__(self, item):
         if not super().__getattribute__("debug"):
@@ -781,22 +808,46 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         return object.__dir__(self)
 
     def __del__(self):
-        try:
-            self.service.process.kill()
-        except:  # noqa
-            pass
         self.quit()
 
     @classmethod
-    def _ensure_close(cls, self):
+    def _ensure_close(cls, execpath_pid):
+        logger.debug("execpath_pid = %s" % execpath_pid)
+
+        path, pid = execpath_pid.rsplit("_", 1)
+        path, pid = str(path), int(pid)
         # needs to be a classmethod so finalize can find the reference
         logger.info("ensuring close")
-        if (
-            hasattr(self, "service")
-            and hasattr(self.service, "process")
-            and hasattr(self.service.process, "kill")
-        ):
-            self.service.process.kill()
+        for _ in [2, 15, 9]:
+            try:
+                os.kill(pid, _)
+            except (OSError, PermissionError):
+                logger.debug(
+                    "ensure_close, could not kill browser pid %d using signal %d"
+                    % (pid, _)
+                )
+                time.sleep(0.1)
+            try:
+                os.unlink(path)
+            except (OSError, PermissionError) as e:
+                logger.debug(
+                    "while trying to remove %s, we run into a exception: %s" % (path, e)
+                )
+                time.sleep(0.1)
+                continue
+            except FileNotFoundError:
+                logger.debug(
+                    "while trying to remove %s, the file appears to be deleted already"
+                    % path
+                )
+                break
+
+        # self.service.process.kill()
+        # if (
+        #     hasattr(self, "service")
+        #     and hasattr(self.service, "process")
+        #     and hasattr(self.service.process, "kill")
+        # ):
 
 
 def find_chrome_executable():
