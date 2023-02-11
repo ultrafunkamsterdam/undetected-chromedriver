@@ -225,16 +225,16 @@ class Patcher(object):
                         len(target_bytes), b" "
                     )
                 )
-            new_content = content.replace(target_bytes, new_target_bytes)
-            if new_content == content:
-                logger.warning(
-                    "something went wrong patching the driver binary. could not find injection code block"
-                )
-            else:
-                logger.debug(
-                    "found block:\n%s\nreplacing with:\n%s"
-                    % (target_bytes, new_target_bytes)
-                )
+                new_content = content.replace(target_bytes, new_target_bytes)
+                if new_content == content:
+                    logger.warning(
+                        "something went wrong patching the driver binary. could not find injection code block"
+                    )
+                else:
+                    logger.debug(
+                        "found block:\n%s\nreplacing with:\n%s"
+                        % (target_bytes, new_target_bytes)
+                    )
                 fh.seek(0)
                 fh.write(new_content)
         logger.debug(
