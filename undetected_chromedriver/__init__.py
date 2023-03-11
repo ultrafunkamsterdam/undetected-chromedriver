@@ -427,6 +427,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             )
             self.browser_pid = browser.pid
 
+        if keep_alive:
+            service_args.append('--keep_alive')
+
         if service_creationflags:
             service = selenium.webdriver.common.service.Service(
                 self.patcher.executable_path, port, service_args, service_log_path
@@ -436,16 +439,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     setattr(service, attr_name, service_creationflags)
                     break
         else:
-            service = None
+            service = selenium.webdriver.chrome.service.Service(
+                self.patcher.executable_path
+            )
 
         super(Chrome, self).__init__(
-            executable_path=self.patcher.executable_path,
             port=port,
             options=options,
             service_args=service_args,
-            desired_capabilities=desired_capabilities,
             service_log_path=service_log_path,
-            keep_alive=keep_alive,
             service=service,  # needed or the service will be re-created
         )
 
