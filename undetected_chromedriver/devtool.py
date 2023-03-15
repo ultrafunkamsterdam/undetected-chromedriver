@@ -12,6 +12,8 @@ from typing import Callable
 from typing import List
 from typing import Optional
 
+logger = logging.getLogger("uc")
+logger.setLevel(logging.getLogger().getEffectiveLevel())
 
 class Structure(dict):
     """
@@ -162,7 +164,13 @@ def test():
                 "func called! %s  (args: %s, kwargs: %s)" % (fn.__name__, args, kwargs)
             )
             while driver.service.process and driver.service.process.poll() is not None:
-                time.sleep(0.1)
+                try:
+                    time.sleep(0.1)
+                except (RuntimeError, OSError, PermissionError) as e:
+                    logger.debug(
+                        "When trying 'time.sleep(0.1)', a %s occured: %s\nretrying..."
+                        % (e.__class__.__name__, e)
+                    )
             res = fn(*args, **kwargs)
             print("func completed! (result: %s)" % res)
             return res

@@ -740,7 +740,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 else:
                     logger.debug("successfully removed %s" % self.user_data_dir)
                     break
-                time.sleep(0.1)
+                try:
+                    time.sleep(0.1)
+                except (RuntimeError, OSError, PermissionError) as e:
+                    logger.debug(
+                        "When trying 'time.sleep(0.1)', a %s occured: %s\nretrying..."
+                        % (e.__class__.__name__, e)
+                    )
 
         # dereference patcher, so patcher can start cleaning up as well.
         # this must come last, otherwise it will throw 'in use' errors
