@@ -268,8 +268,11 @@ class Patcher(object):
                     os.unlink(self.executable_path)
                     logger.debug("successfully unlinked %s" % self.executable_path)
                     break
-                except (OSError, RuntimeError, PermissionError):
-                    time.sleep(0.1)
+                except (OSError, RuntimeError, PermissionError) as e:
+                    logger.debug(
+                        "When trying 'time.sleep(0.1)', a %s occured: %s\nretrying..."
+                        % (e.__class__.__name__, e)
+                    )
                     continue
                 except FileNotFoundError:
                     break
