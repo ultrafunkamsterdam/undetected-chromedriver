@@ -748,7 +748,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             try:
                 self.clear_cdp_listeners()
             except:
-                   pass
+                pass
         
 
         try:
