@@ -745,7 +745,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def quit(self):
         if self.enable_cdp_events:
-            self.clear_cdp_listeners()
+            try:
+                self.clear_cdp_listeners()
+            except:
+                   pass
         
 
         try:
