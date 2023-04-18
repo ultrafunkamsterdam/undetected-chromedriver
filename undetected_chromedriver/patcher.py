@@ -65,26 +65,25 @@ class Patcher(object):
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path, exist_ok=True)
 
-        if not executable_path:
+        self.zip_path = os.path.join(self.data_path, prefix)
+
+        if executable_path:
+            if not IS_POSIX and not executable_path[-4:] == ".exe":
+                executable_path += ".exe"
+            self._custom_exe_path = True
+            self.executable_path = executable_path
+        else:
             self.executable_path = os.path.join(
                 self.data_path, "_".join([prefix, self.exe_name])
             )
 
-        if not IS_POSIX:
-            if executable_path:
-                if not executable_path[-4:] == ".exe":
-                    executable_path += ".exe"
-
-        self.zip_path = os.path.join(self.data_path, prefix)
-
+        # I do not understard
+        '''
         if not executable_path:
             self.executable_path = os.path.abspath(
                 os.path.join(".", self.executable_path)
             )
-
-        if executable_path:
-            self._custom_exe_path = True
-            self.executable_path = executable_path
+        '''
         self.version_main = version_main
         self.version_full = None
 
