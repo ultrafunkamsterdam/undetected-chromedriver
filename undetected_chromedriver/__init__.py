@@ -308,6 +308,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                         "window-size found in user argument %s => %s" % (arg, m[1])
                     )
                     keep_window_size = True
+                except IndexError:
+                    keep_window_size = False
 
             if "user-data-dir" in arg:
                 m = re.search("(?:--)?user-data-dir(?:[ =])?(.*)", arg)
