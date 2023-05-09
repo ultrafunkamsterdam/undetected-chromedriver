@@ -240,7 +240,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             set to true when you are using multithreads/multiprocessing
             ensures not all processes are trying to modify a binary which is in use by another.
             for this to work. YOU MUST HAVE AT LEAST 1 UNDETECTED_CHROMEDRIVER BINARY IN YOUR ROAMING DATA FOLDER.
-            this requirement can be done by just running this program "normal" and close/kill it.
+            this requirement can be easily satisfied, by just running this program "normal" and close/kill it.
 
 
         """
