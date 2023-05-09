@@ -17,7 +17,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 from __future__ import annotations
 
 
-__version__ = "3.4.6"
+__version__ = "3.4.7"
 
 import json
 import logging
@@ -123,6 +123,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         use_subprocess=True,
         debug=False,
         no_sandbox=True,
+        user_multi_procs: bool = False,
         **kw,
     ):
         """
@@ -234,6 +235,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
              uses the --no-sandbox option, and additionally does suppress the "unsecure option" status bar
              this option has a default of True since many people seem to run this as root (....) , and chrome does not start
              when running as root without using --no-sandbox flag.
+
+        user_multi_procs:
+            set to true when you are using multithreads/multiprocessing
+            ensures not all processes are trying to modify a binary which is in use by another.
+            for this to work. YOU MUST HAVE AT LEAST 1 UNDETECTED_CHROMEDRIVER BINARY IN YOUR ROAMING DATA FOLDER.
+            this requirement can be done by just running this program "normal" and close/kill it.
+
+
         """
 
         finalize(self, self._ensure_close, self)
@@ -242,8 +251,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             executable_path=driver_executable_path,
             force=patcher_force_close,
             version_main=version_main,
+            user_multi_procs=user_multi_procs,
         )
+        # self.patcher.auto(user_multiprocess = user_multi_num_procs)
         self.patcher.auto()
+
         # self.patcher = patcher
         if not options:
             options = ChromeOptions()
