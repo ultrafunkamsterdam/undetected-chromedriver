@@ -16,7 +16,6 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 from __future__ import annotations
 
-
 __version__ = "3.4.7"
 
 import json
@@ -45,7 +44,6 @@ from .patcher import Patcher
 from .reactor import Reactor
 from .webelement import UCWebElement
 from .webelement import WebElement
-
 
 __all__ = (
     "Chrome",
@@ -102,29 +100,29 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     debug = False
 
     def __init__(
-        self,
-        options=None,
-        user_data_dir=None,
-        driver_executable_path=None,
-        browser_executable_path=None,
-        port=0,
-        enable_cdp_events=False,
-        service_args=None,
-        service_creationflags=None,
-        desired_capabilities=None,
-        advanced_elements=False,
-        service_log_path=None,
-        keep_alive=True,
-        log_level=0,
-        headless=False,
-        version_main=None,
-        patcher_force_close=False,
-        suppress_welcome=True,
-        use_subprocess=True,
-        debug=False,
-        no_sandbox=True,
-        user_multi_procs: bool = False,
-        **kw,
+            self,
+            options=None,
+            user_data_dir=None,
+            driver_executable_path=None,
+            browser_executable_path=None,
+            port=0,
+            enable_cdp_events=False,
+            service_args=None,
+            service_creationflags=None,
+            desired_capabilities=None,
+            advanced_elements=False,
+            service_log_path=None,
+            keep_alive=True,
+            log_level=0,
+            headless=False,
+            version_main=None,
+            patcher_force_close=False,
+            suppress_welcome=True,
+            use_subprocess=True,
+            debug=False,
+            no_sandbox=True,
+            user_multi_procs: bool = False,
+            **kw,
     ):
         """
         Creates a new instance of the chrome driver.
@@ -331,7 +329,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             # check if an old uc.ChromeOptions is used, and extract the user data dir
 
             if hasattr(options, "user_data_dir") and getattr(
-                options, "user_data_dir", None
+                    options, "user_data_dir", None
             ):
                 import warnings
 
@@ -369,7 +367,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if not options.binary_location:
             options.binary_location = (
-                browser_executable_path or find_chrome_executable()
+                    browser_executable_path or find_chrome_executable()
             )
 
         self._delay = 3
@@ -405,9 +403,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # fix exit_type flag to prevent tab-restore nag
         try:
             with open(
-                os.path.join(user_data_dir, "Default/Preferences"),
-                encoding="latin1",
-                mode="r+",
+                    os.path.join(user_data_dir, "Default/Preferences"),
+                    encoding="latin1",
+                    mode="r+",
             ) as fs:
                 config = json.load(fs)
                 if config["profile"]["exit_type"] is not None:
@@ -449,17 +447,20 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     break
         else:
             service = None
-
-        super(Chrome, self).__init__(
-            executable_path=self.patcher.executable_path,
-            port=port,
-            options=options,
-            service_args=service_args,
-            desired_capabilities=desired_capabilities,
-            service_log_path=service_log_path,
-            keep_alive=keep_alive,
-            service=service,  # needed or the service will be re-created
-        )
+        try:
+            super(Chrome, self).__init__(
+                executable_path=self.patcher.executable_path,
+                port=port,
+                options=options,
+                service_args=service_args,
+                desired_capabilities=desired_capabilities,
+                service_log_path=service_log_path,
+                keep_alive=keep_alive,
+                service=service,  # needed or the service will be re-created
+            )
+        except Exception:
+            self.quit()
+            raise
 
         self.reactor = None
 
@@ -658,9 +659,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     def add_cdp_listener(self, event_name, callback):
         if (
-            self.reactor
-            and self.reactor is not None
-            and isinstance(self.reactor, Reactor)
+                self.reactor
+                and self.reactor is not None
+                and isinstance(self.reactor, Reactor)
         ):
             self.reactor.add_event_handler(event_name, callback)
             return self.reactor.handlers
@@ -735,9 +736,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         except Exception as e:  # noqa
             logger.debug(e, exc_info=True)
         if (
-            hasattr(self, "keep_user_data_dir")
-            and hasattr(self, "user_data_dir")
-            and not self.keep_user_data_dir
+                hasattr(self, "keep_user_data_dir")
+                and hasattr(self, "user_data_dir")
+                and not self.keep_user_data_dir
         ):
             for _ in range(5):
                 try:
@@ -766,7 +767,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
             original = super().__getattribute__(item)
             if inspect.ismethod(original) and not inspect.isclass(original):
-
                 def newfunc(*args, **kwargs):
                     logger.debug(
                         "calling %s with args %s and kwargs %s\n"
@@ -804,9 +804,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # needs to be a classmethod so finalize can find the reference
         logger.info("ensuring close")
         if (
-            hasattr(self, "service")
-            and hasattr(self.service, "process")
-            and hasattr(self.service.process, "kill")
+                hasattr(self, "service")
+                and hasattr(self.service, "process")
+                and hasattr(self.service.process, "kill")
         ):
             self.service.process.kill()
 
@@ -825,11 +825,11 @@ def find_chrome_executable():
     if IS_POSIX:
         for item in os.environ.get("PATH").split(os.pathsep):
             for subitem in (
-                "google-chrome",
-                "chromium",
-                "chromium-browser",
-                "chrome",
-                "google-chrome-stable",
+                    "google-chrome",
+                    "chromium",
+                    "chromium-browser",
+                    "chrome",
+                    "google-chrome-stable",
             ):
                 candidates.add(os.sep.join((item, subitem)))
         if "darwin" in sys.platform:
@@ -841,14 +841,14 @@ def find_chrome_executable():
             )
     else:
         for item in map(
-            os.environ.get,
-            ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA", "PROGRAMW6432"),
+                os.environ.get,
+                ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA", "PROGRAMW6432"),
         ):
             if item is not None:
                 for subitem in (
-                    "Google/Chrome/Application",
-                    "Google/Chrome Beta/Application",
-                    "Google/Chrome Canary/Application",
+                        "Google/Chrome/Application",
+                        "Google/Chrome Beta/Application",
+                        "Google/Chrome Canary/Application",
                 ):
                     candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
