@@ -22,7 +22,7 @@ jobs:
     - name: Setup Chrome
       uses: browser-actions/setup-chrome@v1.2.0
       with: 
-        chrome-version: 113
+        chrome-version: 113.0.5672.63
     - name: set chrome in path
       run: | 
         echo "/opt/hostedtoolcache/chromium/latest/x64/chrome" >> $GITHUB_PATH
