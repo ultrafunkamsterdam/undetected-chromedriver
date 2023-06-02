@@ -21,7 +21,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Setup Chrome
+    # You may pin to the exact commit or the version.
+    # uses: browser-actions/setup-chrome@c485fa3bab6be59dce18dbc18ef6ab7cbc8ff5f1
       uses: browser-actions/setup-chrome@v1.2.0
+      # The Google Chrome/Chromium version to install and use.
+        
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
