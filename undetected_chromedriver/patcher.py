@@ -39,13 +39,14 @@ class Patcher(object):
         d = "~/.local/share/undetected_chromedriver"
     elif _platform.endswith("darwin"):
         if 'arm' in platform.processor():
-            zip_name %= "mac_arm64
+            zip_name %= "mac_arm64"
         else:
             zip_name %= "mac64"
         exe_name %= ""
         d = "~/Library/Application Support/undetected_chromedriver"   
     else:
-        d = "~/.undetected_chromedriver"
+        raise Exception("Could not detect operating system or architecture. possibly it is not supported")
+  
     if "LAMBDA_TASK_ROOT" in os.environ:
         d = "/tmp/undetected_chromedriver"
     data_path = os.path.abspath(os.path.expanduser(d))
