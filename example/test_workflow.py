@@ -10,7 +10,7 @@ import undetected_chromedriver as uc
 from pathlib import Path
 
 
-logging.basicConfig(level=20)
+logging.basicConfig(level=10)
 logger = logging.getLogger('test')
 
 def main():
@@ -28,7 +28,11 @@ def main():
                 os.environ['PATH'] = os.pathsep.join(path_list)
                 break
 
+    
+
     driver = uc.Chrome(headless=True)
+    logging.getLogger().setLevel(20)
+
     driver.get('https://www.nowsecure.nl')
 
     print(driver.current_url)
