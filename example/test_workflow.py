@@ -24,11 +24,11 @@ def main():
         if item.is_dir():
             if 'chrome-' in item.name:
                 logger.info('adding %s to PATH' % str(item))
-                logger.info('current PATH:' % str(os.environ.get('PATH')))
+                logger.info('current PATH: %s' % str(os.environ.get('PATH')))
                 path_list = os.environ['PATH'].split(os.pathsep)
                 path_list.insert(0, str(item))
                 os.environ['PATH'] = os.pathsep.join(path_list)
-                logger.info('new PATH:' % str(os.environ.get('PATH')))
+                logger.info('new PATH %s:' % str(os.environ.get('PATH')))
                 break
 
     
