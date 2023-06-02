@@ -10,7 +10,7 @@ import undetected_chromedriver as uc
 from pathlib import Path
 
 
-logging.basicConfig(level=10)
+logging.basicConfig(level=20)
 logger = logging.getLogger('test')
 
 def main():
@@ -42,6 +42,7 @@ def main():
         WebDriverWait(driver,10).until(EC.text_to_be_present_in_element(("css selector", "main h1"), "OH YEAH, you passed!"))
     except TimeoutError:
         logging.getLogger().setLevel(20)
+        driver.reconnect()
         print(driver.current_url)
         logger.info('trying to save a screenshot via imgur')
     #    driver.reconnect()    
