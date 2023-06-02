@@ -733,7 +733,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             os.kill(self.browser_pid, 15)
             logger.debug("gracefully closed browser")
         except Exception as e:  # noqa
-            logger.debug(e, exc_info=True)
+            pass
         if (
             hasattr(self, "keep_user_data_dir")
             and hasattr(self, "user_data_dir")
