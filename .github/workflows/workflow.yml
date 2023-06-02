@@ -34,4 +34,4 @@ jobs:
         if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install -U . ; fi
     - name: run example
       run: |
-        python example/example.py
+        python example/test_workflow.py
