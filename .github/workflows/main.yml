@@ -10,11 +10,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
     steps:
+    - name: Setup Chrome
+      uses: browser-actions/setup-chrome@v1.2.0
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
