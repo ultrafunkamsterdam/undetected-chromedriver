@@ -215,8 +215,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         use_subprocess: bool, optional , default: True,
 
-            False (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
-                This fixes a LOT of issues, like multithreaded run, but mst importantly. shutting corectly after
+            True (the default) makes sure Chrome will get it's own process (so no subprocess of chromedriver.exe or python
+                This fixes a LOT of issues, like multithreaded run, but most importantly. shutting correctly after
                 program exits or using .quit()
                 you should be knowing what you're doing, and know how python works.
 
