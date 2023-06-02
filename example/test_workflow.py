@@ -2,29 +2,33 @@
 
 import time
 import logging
+import os
 from selenium.webdriver.support.wait import WebDriverWait
 import selenium.webdriver.support.expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 import undetected_chromedriver as uc 
+from pathlib import Path
+
 
 logging.basicConfig(level=10)
 logger = logging.getLogger('test')
 
 
 for k,v in os.environ.items():
-        logger.info("%s = %s" % (k,v))
-    tmp = Path('/tmp').resolve()
+    logger.info("%s = %s" % (k,v))
+   
+tmp = Path('/tmp').resolve()
     
-    for item in tmp.rglob('**'):
+for item in tmp.rglob('**'):
         
-        print(item)
+    print(item)
         
-        if item.is_dir():
-            if 'chrome-' in item.name:
-                path_list = os.environ['PATH'].split(os.pathsep)
-                path_list.insert(0, str(item))
-                os.environ['PATH'] = os.pathsep.join(path_list)
-                break
+    if item.is_dir():
+        if 'chrome-' in item.name:
+            path_list = os.environ['PATH'].split(os.pathsep)
+            path_list.insert(0, str(item))
+            os.environ['PATH'] = os.pathsep.join(path_list)
+            break
 
 driver = uc.Chrome(headless=True)
 driver.get('https://www.nowsecure.nl')
