@@ -12,6 +12,8 @@ import undetected_chromedriver as uc
 # due to the randomneess of the chrome install path on the runner when running action, i have to find it manufally
 tmp = Path('/tmp')
 for item in tmp.glob('chrome*'):
+    print(item)
+    time.sleep(1)
     if item.is_dir():
         path_list = os.environ['PATH'].split(os.pathsep)
         path_list.insert(0, str(item))
