@@ -16,14 +16,18 @@ def main():
     
     for k,v in os.environ.items():
         logger.info("%s = %s" % (k,v))
-    tmp = Path('/tmp')
+    tmp = Path('/tmp').resolve()
     
-    for item in tmp.glob('chrome*'):
+    for item in tmp.rglob('**'):
+        
         print(item)
+        
         if item.is_dir():
-            path_list = os.environ['PATH'].split(os.pathsep)
-            path_list.insert(0, str(item))
-            os.environ['PATH'] = os.pathsep.join(path_list)
+            if 'chrome-' in item.name:
+                path_list = os.environ['PATH'].split(os.pathsep)
+                path_list.insert(0, str(item))
+                os.environ['PATH'] = os.pathsep.join(path_list)
+                break
     time.sleep(5)
     driver = uc.Chrome(headless=True)
     driver.get("https://nowsecure.nl")
