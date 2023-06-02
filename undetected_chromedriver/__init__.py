@@ -852,7 +852,7 @@ def find_chrome_executable():
                 ):
                     candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
-        logger.debug('checking if %s exists and is executable' % condidate)
+        logger.debug('checking if %s exists and is executable' % candidate)
         if os.path.exists(candidate) and os.access(candidate, os.X_OK):
             logger.debug('found! using %s' % candidate)
             return os.path.normpath(candidate)
