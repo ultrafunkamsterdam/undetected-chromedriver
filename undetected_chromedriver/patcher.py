@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 # this module is part of undetected_chromedriver
-
-from distutils.version import LooseVersion
 import io
 import logging
 import os
@@ -12,6 +10,8 @@ import shutil
 import string
 import sys
 import time
+import platform
+from distutils.version import LooseVersion
 from urllib.request import urlopen
 from urllib.request import urlretrieve
 import zipfile
@@ -27,28 +27,27 @@ class Patcher(object):
     url_repo = "https://chromedriver.storage.googleapis.com"
     zip_name = "chromedriver_%s.zip"
     exe_name = "chromedriver%s"
-
-    platform = sys.platform
-    if platform.endswith("win32"):
+    
+    _platform = sys.platform
+    if _platform.endswith("win32"):
         zip_name %= "win32"
         exe_name %= ".exe"
-    if platform.endswith(("linux", "linux2")):
+        d = "~/appdata/roaming/undetected_chromedriver"
+    elif _platform.endswith(("linux", "linux2")):
         zip_name %= "linux64"
         exe_name %= ""
-    if platform.endswith("darwin"):
-        zip_name %= "mac64"
-        exe_name %= ""
-
-    if platform.endswith("win32"):
-        d = "~/appdata/roaming/undetected_chromedriver"
-    elif "LAMBDA_TASK_ROOT" in os.environ:
-        d = "/tmp/undetected_chromedriver"
-    elif platform.startswith(("linux", "linux2")):
         d = "~/.local/share/undetected_chromedriver"
-    elif platform.endswith("darwin"):
-        d = "~/Library/Application Support/undetected_chromedriver"
+    elif _platform.endswith("darwin"):
+        if 'arm' in platform.processor():
+            zip_name %= "mac_arm64
+        else:
+            zip_name %= "mac64"
+        exe_name %= ""
+        d = "~/Library/Application Support/undetected_chromedriver"   
     else:
         d = "~/.undetected_chromedriver"
+    if "LAMBDA_TASK_ROOT" in os.environ:
+        d = "/tmp/undetected_chromedriver"
     data_path = os.path.abspath(os.path.expanduser(d))
 
     def __init__(
@@ -71,14 +70,17 @@ class Patcher(object):
         self._custom_exe_path = False
         prefix = "undetected"
         self.user_multi_procs = user_multi_procs
-
-        if not os.path.exists(self.data_path):
-            os.makedirs(self.data_path, exist_ok=True)
-
+        
         if not executable_path:
+            if not os.path.exists(self.data_path):
+                os.makedirs(self.data_path, exist_ok=True)
             self.executable_path = os.path.join(
                 self.data_path, "_".join([prefix, self.exe_name])
             )
+        if not executable_path:
+            if not self.user_multi_procs:
+                self.executable_path = os.path.abspath(
+                    os.path.join(".", self.executable_path))
 
         if not IS_POSIX:
             if executable_path:
@@ -86,13 +88,6 @@ class Patcher(object):
                     executable_path += ".exe"
 
         self.zip_path = os.path.join(self.data_path, prefix)
-
-        if not executable_path:
-            if not self.user_multi_procs:
-                self.executable_path = os.path.abspath(
-                    os.path.join(".", self.executable_path)
-                )
-
         if executable_path:
             self._custom_exe_path = True
             self.executable_path = executable_path
@@ -100,7 +95,7 @@ class Patcher(object):
         self.version_main = version_main
         self.version_full = None
 
-    def auto(self, executable_path=None, force=False, version_main=None, _=None):
+    def auto(self, executable_path=None, force=False, version_main:int=0, _=None):
         """
 
         Args:
@@ -111,10 +106,13 @@ class Patcher(object):
         Returns:
 
         """
-        # if self.user_multi_procs and \
-        #         self.user_multi_procs != -1:
-        #     # -1 being a skip value used later in this block
-        #
+        if version_main:
+            self.version_main = version_main
+        
+        # double check
+        if self.version_main is None:
+            self.version_main = 0
+       
         p = pathlib.Path(self.data_path)
         with Lock():
             files = list(p.rglob("*chromedriver*?"))
@@ -126,23 +124,15 @@ class Patcher(object):
         if executable_path:
             self.executable_path = executable_path
             self._custom_exe_path = True
-
-        if self._custom_exe_path:
             ispatched = self.is_binary_patched(self.executable_path)
             if not ispatched:
                 return self.patch_exe()
             else:
                 return
-
-        if version_main:
-            self.version_main = version_main
-        if force is True:
-            self.force = force
-
         try:
             os.unlink(self.executable_path)
         except PermissionError:
-            if self.force:
+            if force:
                 self.force_kill_instances(self.executable_path)
                 return self.auto(force=not self.force)
             try:
@@ -154,9 +144,9 @@ class Patcher(object):
             # return False
         except FileNotFoundError:
             pass
-
-        release = self.fetch_release_number()
-        self.version_main = release.version[0]
+        if not self.version_main:
+            release = self.fetch_release_number()
+            self.version_main = release.version[0]
         self.version_full = release
         self.unzip_package(self.fetch_package())
         return self.patch()
