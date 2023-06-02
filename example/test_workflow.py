@@ -26,7 +26,7 @@ def main(args=None):
             "we could be sleeping %d seconds here, but we don't" % n
         )
 
-    driver = uc.Chrome(headless=True)
+    driver = uc.Chrome(headless=True, version_main=113)
     driver.get("https://www.google.com")
 
     # accept the terms
