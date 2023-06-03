@@ -49,7 +49,7 @@ def main():
     print(driver.current_url)
     try:
         WebDriverWait(driver,10).until(EC.text_to_be_present_in_element(("css selector", "main h1"), "OH YEAH, you passed!"))
-    except TimeoutError:
+    except TimeoutException:
         logging.getLogger().setLevel(20)
         driver.reconnect()
         print(driver.current_url)
