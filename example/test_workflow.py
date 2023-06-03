@@ -95,12 +95,12 @@ def main():
     logger.info('current page source:\n%s\n' % driver.page_source)
     
     #logger.info('trying to save a screenshot via imgur')
-    
+   
     driver.save_screenshot('/home/runner/work/_temp/nowsecure.png')
     
     #driver.get('https://imgur.com/upload')
     
-    driver.find_element('css selector', 'input').send_keys('/home/runner/work/_temp/nowsecure.png')
+    #driver.find_element('css selector', 'input').send_keys('/home/runner/work/_temp/nowsecure.png')
     
     #time.sleep(1)
     #logger.info('current url %s' % driver.current_url)
