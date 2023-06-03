@@ -49,8 +49,15 @@ def main():
     #  test really starts here
     #3##
     
+    
     driver = uc.Chrome(headless=True, browser_executable_path=browser_executable_path)
     logging.getLogger().setLevel(10)
+    
+    driver.get('chrome://version')
+    
+    driver.save_screenshot('/home/runner/work/_temp/versioninfo.png')
+    
+    
     driver.get('https://www.nowsecure.nl')
     
     logger.info('current url %s' % driver.current_url)
