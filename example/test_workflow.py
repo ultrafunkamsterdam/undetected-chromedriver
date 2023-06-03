@@ -13,9 +13,6 @@ from pathlib import Path
 logging.basicConfig(level=10)
 logger = logging.getLogger('test')
 
-
-
-
 def main():
 
     ####
@@ -57,6 +54,22 @@ def main():
     
     driver.save_screenshot('/home/runner/work/_temp/versioninfo.png')
     
+    driver.get('chrome://settings/help')
+    driver.save_screenshot('/home/runner/work/_temp/helpinfo.png')
+    
+    driver.get('https://www.google.com')
+    driver.save_screenshot('/home/runner/work/_temp/google.com.png')
+    
+    driver.get('https://bot.incolumitas.com/#botChallenge')
+    
+    pdfdata = driver.execute_cdp_cmd('Page.printToPDF', {})
+    if pdfdata:
+        if 'data' in pdfdata:
+            data = pdfdata['data']
+            import base64
+            buffer = base64.b64decode(data)
+            with open('/home/runner/work/_temp/report.pdf', 'w+b') as f:
+                f.write(buffer)
     
     driver.get('https://www.nowsecure.nl')
     
@@ -81,19 +94,19 @@ def main():
    
     logger.info('current page source:\n%s\n' % driver.page_source)
     
-    logger.info('trying to save a screenshot via imgur')
+    #logger.info('trying to save a screenshot via imgur')
     
-    driver.save_screenshot('/home/runner/work/_temp/screenshot.png')
+    driver.save_screenshot('/home/runner/work/_temp/nowsecure.png')
     
-    driver.get('https://imgur.com/upload')
+    #driver.get('https://imgur.com/upload')
     
-    driver.find_element('css selector', 'input').send_keys('/home/runner/work/_temp/screenshot.png')
+    driver.find_element('css selector', 'input').send_keys('/home/runner/work/_temp/nowsecure.png')
     
-    time.sleep(1)
-    logger.info('current url %s' % driver.current_url)
-    time.sleep(1)
-    logger.info(f'A SCREENSHOT IS SAVED ON {driver.current_url}  <<< if this ends onlywith /upload than it failed. after all we are running from a datacenter no human being would ever surf the internet from ')
-    time.sleep(5)
+    #time.sleep(1)
+    #logger.info('current url %s' % driver.current_url)
+    #time.sleep(1)
+    #logger.info(f'A SCREENSHOT IS SAVED ON {driver.current_url}  <<< if this ends onlywith /upload than it failed. after all we are running from a datacenter no human being would ever surf the internet from ')
+    #time.sleep(5)
     
     driver.quit()
     
