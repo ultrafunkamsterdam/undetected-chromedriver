@@ -55,11 +55,12 @@ def main():
         print(driver.current_url)
         logger.info('trying to save a screenshot via imgur')
     #    driver.reconnect()    
-        driver.save_screenshot('/tmp/screenshot.jpg')
+        driver.save_screenshot('/tmp/screenshot.png')
         driver.get('https://imgur.com/upload')
+        
         driver.find_element('css selector', 'input').send_keys('/tmp/screenshot.jpg')
-
-        time.sleep(2)
+        
+        time.sleep(5)
         logger.info('A SCREENSHOT IS SAVED ON %s' % driver.current_url)
         time.sleep(5)
     driver.quit()
