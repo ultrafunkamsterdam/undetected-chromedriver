@@ -23,17 +23,19 @@ def main():
         
         if item.is_dir():
             if 'chrome-' in item.name:
+                
                 logger.info('adding %s to PATH' % str(item))
                 logger.info('current PATH: %s' % str(os.environ.get('PATH')))
                 path_list = os.environ['PATH'].split(os.pathsep)
                 path_list.insert(0, str(item))
                 os.environ['PATH'] = os.pathsep.join(path_list)
                 logger.info('new PATH %s:' % str(os.environ.get('PATH')))
+                browser_executable_path = str(item / 'chrome')
                 break
 
     
 
-    driver = uc.Chrome(headless=True)
+    driver = uc.Chrome(headless=True, browser_executable_path=browser_executable_path)
     logging.getLogger().setLevel(20)
 
     driver.get('https://www.nowsecure.nl')
