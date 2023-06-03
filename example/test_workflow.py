@@ -50,29 +50,32 @@ def main():
     #3##
     
     driver = uc.Chrome(headless=True, browser_executable_path=browser_executable_path)
-    logging.getLogger().setLevel(20)
+    logging.getLogger().setLevel(10)
     driver.get('https://www.nowsecure.nl')
     
     logger.info('current url %s' % driver.current_url)
     
     try:
-        WebDriverWait(driver,10).until(EC.title_contains('moment'))
+        WebDriverWait(driver,15).until(EC.title_contains('moment'))
     except TimeoutException:
         pass
     
+    logger.info('current page source:\n%s' % driver.page_source)
     
     logger.info('current url %s' % driver.current_url)
     
     try:
-        WebDriverWait(driver,10).until(EC.title_contains('nowSecure'))
-    except TimeoutException:
-        logging.getLogger().setLevel(20)
+        WebDriverWait(driver,15).until(EC.title_contains('nowSecure'))
+        logger.info('PASSED CLOUDFLARE!')
+        
+    except TimeoutException:    
+        logger.info('timeout')
         print(driver.current_url)
-    else:
-        logger.info( "PASSED CLOUDFLARE! ")
+        
    
+    logger.info('current page source:\n%s' % driver.page_source)
 
-    
+    logging.getLogger().setLevel(20)
     logger.info('trying to save a screenshot via imgur')
     #    driver.reconnect()    
     driver.save_screenshot('/tmp/screenshot.png')
