@@ -115,13 +115,14 @@ class Patcher(object):
         #         self.user_multi_procs != -1:
         #     # -1 being a skip value used later in this block
         #
-        p = pathlib.Path(self.data_path)
-        with Lock():
-            files = list(p.rglob("*chromedriver*?"))
-            for file in files:
-                if self.is_binary_patched(file):
-                    self.executable_path = str(file)
-                    return True
+        if not self._custom_exe_path:
+            p = pathlib.Path(self.data_path)
+            with Lock():
+                files = list(p.rglob("*chromedriver*?"))
+                for file in files:
+                    if self.is_binary_patched(file):
+                        self.executable_path = str(file)
+                        return True
 
         if executable_path:
             self.executable_path = executable_path

@@ -442,7 +442,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.browser_pid = browser.pid
 
         if service_creationflags:
-            service = selenium.webdriver.common.service.Service(
+            service = selenium.webdriver.chrome.service.Service(
                 self.patcher.executable_path, port, service_args, service_log_path
             )
             for attr_name in ("creationflags", "creation_flags"):
