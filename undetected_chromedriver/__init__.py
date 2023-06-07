@@ -17,7 +17,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 from __future__ import annotations
 
 
-__version__ = "3.4.6"
+__version__ = "3.4.7"
 
 import json
 import logging
@@ -123,6 +123,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         use_subprocess=True,
         debug=False,
         no_sandbox=True,
+        user_multi_procs: bool = False,
         **kw,
     ):
         """
@@ -234,6 +235,14 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
              uses the --no-sandbox option, and additionally does suppress the "unsecure option" status bar
              this option has a default of True since many people seem to run this as root (....) , and chrome does not start
              when running as root without using --no-sandbox flag.
+
+        user_multi_procs:
+            set to true when you are using multithreads/multiprocessing
+            ensures not all processes are trying to modify a binary which is in use by another.
+            for this to work. YOU MUST HAVE AT LEAST 1 UNDETECTED_CHROMEDRIVER BINARY IN YOUR ROAMING DATA FOLDER.
+            this requirement can be easily satisfied, by just running this program "normal" and close/kill it.
+
+
         """
 
         finalize(self, self._ensure_close, self)
@@ -242,8 +251,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             executable_path=driver_executable_path,
             force=patcher_force_close,
             version_main=version_main,
+            user_multi_procs=user_multi_procs,
         )
+        # self.patcher.auto(user_multiprocess = user_multi_num_procs)
         self.patcher.auto()
+
         # self.patcher = patcher
         if not options:
             options = ChromeOptions()
@@ -383,10 +395,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.arguments.extend(["--no-sandbox", "--test-type"])
 
         if headless or options.headless:
-            if self.patcher.version_main < 108:
-                options.add_argument("--headless=chrome")
-            elif self.patcher.version_main >= 108:
-                options.add_argument("--headless=new")
+            #workaround until a better checking is found
+            options.add_argument("--headless=new")
+            #if self.patcher.version_main < 108:
+            #    options.add_argument("--headless=chrome")
+            #elif self.patcher.version_main >= 108:
+            
         if not keep_window_size:
             options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
@@ -733,7 +747,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             os.kill(self.browser_pid, 15)
             logger.debug("gracefully closed browser")
         except Exception as e:  # noqa
-            logger.debug(e, exc_info=True)
+            pass
         if (
             hasattr(self, "keep_user_data_dir")
             and hasattr(self, "user_data_dir")
@@ -852,5 +866,7 @@ def find_chrome_executable():
                 ):
                     candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
+        logger.debug('checking if %s exists and is executable' % candidate)
         if os.path.exists(candidate) and os.access(candidate, os.X_OK):
+            logger.debug('found! using %s' % candidate)
             return os.path.normpath(candidate)

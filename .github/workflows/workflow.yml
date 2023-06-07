@@ -1,0 +1,51 @@
+
+
+name: Python package
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10","3.11"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Chrome
+      uses: browser-actions/setup-chrome@v1.2.0
+      with:
+        chrome-version: stable
+    - name: set chrome in path
+      run: | 
+        echo "/opt/hostedtoolcache/chromium/stable/x64" >> $GITHUB_PATH
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install package
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install -U . ; fi
+    - name: run example
+      run: |
+        python example/test_workflow.py
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        # Artifact name
+        name:  screenshots
+        # A file, directory or wildcard pattern that describes what to upload
+        path: /home/runner/work/_temp/*p*
+    
+    
+    
+
+
