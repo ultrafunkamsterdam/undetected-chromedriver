@@ -6,9 +6,10 @@ import json
 import os
 
 from selenium.webdriver.chromium.options import ChromiumOptions as _ChromiumOptions
+import selenium.webdriver.chromium.options
 
 
-class ChromeOptions(_ChromiumOptions):
+class ChromeOptions(selenium.webdriver.chromium.options.ChromiumOptions):
     _session = None
     _user_data_dir = None
 

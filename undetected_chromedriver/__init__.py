@@ -16,8 +16,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 from __future__ import annotations
 
-
-__version__ = "3.4.7"
+__version__ = "3.5.0"
 
 import json
 import logging
@@ -30,22 +29,20 @@ import tempfile
 import time
 from weakref import finalize
 
+import selenium.webdriver.chrome.options
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
-from selenium.webdriver.common.by import By
-import selenium.webdriver.common.service
-import selenium.webdriver.remote.command
-import selenium.webdriver.remote.webdriver
+import selenium.webdriver.chromium.service
+import selenium.webdriver.common.desired_capabilities
+import selenium.webdriver.common.utils
 
 from .cdp import CDP
 from .dprocess import start_detached
-from .options import ChromeOptions
 from .patcher import IS_POSIX
 from .patcher import Patcher
 from .reactor import Reactor
 from .webelement import UCWebElement
 from .webelement import WebElement
-
 
 __all__ = (
     "Chrome",
@@ -56,6 +53,7 @@ __all__ = (
     "find_chrome_executable",
 )
 
+from .options import ChromeOptions
 logger = logging.getLogger("uc")
 logger.setLevel(logging.getLogger().getEffectiveLevel())
 
@@ -80,7 +78,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         -stops the chromedriver service which runs in the background
         -starts the chromedriver service which runs in the background
         -recreate session
-
 
     start_session(capabilities=None, browser_profile=None)
 
@@ -107,13 +104,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         user_data_dir=None,
         driver_executable_path=None,
         browser_executable_path=None,
-        port=0,
         enable_cdp_events=False,
-        service_args=None,
-        service_creationflags=None,
         desired_capabilities=None,
         advanced_elements=False,
-        service_log_path=None,
         keep_alive=True,
         log_level=0,
         headless=False,
@@ -134,11 +127,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         Parameters
         ----------
 
-        options: ChromeOptions, optional, default: None - automatic useful defaults
+        _options: ChromiumOptions, optional, default: None - automatic useful defaults
             this takes an instance of ChromeOptions, mainly to customize browser behavior.
             anything other dan the default, for example extensions or startup options
             are not supported in case of failure, and can probably lowers your undetectability.
-
 
         user_data_dir: str , optional, default: None (creates temp profile)
             if user_data_dir is a path to a valid chrome profile directory, use it,
@@ -163,10 +155,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 driver.add_cdp_listener("Network.dataReceived", yourcallback)
                 # yourcallback is an callable which accepts exactly 1 dict as parameter
 
-
-        service_args: list of str, optional, default: None
-            arguments to pass to the driver service
-
         desired_capabilities: dict, optional, default: None - auto from config
             Dictionary object with non-browser specific capabilities only, such as "item" or "loggingPref".
 
@@ -181,10 +169,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             <WebElement(<a class="mobile-show-inline-block mc-update-infos init-ok" href="#" id="main-cat-switcher-mobile">)>
 
             note: when retrieving large amounts of elements ( example: find_elements_by_tag("*") ) and print them, it does take a little more time.
-
-
-        service_log_path: str, optional, default: None
-             path to log information from the driver.
 
         keep_alive: bool, optional, default: True
              Whether to configure ChromeRemoteConnection to use HTTP keep-alive.
@@ -242,10 +226,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             for this to work. YOU MUST HAVE AT LEAST 1 UNDETECTED_CHROMEDRIVER BINARY IN YOUR ROAMING DATA FOLDER.
             this requirement can be easily satisfied, by just running this program "normal" and close/kill it.
 
-
         """
 
-        finalize(self, self._ensure_close, self)
         self.debug = debug
         self.patcher = Patcher(
             executable_path=driver_executable_path,
@@ -253,55 +235,35 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             version_main=version_main,
             user_multi_procs=user_multi_procs,
         )
-        # self.patcher.auto(user_multiprocess = user_multi_num_procs)
         self.patcher.auto()
-
-        # self.patcher = patcher
         if not options:
-            options = ChromeOptions()
+            _options = ChromeOptions()
+        else:
+            _options = options
+
+        (debug_host, debug_port, keep_user_data_dir, language) = (
+            None,
+            None,
+            None,
+            None,
+        )
 
         try:
-            if hasattr(options, "_session") and options._session is not None:
+            if hasattr(_options, "_session") and _options._session is not None:
                 #  prevent reuse of options,
                 #  as it just appends arguments, not replace them
                 #  you'll get conflicts starting chrome
-                raise RuntimeError("you cannot reuse the ChromeOptions object")
+                raise RuntimeError("you cannot reuse the options object")
         except AttributeError:
             pass
 
-        options._session = self
+        _options._session = self
 
-        if not options.debugger_address:
-            debug_port = (
-                port
-                if port != 0
-                else selenium.webdriver.common.service.utils.free_port()
-            )
-            debug_host = "127.0.0.1"
-            options.debugger_address = "%s:%d" % (debug_host, debug_port)
-        else:
-            debug_host, debug_port = options.debugger_address.split(":")
-            debug_port = int(debug_port)
+        for arg in _options.arguments:
 
-        if enable_cdp_events:
-            options.set_capability(
-                "goog:loggingPrefs", {"performance": "ALL", "browser": "ALL"}
-            )
-
-        options.add_argument("--remote-debugging-host=%s" % debug_host)
-        options.add_argument("--remote-debugging-port=%s" % debug_port)
-
-        if user_data_dir:
-            options.add_argument("--user-data-dir=%s" % user_data_dir)
-
-        language, keep_user_data_dir = None, bool(user_data_dir)
-
-        # see if a custom user profile is specified in options
-        for arg in options.arguments:
-
-            if any([_ in arg for _ in ("--headless", "headless")]):
-                options.arguments.remove(arg)
-                options.headless = True
+            if "headless" in arg:
+                _options.arguments.remove(arg)
+                headless = True
 
             if "lang" in arg:
                 m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
@@ -311,96 +273,122 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                     logger.debug("will set the language to en-US,en;q=0.9")
                     language = "en-US,en;q=0.9"
 
-            if "user-data-dir" in arg:
-                m = re.search("(?:--)?user-data-dir(?:[ =])?(.*)", arg)
+            if "remote-debugging-host" in arg:
+                m = re.search("(?:--)?remote-debugging-host(?:[ =])?(.*)", arg)
+                try:
+                    debug_host = m[1]
+                except IndexError:
+                    raise ValueError(
+                        "you specified remote-debugging-host in your options object,"
+                        "but we cannot extract it. please check for typos"
+                    )
+
+            if "remote-debugging-port" in arg:
+                m = re.search("(?:--)?remote-debugging-port(?:[ =])?(.*)", arg)
+                try:
+                    debug_port = int(m[1])
+                except (TypeError, IndexError):
+                    raise ValueError(
+                        "you specified remote-debug-port in your options object,"
+                        "but we cannot extract it. please check for typos"
+                    )
+
+            if any([_ in arg for _ in ( "user-data-dir", "user_data_dir")]):
+                m = re.search("(?:--)?(?:user-data-dir|user_data_dir)(?:[ =])?(.*)", arg)
                 try:
                     user_data_dir = m[1]
+                    _options.arguments.remove(arg)
                     logger.debug(
                         "user-data-dir found in user argument %s => %s" % (arg, m[1])
                     )
                     keep_user_data_dir = True
-
                 except IndexError:
-                    logger.debug(
-                        "no user data dir could be extracted from supplied argument %s "
-                        % arg
+                    raise ValueError(
+                        "you specified user-data-dir in your options object,"
+                        "but we cannot extract it. please check for typos"
                     )
+        if hasattr(_options, "user_data_dir"):
+            if _options.user_data_dir:
+                user_data_dir = _options.user_data_dir
 
         if not user_data_dir:
-            # backward compatiblity
-            # check if an old uc.ChromeOptions is used, and extract the user data dir
+            user_data_dir = os.path.normpath(tempfile.mkdtemp())
+            keep_user_data_dir = False
+            _options.add_argument("--user-data-dir=%s" % user_data_dir)
+            logger.debug(
+                "using a temporary folder for the profile data: %s\n"
+                "it will be deleted automatically after use" % user_data_dir
+            )
+        else:
+            _options.add_argument("--user-data-dir=%s" % user_data_dir)
 
-            if hasattr(options, "user_data_dir") and getattr(
-                options, "user_data_dir", None
-            ):
-                import warnings
+        if not debug_port:
+            debug_port = selenium.webdriver.common.utils.free_port()
+            _options.add_argument("--remote-debugging-port=%s" % debug_port)
 
-                warnings.warn(
-                    "using ChromeOptions.user_data_dir might stop working in future versions."
-                    "use uc.Chrome(user_data_dir='/xyz/some/data') in case you need existing profile folder"
-                )
-                options.add_argument("--user-data-dir=%s" % options.user_data_dir)
-                keep_user_data_dir = True
-                logger.debug(
-                    "user_data_dir property found in options object: %s" % user_data_dir
-                )
-
-            else:
-                user_data_dir = os.path.normpath(tempfile.mkdtemp())
-                keep_user_data_dir = False
-                arg = "--user-data-dir=%s" % user_data_dir
-                options.add_argument(arg)
-                logger.debug(
-                    "created a temporary folder in which the user-data (profile) will be stored during this\n"
-                    "session, and added it to chrome startup arguments: %s" % arg
-                )
+        if not debug_host:
+            debug_host = "127.0.0.1"
+            _options.add_argument("--remote-debugging-host=%s" % debug_host)
 
         if not language:
             try:
                 import locale
 
                 language = locale.getdefaultlocale()[0].replace("_", "-")
-            except Exception:
-                pass
-            if not language:
+            except (Exception,):
                 language = "en-US"
+                logger.debug(
+                    "could not determine system locale. will fallback to %s " % language
+                )
+            _options.add_argument("--lang=%s" % language)
 
-        options.add_argument("--lang=%s" % language)
-
-        if not options.binary_location:
-            options.binary_location = (
+        if not _options.binary_location:
+            _options.binary_location = (
                 browser_executable_path or find_chrome_executable()
             )
 
-        self._delay = 3
-
+        self._delay = 2
         self.user_data_dir = user_data_dir
         self.keep_user_data_dir = keep_user_data_dir
-
+        self._debug_host = debug_host
+        self._debug_port = debug_port
+        _options.debugger_address = f"{self._debug_host}:{self._debug_port}"
         if suppress_welcome:
-            options.arguments.extend(["--no-default-browser-check", "--no-first-run"])
+            _options.add_argument("--no-default-browser-check")
+            _options.add_argument("--no-first-run")
         if no_sandbox:
-            options.arguments.extend(["--no-sandbox", "--test-type"])
+            _options.add_argument("--no-sandbox")
+            _options.add_argument("--test-type")
+        if headless:
+            try:
+                if self.patcher.version_main < 108:
+                    _options.add_argument("--headless=chrome")
+                elif self.patcher.version_main >= 108:
+                    _options.add_argument("--headless=new")
+            except (Exception,):
+                logger.debug(
+                    "could not determine version_main from patcher."
+                    "using fallback, where we assume chrome version >= 108"
+                )
+                _options.add_argument("--headless=new")
 
-        if headless or options.headless:
-            if self.patcher.version_main < 108:
-                options.add_argument("--headless=chrome")
-            elif self.patcher.version_main >= 108:
-                options.add_argument("--headless=new")
+        _options.add_argument("--remote-allow-origins=*")
+        _options.add_argument("--window-size=1920,1080")
+        _options.add_argument("--start-maximized")
 
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--start-maximized")
-        options.add_argument("--no-sandbox")
         # fixes "could not connect to chrome" error when running
         # on linux using privileged user like root (which i don't recommend)
+        _options.add_argument("--no-sandbox")
 
-        options.add_argument(
+        _options.add_argument(
             "--log-level=%d" % log_level
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
         )
 
-        if hasattr(options, "handle_prefs"):
-            options.handle_prefs(user_data_dir)
+        # no idea what the function of this is/was.
+        # keeping it for compatibility
+        if hasattr(_options, "handle_prefs"):
+            _options.handle_prefs(user_data_dir)
 
         # fix exit_type flag to prevent tab-restore nag
         try:
@@ -418,48 +406,55 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 fs.truncate()  # the file might be shorter
                 logger.debug("fixed exit_type flag")
         except Exception as e:
-            logger.debug("did not find a bad exit_type flag ")
+            logger.debug("good! did not find a bad exit_type flag")
 
-        self.options = options
+        self.options = _options
 
         if not desired_capabilities:
-            desired_capabilities = options.to_capabilities()
+            desired_capabilities = _options.to_capabilities()
 
         if not use_subprocess:
             self.browser_pid = start_detached(
-                options.binary_location, *options.arguments
+                _options.binary_location, *_options.arguments
             )
         else:
+
             browser = subprocess.Popen(
-                [options.binary_location, *options.arguments],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                [_options.binary_location, *_options.arguments],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
                 close_fds=IS_POSIX,
             )
+            # dont keep a reference to the subprocess
+            # only the pid
             self.browser_pid = browser.pid
 
-        if service_creationflags:
-            service = selenium.webdriver.common.service.Service(
-                self.patcher.executable_path, port, service_args, service_log_path
-            )
-            for attr_name in ("creationflags", "creation_flags"):
-                if hasattr(service, attr_name):
-                    setattr(service, attr_name, service_creationflags)
-                    break
-        else:
-            service = None
+        finalize(self, self._ensure_close, self)
 
-        super(Chrome, self).__init__(
+        service_args = ["--alowed-origins=*"]
+        if self.debug:
+            service_args.append("--verbose")
+            service_args.append("--enable-chrome-logs")
+            service_args.append("--log-path=driver.log")
+
+        service = selenium.webdriver.chromium.service.ChromiumService(  # UndetectedChromeDriverService(
             executable_path=self.patcher.executable_path,
-            port=port,
-            options=options,
             service_args=service_args,
-            desired_capabilities=desired_capabilities,
-            service_log_path=service_log_path,
-            keep_alive=keep_alive,
-            service=service,  # needed or the service will be re-created
+            # popen_kw={'stderr': subprocess.PIPE, 'stdout': subprocess.PIPE}
         )
+        # service.start()
+        # self.service = service
+
+        super().__init__(
+            # command_executor=service.service_url,
+            options=_options,
+            service=service,
+            keep_alive=keep_alive,
+        )
+
+        # add a way to get sessions
+        self.command_executor._commands["getSessions"] = ("GET", "/sessions")  # noqa
 
         self.reactor = None
 
@@ -477,7 +472,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         else:
             self._web_element_cls = WebElement
 
-        if options.headless:
+        if headless:
             self._configure_headless()
 
     def _configure_headless(self):
@@ -622,38 +617,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
-    # def _get_cdc_props(self):
-    #     return self.execute_script(
-    #         """
-    #         let objectToInspect = window,
-    #             result = [];
-    #         while(objectToInspect !== null)
-    #         { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-    #           objectToInspect = Object.getPrototypeOf(objectToInspect); }
-    #
-    #         return result.filter(i => i.match(/^([a-zA-Z]){27}(Array|Promise|Symbol)$/ig))
-    #         """
-    #     )
-    #
-    # def _hook_remove_cdc_props(self):
-    #     self.execute_cdp_cmd(
-    #         "Page.addScriptToEvaluateOnNewDocument",
-    #         {
-    #             "source": """
-    #                 let objectToInspect = window,
-    #                     result = [];
-    #                 while(objectToInspect !== null)
-    #                 { result = result.concat(Object.getOwnPropertyNames(objectToInspect));
-    #                   objectToInspect = Object.getPrototypeOf(objectToInspect); }
-    #                 result.forEach(p => p.match(/^([a-zA-Z]){27}(Array|Promise|Symbol)$/ig)
-    #                                     &&delete window[p]&&console.log('removed',p))
-    #                 """
-    #         },
-    #     )
-
     def get(self, url):
-        # if self._get_cdc_props():
-        #     self._hook_remove_cdc_props()
         return super().get(url)
 
     def add_cdp_listener(self, event_name, callback):
@@ -695,6 +659,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             cdp.tab_new(url)
 
     def reconnect(self, timeout=0.1):
+
         try:
             self.service.stop()
         except Exception as e:
@@ -706,21 +671,26 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             logger.debug(e)
 
         try:
+            response = self.execute("getSessions", {})
+            try:
+                ses_id = response["value"][0]["id"]
+                caps = self.options.capabilities
+                caps["id"] = ses_id
+                return self.start_session(caps)
+            except:
+                pass
             self.start_session()
         except Exception as e:
             logger.debug(e)
 
-    def start_session(self, capabilities=None, browser_profile=None):
+    def start_session(self, capabilities=None):
         if not capabilities:
-            capabilities = self.options.to_capabilities()
-        super(selenium.webdriver.chrome.webdriver.WebDriver, self).start_session(
-            capabilities, browser_profile
-        )
-        # super(Chrome, self).start_session(capabilities, browser_profile)
+            capabilities = self.options.capabilities
+        return super().start_session(capabilities)
 
     def quit(self):
         try:
-            self.service.process.kill()
+            self.service.stop()
             logger.debug("webdriver process ended")
         except (AttributeError, RuntimeError, OSError):
             pass
@@ -732,6 +702,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         try:
             os.kill(self.browser_pid, 15)
             logger.debug("gracefully closed browser")
+
         except Exception as e:  # noqa
             logger.debug(e, exc_info=True)
         if (
@@ -781,10 +752,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.service.stop()
-        time.sleep(self._delay)
-        self.service.start()
-        self.start_session()
+        self.reconnect()
+        # self.service.stop()
+        # time.sleep(self._delay)
+        # self.service.start()
+        # self.start_session()
 
     def __hash__(self):
         return hash(self.options.debugger_address)
@@ -801,14 +773,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
     @classmethod
     def _ensure_close(cls, self):
-        # needs to be a classmethod so finalize can find the reference
-        logger.info("ensuring close")
-        if (
-            hasattr(self, "service")
-            and hasattr(self.service, "process")
-            and hasattr(self.service.process, "kill")
-        ):
-            self.service.process.kill()
+        self.quit()
 
 
 def find_chrome_executable():
