@@ -10,6 +10,7 @@ Automatically downloads the driver binary and patches it.
 * Works also on Brave Browser and many other Chromium based browsers, but you need to know what you're doing and needs some tweaking.
 * Python 3.6++**
 
+
 ## Installation ##
 
 ```
@@ -28,6 +29,26 @@ I will be putting limits on the issue tracker. It has beeen abused too long.
 any good news?  
 Yes, i've opened [Undetected-Discussions](https://github.com/ultrafunkamsterdam/undetected-chromedriver/discussions) which i think will help us better in the long run. 
 - - -
+
+What this is not
+---
+**THIS PACKAGE DOES NOT, and i repeat DOES NOT hide your IP address, so when running from a datacenter (even smaller ones), chances are large you will not pass! Also, if your ip reputation at home is low, you won't pass!**
+
+Running following code from home , and from a datacenter.
+```python
+import undetected_chromedriver as uc
+driver = uc.Chrome(headless=True,use_subprocess=False)
+driver.get('https://nowsecure.nl')
+driver.save_screenshot('nowsecure.png')
+```
+<div style="display:flex;flex-direction:row">
+<img src="https://github.com/ultrafunkamsterdam/undetected-chromedriver/assets/21027969/262dad3e-33e9-4d67-b061-b30bc74ac9bc" width="720"/>
+<img src="https://github.com/ultrafunkamsterdam/undetected-chromedriver/assets/21027969/5e1d463b-3f88-496a-9a43-a39830f909da" width="720"/>
+  </div>
+<!-- ![nowscure_local](https://github.com/ultrafunkamsterdam/undetected-chromedriver/assets/21027969/262dad3e-33e9-4d67-b061-b30bc74ac9bc) -->
+<!-- ![nowsecure_dc](https://github.com/ultrafunkamsterdam/undetected-chromedriver/assets/21027969/5e1d463b-3f88-496a-9a43-a39830f909da) -->
+
+
 
 ## 3.5.0 ##
 - selenium 4.10 caused some issues. 3.5.0 is compatible and has selenium 4.9 or above pinned. I can't support <4.9 any longer.
