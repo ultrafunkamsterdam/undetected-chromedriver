@@ -17,7 +17,7 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 from __future__ import annotations
 
 
-__version__ = "3.4.7"
+__version__ = "3.5.0"
 
 import json
 import logging
@@ -33,7 +33,7 @@ from weakref import finalize
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
 from selenium.webdriver.common.by import By
-import selenium.webdriver.common.service
+import selenium.webdriver.chromium.service
 import selenium.webdriver.remote.command
 import selenium.webdriver.remote.webdriver
 
@@ -109,11 +109,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         browser_executable_path=None,
         port=0,
         enable_cdp_events=False,
-        service_args=None,
-        service_creationflags=None,
+        # service_args=None,
+        # service_creationflags=None,
         desired_capabilities=None,
         advanced_elements=False,
-        service_log_path=None,
+        # service_log_path=None,
         keep_alive=True,
         log_level=0,
         headless=False,
@@ -384,11 +384,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if headless or options.headless:
             #workaround until a better checking is found
-            options.add_argument("--headless=new")
-            #if self.patcher.version_main < 108:
-            #    options.add_argument("--headless=chrome")
-            #elif self.patcher.version_main >= 108:
-            
+            try:
+                if self.patcher.version_main < 108:
+                    options.add_argument("--headless=chrome")
+                elif self.patcher.version_main >= 108:
+                    options.add_argument("--headless=new")
+            except:
+                logger.warning("could not detect version_main."
+                               "therefore, we are assuming it is chrome 108 or higher")
+                options.add_argument("--headless=new")
 
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
@@ -441,26 +445,15 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             )
             self.browser_pid = browser.pid
 
-        if service_creationflags:
-            service = selenium.webdriver.common.service.Service(
-                self.patcher.executable_path, port, service_args, service_log_path
-            )
-            for attr_name in ("creationflags", "creation_flags"):
-                if hasattr(service, attr_name):
-                    setattr(service, attr_name, service_creationflags)
-                    break
-        else:
-            service = None
+
+        service = selenium.webdriver.chromium.service.ChromiumService(
+            self.patcher.executable_path
+        )
 
         super(Chrome, self).__init__(
-            executable_path=self.patcher.executable_path,
-            port=port,
+            service=service,
             options=options,
-            service_args=service_args,
-            desired_capabilities=desired_capabilities,
-            service_log_path=service_log_path,
             keep_alive=keep_alive,
-            service=service,  # needed or the service will be re-created
         )
 
         self.reactor = None
@@ -716,9 +709,44 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if not capabilities:
             capabilities = self.options.to_capabilities()
         super(selenium.webdriver.chrome.webdriver.WebDriver, self).start_session(
-            capabilities, browser_profile
+            capabilities
         )
         # super(Chrome, self).start_session(capabilities, browser_profile)
+
+    def find_elements_recursive(self, by, value):
+        """
+        find elements in all frames
+        this is a generator function, which is needed
+            since if it would return a list of elements, they
+            will be stale on arrival.
+        using generator, when the element is returned we are in the correct frame
+        to use it directly
+        Args:
+            by: By
+            value: str
+        Returns: Generator[webelement.WebElement]
+        """
+        def search_frame(f=None):
+            if not f:
+                # ensure we are on main content frame
+                self.switch_to.default_content()
+            else:
+                self.switch_to.frame(f)
+            for elem in self.find_elements(by, value):
+                yield elem
+            # switch back to main content, otherwise we will get StaleElementReferenceException
+            self.switch_to.default_content()
+
+        # search root frame
+        for elem in search_frame():
+            yield elem
+        # get iframes
+        frames = self.find_elements('css selector', 'iframe')
+
+        # search per frame
+        for f in frames:
+            for elem in search_frame(f):
+                yield elem
 
     def quit(self):
         try:
