@@ -428,7 +428,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.browser_pid = browser.pid
 
         if keep_alive:
-            service_args.append('--keep_alive')
+            service_args.append('--keep_alive') if service_args else service_args = ['--keep_alive']
 
         if service_creationflags:
             service = selenium.webdriver.common.service.Service(
