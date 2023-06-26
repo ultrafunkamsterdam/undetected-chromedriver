@@ -8,6 +8,7 @@ import os
 import pathlib
 import random
 import re
+import secrets 
 import shutil
 import string
 import sys
@@ -69,7 +70,7 @@ class Patcher(object):
         """
         self.force = force
         self._custom_exe_path = False
-        prefix = "undetected"
+        prefix = secrets.token_hex(8) 
         self.user_multi_procs = user_multi_procs
 
         if not os.path.exists(self.data_path):
