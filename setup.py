@@ -41,7 +41,7 @@ setup(
     version=version,
     packages=["undetected_chromedriver"],
     install_requires=[
-        "selenium>=4.0.0",
+        "selenium>=4.9.0",
         "requests",
         "websockets",
     ],
