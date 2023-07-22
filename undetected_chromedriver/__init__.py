@@ -751,8 +751,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def quit(self):
         try:
             self.service.process.kill()
+            os.waitpid(self.service.process.pid, 0)
             logger.debug("webdriver process ended")
-        except (AttributeError, RuntimeError, OSError):
+        except (AttributeError, ChildProcessError, RuntimeError, OSError):
             pass
         try:
             self.reactor.event.set()
@@ -839,6 +840,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             and hasattr(self.service.process, "kill")
         ):
             self.service.process.kill()
+            try:
+                # Prevent zombie processes
+                os.waitpid(self.service.process.pid, 0)
+            except ChildProcessError:
+                pass
 
 
 def find_chrome_executable():
