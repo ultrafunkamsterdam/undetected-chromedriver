@@ -762,6 +762,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             pass
         try:
             os.kill(self.browser_pid, 15)
+            os.waitpid(self.browser_pid, 0)     
             logger.debug("gracefully closed browser")
         except Exception as e:  # noqa
             pass
