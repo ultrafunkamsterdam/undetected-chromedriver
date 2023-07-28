@@ -12,6 +12,7 @@ import shutil
 import string
 import sys
 import time
+from urllib.error import HTTPError
 from urllib.request import urlopen
 from urllib.request import urlretrieve
 import zipfile
@@ -65,7 +66,7 @@ class Patcher(object):
             force: False
                     terminate processes which are holding lock
             version_main: 0 = auto
-                specify main chrome version (rounded, ex: 82)
+                specify main Chrome version (rounded, ex: 82)
         """
         self.force = force
         self._custom_exe_path = False
@@ -214,12 +215,28 @@ class Patcher(object):
         :return: version string
         :rtype: LooseVersion
         """
-        path = "/latest_release"
+        path = "/LATEST_RELEASE"
         if self.version_main:
             path += f"_{self.version_main}"
         path = path.upper()
         logger.debug("getting release number from %s" % path)
-        return LooseVersion(urlopen(self.url_repo + path).read().decode())
+        try:
+            request = urlopen(self.url_repo + path)
+            return LooseVersion(request.read().decode().strip())
+        except HTTPError as e:
+            status_code = e.getcode()
+            if status_code == 404:
+                # Remove target version and try again
+                if self.version_main:
+                    path = "/LATEST_RELEASE"
+                    request = urlopen(self.url_repo + path)
+                    # Get status code
+                    status_code = request.getcode()
+
+                    if status_code == 404:
+                        raise ValueError("Invalid target version: %s" % self.version_main)
+
+                    return LooseVersion(request.read().decode().strip())
 
     def parse_exe_version(self):
         with io.open(self.executable_path, "rb") as f:
