@@ -8,11 +8,12 @@ import os
 import pathlib
 import random
 import re
-import secrets 
+import secrets
 import shutil
 import string
 import sys
 import time
+import json
 from urllib.request import urlopen
 from urllib.request import urlretrieve
 import zipfile
@@ -25,20 +26,23 @@ IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux", "linux2"))
 
 class Patcher(object):
     lock = Lock()
-    url_repo = "https://chromedriver.storage.googleapis.com"
-    zip_name = "chromedriver_%s.zip"
-    exe_name = "chromedriver%s"
+    url_repo = "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json"
+    chromedriver_file = ""
+    extraction_path = ""
 
     platform = sys.platform
     if platform.endswith("win32"):
-        zip_name %= "win32"
-        exe_name %= ".exe"
+        chromedriver_file = "win32"
+        extraction_path = "chromedriver-win32/chromedriver.exe"
+        exe_name = "chromedriver.exe"
     if platform.endswith(("linux", "linux2")):
-        zip_name %= "linux64"
-        exe_name %= ""
+        chromedriver_file = "linux64"
+        extraction_path = "chromedriver-linux64/chromedriver"
+        exe_name = "chromedriver"
     if platform.endswith("darwin"):
-        zip_name %= "mac64"
-        exe_name %= ""
+        chromedriver_file = "mac-x64"
+        extraction_path = "chromedriver-mac-x64/chromedriver"
+        exe_name = "chromedriver"
 
     if platform.endswith("win32"):
         d = "~/appdata/roaming/undetected_chromedriver"
@@ -53,11 +57,11 @@ class Patcher(object):
     data_path = os.path.abspath(os.path.expanduser(d))
 
     def __init__(
-        self,
-        executable_path=None,
-        force=False,
-        version_main: int = 0,
-        user_multi_procs=False,
+            self,
+            executable_path=None,
+            force=False,
+            version_main: int = 0,
+            user_multi_procs=False,
     ):
         """
         Args:
@@ -70,7 +74,7 @@ class Patcher(object):
         """
         self.force = force
         self._custom_exe_path = False
-        prefix = secrets.token_hex(8) 
+        prefix = secrets.token_hex(8)
         self.user_multi_procs = user_multi_procs
 
         if not os.path.exists(self.data_path):
@@ -156,9 +160,6 @@ class Patcher(object):
         except FileNotFoundError:
             pass
 
-        release = self.fetch_release_number()
-        self.version_main = release.version[0]
-        self.version_full = release
         self.unzip_package(self.fetch_package())
         return self.patch()
 
@@ -192,7 +193,6 @@ class Patcher(object):
                     exc.append(e)
 
                 if exc:
-
                     return True
                 return False
             # ok safe to assume this is in use
@@ -209,19 +209,6 @@ class Patcher(object):
         self.patch_exe()
         return self.is_binary_patched()
 
-    def fetch_release_number(self):
-        """
-        Gets the latest major version available, or the latest major version of self.target_version if set explicitly.
-        :return: version string
-        :rtype: LooseVersion
-        """
-        path = "/latest_release"
-        if self.version_main:
-            path += f"_{self.version_main}"
-        path = path.upper()
-        logger.debug("getting release number from %s" % path)
-        return LooseVersion(urlopen(self.url_repo + path).read().decode())
-
     def parse_exe_version(self):
         with io.open(self.executable_path, "rb") as f:
             for line in iter(lambda: f.readline(), b""):
@@ -235,8 +222,13 @@ class Patcher(object):
 
         :return: path to downloaded file
         """
-        u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
-        logger.debug("downloading from %s" % u)
+        version_map = json.loads(urlopen(self.url_repo).read().decode())
+        versions = [x for x in version_map['versions'] if x['version'].split('.')[0] == str(self.version_main) and 'chromedriver' in x['downloads']]
+
+        if len(versions) == 0:
+            raise Exception('fail to find required chromedriver version')
+
+        u = [x for x in versions[-1]['downloads']['chromedriver'] if x['platform'] == self.chromedriver_file][0]['url']
         # return urlretrieve(u, filename=self.data_path)[0]
         return urlretrieve(u)[0]
 
@@ -254,10 +246,14 @@ class Patcher(object):
 
         os.makedirs(self.zip_path, mode=0o755, exist_ok=True)
         with zipfile.ZipFile(fp, mode="r") as zf:
-            zf.extract(self.exe_name, self.zip_path)
-        os.rename(os.path.join(self.zip_path, self.exe_name), self.executable_path)
+            for file in zf.namelist():
+                if file == self.extraction_path:
+                    zf.extract(file, self.zip_path)
+        os.rename(os.path.join(self.zip_path, file), self.executable_path)
+        # os.rename(os.path.join(self.zip_path, self.exe_name), self.executable_path)
         os.remove(fp)
-        os.rmdir(self.zip_path)
+        os.rmdir(os.path.join(self.zip_path, file.split('/')[0]))
+        os.rmdir(os.path.join(self.zip_path))
         os.chmod(self.executable_path, 0o755)
         return self.executable_path
 
