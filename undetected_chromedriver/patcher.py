@@ -323,7 +323,7 @@ class Patcher(object):
 
         os.makedirs(self.zip_path, mode=0o755, exist_ok=True)
         with zipfile.ZipFile(fp, mode="r") as zf:
-            zf.extract(exe_path, self.zip_path)
+            zf.extractall(self.zip_path)
         os.rename(os.path.join(self.zip_path, exe_path), self.executable_path)
         os.remove(fp)
         shutil.rmtree(self.zip_path)
