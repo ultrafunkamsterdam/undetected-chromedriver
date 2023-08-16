@@ -62,6 +62,9 @@ class Patcher(object):
         prefix = "undetected"
         self.user_multi_procs = user_multi_procs
 
+        # Needs to be called before self.exe_name is accessed
+        self._set_platform_name()
+
         if not os.path.exists(self.data_path):
             os.makedirs(self.data_path, exist_ok=True)
 
@@ -96,8 +99,6 @@ class Patcher(object):
 
         self.version_main = version_main
         self.version_full = None
-
-        self._set_platform_name()
 
     def _set_platform_name(self):
         """
