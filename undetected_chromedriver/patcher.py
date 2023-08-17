@@ -62,6 +62,7 @@ class Patcher(object):
         prefix = "undetected"
         self.user_multi_procs = user_multi_procs
 
+        self.is_old_chromedriver = version_main and version_main <= 114
         # Needs to be called before self.exe_name is accessed
         self._set_platform_name()
 
@@ -91,7 +92,6 @@ class Patcher(object):
             self.executable_path = executable_path
 
         # Set the correct repository to download the Chromedriver from
-        self.is_old_chromedriver = version_main and version_main <= 114
         if self.is_old_chromedriver:
             self.url_repo = "https://chromedriver.storage.googleapis.com"
         else:
