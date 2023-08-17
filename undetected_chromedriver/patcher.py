@@ -112,29 +112,11 @@ class Patcher(object):
             self.platform_name = "linux64"
             self.exe_name %= ""
         if self.platform.endswith("darwin"):
-            self.platform_name = self._get_mac_platform_name()
+            if self.is_old_chromedriver:
+                self.platform_name = "mac64"
+            else:
+                self.platform_name = "mac-x64"
             self.exe_name %= ""
-
-    def _get_mac_platform_name(self):
-        """
-        The Mac platform name changes based on the architecture and Chromedriver version desired
-        """
-        platform_name = "mac"
-        # Matches the platform as a substring so values like 'arm64' and 'armv7l' work
-        is_arm_arch = any(p in platform.machine() for p in ["aarch64", "arm"])
-
-        if self.is_old_chromedriver:
-            if is_arm_arch:
-                platform_name += "_arm64"
-            else:
-                platform_name += "64"
-        else:
-            if is_arm_arch:
-                platform_name += "-arm64"
-            else:
-                platform_name += "-x64"
-
-        return platform_name
 
     def auto(self, executable_path=None, force=False, version_main=None, _=None):
         """
