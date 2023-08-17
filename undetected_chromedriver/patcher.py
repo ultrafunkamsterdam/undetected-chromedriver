@@ -120,7 +120,8 @@ class Patcher(object):
         The Mac platform name changes based on the architecture and Chromedriver version desired
         """
         platform_name = "mac"
-        is_arm_arch = any(["aarch64", "arm"] in platform.machine())
+        # Matches the platform as a substring so values like 'arm64' and 'armv7l' work
+        is_arm_arch = any(p in platform.machine() for p in ["aarch64", "arm"])
 
         if self.is_old_chromedriver:
             if is_arm_arch:
