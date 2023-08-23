@@ -492,6 +492,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         orig_get = self.get
         logger.info("setting properties for headless")
 
+        if self.keep_user_data_dir:
+            lock_file = f"{self.user_data_dir}/SingletonLock"
+            if os.path.islink(lock_file):
+                logger.info("Removing %s in order to reuse existing headless profile" % lock_file)
+                os.remove(lock_file)
+
         def get_wrapped(*args, **kwargs):
             if self.execute_script("return navigator.webdriver"):
                 logger.info("patch navigator.webdriver")
