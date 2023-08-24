@@ -442,7 +442,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         self.options = options
 
         if not desired_capabilities:
-            desired_capabilities = options.to_capabilities()
+            desired_capabilities = {}
+
+        # Compatability for users/libraries still using desired_capabilities
+        for k, v in desired_capabilities.items():
+            options.set_capability(k, v)
 
         if not use_subprocess:
             self.browser_pid = start_detached(
