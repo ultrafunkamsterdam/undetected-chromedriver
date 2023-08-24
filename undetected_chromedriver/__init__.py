@@ -301,6 +301,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         for arg in options.arguments:
 
             if any([_ in arg for _ in ("--headless", "headless")]):
+                logger.info("Removing arg because it contains the substring headless: %s" % arg)
                 options.arguments.remove(arg)
                 options.headless = True
 
