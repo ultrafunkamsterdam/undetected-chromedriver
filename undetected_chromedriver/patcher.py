@@ -24,19 +24,19 @@ IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux", "linux2"))
 
 class Patcher(object):
     lock = Lock()
-    url_repo = "https://chromedriver.storage.googleapis.com"
+    url_repo = " https://googlechromelabs.github.io/chrome-for-testing"
     zip_name = "chromedriver_%s.zip"
     exe_name = "chromedriver%s"
 
     platform = sys.platform
     if platform.endswith("win32"):
-        zip_name %= "win32"
+        zip_name %= "win64"
         exe_name %= ".exe"
     if platform.endswith(("linux", "linux2")):
         zip_name %= "linux64"
         exe_name %= ""
     if platform.endswith("darwin"):
-        zip_name %= "mac64"
+        zip_name %= "mac-x64"
         exe_name %= ""
 
     if platform.endswith("win32"):
@@ -217,11 +217,14 @@ class Patcher(object):
         :return: version string
         :rtype: LooseVersion
         """
-        path = "/latest_release"
+        path = "/LATEST_RELEASE"
+        
         if self.version_main:
             path += f"_{self.version_main}"
         path = path.upper()
+        
         logger.debug("getting release number from %s" % path)
+        
         return LooseVersion(urlopen(self.url_repo + path).read().decode())
 
     def parse_exe_version(self):
@@ -237,8 +240,13 @@ class Patcher(object):
 
         :return: path to downloaded file
         """
-        u = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, self.zip_name)
-        logger.debug("downloading from %s" % u)
+        u = f'{self.url_repo}/known-good-versions-with-downloads.json'
+        allv = json.loads(urlopen(u).read()
+        section = [x for x in d['versions'] if x['version']==self.version_main][0]
+        downloads = section['downloads']['chromedriver']
+        chosen = [o for o in downloads if self.zip_name in o['platform']][0]
+        #self.version_full.vstring, self.zip_name)
+        logger.debug("downloading from %s" % o['url'])
         # return urlretrieve(u, filename=self.data_path)[0]
         return urlretrieve(u)[0]
 
