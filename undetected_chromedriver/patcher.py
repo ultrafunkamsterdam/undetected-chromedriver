@@ -241,7 +241,7 @@ class Patcher(object):
         :return: path to downloaded file
         """
         u = f'{self.url_repo}/known-good-versions-with-downloads.json'
-        allv = json.loads(urlopen(u).read()
+        allv = json.loads(urlopen(u).read())
         section = [x for x in d['versions'] if x['version']==self.version_main][0]
         downloads = section['downloads']['chromedriver']
         chosen = [o for o in downloads if self.zip_name in o['platform']][0]
