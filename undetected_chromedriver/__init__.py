@@ -396,16 +396,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.arguments.extend(["--no-sandbox", "--test-type"])
 
         if headless or options.headless:
-            #workaround until a better checking is found
-            try:
-                if self.patcher.version_main < 108:
-                    options.add_argument("--headless=chrome")
-                elif self.patcher.version_main >= 108:
-                    options.add_argument("--headless=new")
-            except:
-                logger.warning("could not detect version_main."
-                               "therefore, we are assuming it is chrome 108 or higher")
+            if not self.patcher.version_main or self.patcher.version_main >= 108:
                 options.add_argument("--headless=new")
+            else:
+                options.add_argument("--headless=chrome")
 
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
