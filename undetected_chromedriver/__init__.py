@@ -409,8 +409,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
-        # fixes "could not connect to chrome" error when running
-        # on linux using privileged user like root (which i don't recommend)
 
         options.add_argument(
             "--log-level=%d" % log_level
