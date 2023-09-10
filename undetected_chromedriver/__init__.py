@@ -296,7 +296,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.add_argument("--user-data-dir=%s" % user_data_dir)
 
         language, keep_user_data_dir = None, bool(user_data_dir)
-
+             
+        keep_window_size = None
         # see if a custom user profile is specified in options
         for arg in options.arguments:
          
