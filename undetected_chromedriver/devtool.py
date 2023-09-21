@@ -1,16 +1,11 @@
 import asyncio
-from collections.abc import Mapping
-from collections.abc import Sequence
-from functools import wraps
 import logging
 import threading
 import time
 import traceback
-from typing import Any
-from typing import Awaitable
-from typing import Callable
-from typing import List
-from typing import Optional
+from collections.abc import Mapping, Sequence
+from functools import wraps
+from typing import Any, Awaitable, Callable, List, Optional
 
 
 class Structure(dict):
@@ -101,11 +96,13 @@ def timeout(seconds=3, on_timeout: Optional[Callable[[callable], Any]] = None):
 
 
 def test():
-    import sys, os
+    import os
+    import sys
 
     sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-    import undetected_chromedriver as uc
     import threading
+
+    import undetected_chromedriver as uc
 
     def collector(
         driver: uc.Chrome,
