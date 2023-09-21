@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # this module is part of undetected_chromedriver
 
-from distutils.version import LooseVersion
 import io
 import json
 import logging
@@ -14,10 +13,10 @@ import shutil
 import string
 import sys
 import time
-from urllib.request import urlopen
-from urllib.request import urlretrieve
 import zipfile
+from distutils.version import LooseVersion
 from multiprocessing import Lock
+from urllib.request import urlopen, urlretrieve
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +196,6 @@ class Patcher(object):
             with open(p, mode="a+b") as fs:
                 exc = []
                 try:
-
                     fs.seek(0, 0)
                 except PermissionError as e:
                     exc.append(e)  # since some systems apprently allow seeking
@@ -208,7 +206,6 @@ class Patcher(object):
                     exc.append(e)
 
                 if exc:
-
                     return True
                 return False
             # ok safe to assume this is in use
@@ -260,7 +257,9 @@ class Patcher(object):
             response = conn.read().decode()
 
         major_versions = json.loads(response)
-        return LooseVersion(major_versions["milestones"][str(self.version_main)]["version"])
+        return LooseVersion(
+            major_versions["milestones"][str(self.version_main)]["version"]
+        )
 
     def parse_exe_version(self):
         with io.open(self.executable_path, "rb") as f:
@@ -277,10 +276,16 @@ class Patcher(object):
         """
         zip_name = f"chromedriver_{self.platform_name}.zip"
         if self.is_old_chromedriver:
-            download_url = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, zip_name)
+            download_url = "%s/%s/%s" % (
+                self.url_repo,
+                self.version_full.vstring,
+                zip_name,
+            )
         else:
             zip_name = zip_name.replace("_", "-", 1)
-            download_url = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%s/%s/%s"
+            download_url = (
+                "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%s/%s/%s"
+            )
             download_url %= (self.version_full.vstring, self.platform_name, zip_name)
 
         logger.debug("downloading from %s" % download_url)

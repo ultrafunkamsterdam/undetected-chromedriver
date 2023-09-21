@@ -4,10 +4,8 @@ import multiprocessing
 import os
 import platform
 import signal
-from subprocess import PIPE
-from subprocess import Popen
 import sys
-
+from subprocess import PIPE, Popen
 
 CREATE_NEW_PROCESS_GROUP = 0x00000200
 DETACHED_PROCESS = 0x00000008

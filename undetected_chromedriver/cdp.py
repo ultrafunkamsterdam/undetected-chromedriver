@@ -7,7 +7,6 @@ import logging
 import requests
 import websockets
 
-
 log = logging.getLogger(__name__)
 
 
