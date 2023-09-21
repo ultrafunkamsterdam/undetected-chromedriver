@@ -16,6 +16,7 @@ import time
 import zipfile
 from distutils.version import LooseVersion
 from multiprocessing import Lock
+from typing import Optional
 from urllib.request import urlopen, urlretrieve
 
 logger = logging.getLogger(__name__)
@@ -44,7 +45,7 @@ class Patcher(object):
         self,
         executable_path=None,
         force=False,
-        version_main: None | int = 0,
+        version_main: Optional[int] = 0,
         user_multi_procs=False,
     ):
         """

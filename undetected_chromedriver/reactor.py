@@ -3,6 +3,7 @@ import json
 import logging
 import threading
 import time
+from typing import Dict, Optional
 
 from selenium import webdriver
 
@@ -80,10 +81,10 @@ class Reactor(threading.Thread):
                 for entry in log_entries:
                     try:
                         obj_serialized: str = entry.get("message")
-                        obj: dict[str, dict] = json.loads(obj_serialized)
+                        obj: Dict[str, dict] = json.loads(obj_serialized)
                         message = obj.get("message")
                         assert message is not None
-                        method: str | None = message.get("method")
+                        method: Optional[str] = message.get("method")
                         assert isinstance(method, str)
 
                         if "*" in self.handlers:
