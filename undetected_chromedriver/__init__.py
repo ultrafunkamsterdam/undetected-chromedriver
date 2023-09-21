@@ -16,7 +16,6 @@ by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
 """
 from __future__ import annotations
 
-
 __version__ = "3.5.3"
 
 import json
@@ -33,20 +32,17 @@ from weakref import finalize
 
 import selenium.webdriver.chrome.service
 import selenium.webdriver.chrome.webdriver
-from selenium.webdriver.common.by import By
 import selenium.webdriver.chromium.service
 import selenium.webdriver.remote.command
 import selenium.webdriver.remote.webdriver
+from selenium.webdriver.common.utils import free_port
 
 from .cdp import CDP
 from .dprocess import start_detached
 from .options import ChromeOptions
-from .patcher import IS_POSIX
-from .patcher import Patcher
+from .patcher import IS_POSIX, Patcher
 from .reactor import Reactor
-from .webelement import UCWebElement
-from .webelement import WebElement
-
+from .webelement import UCWebElement, WebElement
 
 __all__ = (
     "Chrome",
@@ -270,14 +266,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         except AttributeError:
             pass
 
-        options._session = self
+        options._session = self  # type: ignore
 
         if not options.debugger_address:
-            debug_port = (
-                port
-                if port != 0
-                else selenium.webdriver.common.service.utils.free_port()
-            )
+            debug_port = port if port != 0 else free_port()
             debug_host = "127.0.0.1"
             options.debugger_address = "%s:%d" % (debug_host, debug_port)
         else:
@@ -299,13 +291,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         # see if a custom user profile is specified in options
         for arg in options.arguments:
-
             if any([_ in arg for _ in ("--headless", "headless")]):
                 options.arguments.remove(arg)
                 options.headless = True
 
             if "lang" in arg:
                 m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
+                assert m is not None
                 try:
                     language = m[1]
                 except IndexError:
@@ -314,6 +306,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
             if "user-data-dir" in arg:
                 m = re.search("(?:--)?user-data-dir(?:[ =])?(.*)", arg)
+                assert m is not None
                 try:
                     user_data_dir = m[1]
                     logger.debug(
@@ -360,7 +353,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             try:
                 import locale
 
-                language = locale.getdefaultlocale()[0].replace("_", "-")
+                default_langs = locale.getdefaultlocale()
+                assert len(default_langs) > 1
+                assert default_langs[0]
+                language = default_langs[0].replace("_", "-")
             except Exception:
                 pass
             if not language:
@@ -369,21 +365,26 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         options.add_argument("--lang=%s" % language)
 
         if not options.binary_location:
-            options.binary_location = (
+            options.binary_location = (  # type: ignore
                 browser_executable_path or find_chrome_executable()
             )
 
-        if not options.binary_location or not \
-                pathlib.Path(options.binary_location).exists():
-                raise FileNotFoundError(
-                    "\n---------------------\n"
-                    "Could not determine browser executable."
-                    "\n---------------------\n"
-                    "Make sure your browser is installed in the default location (path).\n"
-                    "If you are sure about the browser executable, you can specify it using\n"
-                    "the `browser_executable_path='{}` parameter.\n\n"
-                    .format("/path/to/browser/executable" if IS_POSIX else "c:/path/to/your/browser.exe")
+        if (
+            not options.binary_location
+            or not pathlib.Path(options.binary_location).exists()
+        ):
+            raise FileNotFoundError(
+                "\n---------------------\n"
+                "Could not determine browser executable."
+                "\n---------------------\n"
+                "Make sure your browser is installed in the default location (path).\n"
+                "If you are sure about the browser executable, you can specify it using\n"
+                "the `browser_executable_path='{}` parameter.\n\n".format(
+                    "/path/to/browser/executable"
+                    if IS_POSIX
+                    else "c:/path/to/your/browser.exe"
                 )
+            )
 
         self._delay = 3
 
@@ -396,15 +397,18 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.arguments.extend(["--no-sandbox", "--test-type"])
 
         if headless or options.headless:
-            #workaround until a better checking is found
+            # workaround until a better checking is found
             try:
-                if self.patcher.version_main < 108:
-                    options.add_argument("--headless=chrome")
-                elif self.patcher.version_main >= 108:
-                    options.add_argument("--headless=new")
-            except:
-                logger.warning("could not detect version_main."
-                               "therefore, we are assuming it is chrome 108 or higher")
+                if isinstance(self.patcher.version_main, int):
+                    if self.patcher.version_main < 108:
+                        options.add_argument("--headless=chrome")
+                    elif self.patcher.version_main >= 108:
+                        options.add_argument("--headless=new")
+            except Exception:
+                logger.warning(
+                    "could not detect version_main."
+                    "therefore, we are assuming it is chrome 108 or higher"
+                )
                 options.add_argument("--headless=new")
 
         options.add_argument("--window-size=1920,1080")
@@ -424,7 +428,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         # fix exit_type flag to prevent tab-restore nag
         try:
             with open(
-                os.path.join(user_data_dir, "Default/Preferences"),
+                os.path.join(user_data_dir, "Default/Preferences"),  # type: ignore
                 encoding="latin1",
                 mode="r+",
             ) as fs:
@@ -436,7 +440,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 json.dump(config, fs)
                 fs.truncate()  # the file might be shorter
                 logger.debug("fixed exit_type flag")
-        except Exception as e:
+        except Exception:
             logger.debug("did not find a bad exit_type flag ")
 
         self.options = options
@@ -458,14 +462,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             )
             self.browser_pid = browser.pid
 
-
         service = selenium.webdriver.chromium.service.ChromiumService(
             self.patcher.executable_path
         )
 
         super(Chrome, self).__init__(
-            service=service,
-            options=options,
+            service=service,  # type: ignore
+            options=options,  # type: ignore
             keep_alive=keep_alive,
         )
 
@@ -739,6 +742,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             value: str
         Returns: Generator[webelement.WebElement]
         """
+
         def search_frame(f=None):
             if not f:
                 # ensure we are on main content frame
@@ -754,7 +758,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         for elem in search_frame():
             yield elem
         # get iframes
-        frames = self.find_elements('css selector', 'iframe')
+        frames = self.find_elements("css selector", "iframe")
 
         # search per frame
         for f in frames:
@@ -768,10 +772,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         except (AttributeError, RuntimeError, OSError):
             pass
         try:
-            self.reactor.event.set()
-            logger.debug("shutting down reactor")
+            if self.reactor:
+                self.reactor.event.set()
+                logger.debug("shutting down reactor")
         except AttributeError:
             pass
+
         try:
             os.kill(self.browser_pid, 15)
             logger.debug("gracefully closed browser")
@@ -781,6 +787,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             hasattr(self, "keep_user_data_dir")
             and hasattr(self, "user_data_dir")
             and not self.keep_user_data_dir
+            and self.user_data_dir
         ):
             for _ in range(5):
                 try:
@@ -866,7 +873,9 @@ def find_chrome_executable():
     """
     candidates = set()
     if IS_POSIX:
-        for item in os.environ.get("PATH").split(os.pathsep):
+        path = os.environ.get("PATH")
+        assert path is not None
+        for item in path.split(os.pathsep):
             for subitem in (
                 "google-chrome",
                 "chromium",
@@ -888,12 +897,10 @@ def find_chrome_executable():
             ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA", "PROGRAMW6432"),
         ):
             if item is not None:
-                for subitem in (
-                    "Google/Chrome/Application",
-                ):
+                for subitem in ("Google/Chrome/Application",):
                     candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
-        logger.debug('checking if %s exists and is executable' % candidate)
+        logger.debug("checking if %s exists and is executable" % candidate)
         if os.path.exists(candidate) and os.access(candidate, os.X_OK):
-            logger.debug('found! using %s' % candidate)
+            logger.debug("found! using %s" % candidate)
             return os.path.normpath(candidate)
