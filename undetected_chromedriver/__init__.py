@@ -302,7 +302,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
             if any([_ in arg for _ in ("--headless", "headless")]):
                 options.arguments.remove(arg)
-                options.headless = True
+                headless = True
 
             if "lang" in arg:
                 m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
@@ -395,7 +395,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if no_sandbox:
             options.arguments.extend(["--no-sandbox", "--test-type"])
 
-        if headless or options.headless:
+        if headless:
             #workaround until a better checking is found
             try:
                 if self.patcher.version_main < 108:
@@ -485,7 +485,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         else:
             self._web_element_cls = WebElement
 
-        if options.headless:
+        if headless:
             self._configure_headless()
 
     def _configure_headless(self):
