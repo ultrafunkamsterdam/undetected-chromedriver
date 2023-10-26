@@ -11,7 +11,7 @@ d88P"    888 "88b 888P"  d88""88b 888 "888 "88b d8P  Y8b d88" 888 888P"   888 88
 Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y8bd8P  Y8b.     888
  "Y8888P 888  888 888     "Y88P"  888  888  888  "Y8888   "Y88888 888     888   Y88P    "Y8888  888   88888888
 
-by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
+by UltrafunkAmsterdam AND MODIFIED BY SAGOU (https://github.com/medsagou)
 
 """
 from __future__ import annotations

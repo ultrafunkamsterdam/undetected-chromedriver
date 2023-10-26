@@ -14,11 +14,6 @@ Automatically downloads the driver binary and patches it.
 ## Installation ##
 
 ```
-pip install undetected-chromedriver
-```
-or , if you're feeling adventurous, install directly via github
-
-```
 pip install git+https://www.github.com/ultrafunkamsterdam/undetected-chromedriver@master     # replace @master with @branchname for other branches
 ```
 
