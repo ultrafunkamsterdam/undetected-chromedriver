@@ -840,7 +840,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.service.process.kill()
         except:  # noqa
             pass
-        self.quit()
+        # self.quit() #Fixing __expection getting ignore error
 
     @classmethod
     def _ensure_close(cls, self):
