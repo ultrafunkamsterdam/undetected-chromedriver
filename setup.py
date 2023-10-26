@@ -39,7 +39,7 @@ description = (
 setup(
     name="undetected-chromedriver-modified-sagou",
     version=version,
-    packages=["undetected_chromedriver"],
+    packages=["undetected_chromedriver_modified_sagou"],
     install_requires=[
         "selenium>=4.9.0",
         "requests",
