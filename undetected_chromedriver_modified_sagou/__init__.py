@@ -11,7 +11,7 @@ d88P"    888 "88b 888P"  d88""88b 888 "888 "88b d8P  Y8b d88" 888 888P"   888 88
 Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y8bd8P  Y8b.     888
  "Y8888P 888  888 888     "Y88P"  888  888  888  "Y8888   "Y88888 888     888   Y88P    "Y8888  888   88888888
 
-by UltrafunkAmsterdam (https://github.com/ultrafunkamsterdam)
+by UltrafunkAmsterdam AND MODIFIED BY SAGOU (https://github.com/medsagou)
 
 """
 from __future__ import annotations
@@ -302,7 +302,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
             if any([_ in arg for _ in ("--headless", "headless")]):
                 options.arguments.remove(arg)
-                options.headless = True
+                # options.headless = True
 
             if "lang" in arg:
                 m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
@@ -395,7 +395,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if no_sandbox:
             options.arguments.extend(["--no-sandbox", "--test-type"])
 
-        if headless or options.headless:
+        if headless:
             #workaround until a better checking is found
             try:
                 if self.patcher.version_main < 108:
@@ -485,8 +485,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         else:
             self._web_element_cls = WebElement
 
-        if options.headless:
-            self._configure_headless()
+        # if options.headless:
+        #     self._configure_headless()
 
     def _configure_headless(self):
         orig_get = self.get
@@ -840,7 +840,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             self.service.process.kill()
         except:  # noqa
             pass
-        self.quit()
+        # self.quit() #Fixing __expection getting ignore error
 
     @classmethod
     def _ensure_close(cls, self):

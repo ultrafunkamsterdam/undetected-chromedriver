@@ -21,7 +21,7 @@ from setuptools import setup
 dirname = os.path.abspath(os.path.dirname(__file__))
 
 with codecs.open(
-    os.path.join(dirname, "undetected_chromedriver", "__init__.py"),
+    os.path.join(dirname, "undetected_chromedriver_modified_sagou", "__init__.py"),
     mode="r",
     encoding="utf-8",
 ) as fp:
@@ -37,16 +37,16 @@ description = (
 )
 
 setup(
-    name="undetected-chromedriver",
+    name="undetected-chromedriver-modified-sagou",
     version=version,
-    packages=["undetected_chromedriver"],
+    packages=["undetected_chromedriver_modified_sagou"],
     install_requires=[
         "selenium>=4.9.0",
         "requests",
         "websockets",
     ],
-    package_data={"undetected_chromedriver": [os.path.join("example", "example.py")]},
-    url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
+    package_data={"undetected_chromedriver_modified_sagou": [os.path.join("example", "example.py")]},
+    url="https://github.com/medsagou/undetected-chromedriver",
     license="GPL-3.0",
     author="UltrafunkAmsterdam",
     author_email="info@blackhat-security.nl",
