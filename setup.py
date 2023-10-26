@@ -37,7 +37,7 @@ description = (
 )
 
 setup(
-    name="undetected-chromedriver",
+    name="undetected-chromedriver-modified-sagou",
     version=version,
     packages=["undetected_chromedriver"],
     install_requires=[
