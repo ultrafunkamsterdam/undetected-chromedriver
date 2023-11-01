@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # this module is part of undetected_chromedriver
 
-from distutils.version import LooseVersion
+from looseversion import LooseVersion
 import io
 import json
 import logging
