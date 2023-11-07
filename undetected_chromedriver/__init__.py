@@ -360,7 +360,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             try:
                 import locale
 
-                language = locale.getdefaultlocale()[0].replace("_", "-")
+                language = locale.getlocale()[0].replace("_", "-")
             except Exception:
                 pass
             if not language:
