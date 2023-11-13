@@ -63,7 +63,7 @@ class Patcher(object):
         self.user_multi_procs = user_multi_procs
 
         try:
-            # Check if version_main is not None and can be converted to an integer
+            # Check if version_main is not '0' and can be converted to an integer
             version_main_int = int(version_main)
             self.is_old_chromedriver = (version_main != 0) and version_main_int <= 114
         except ValueError:
