@@ -62,18 +62,15 @@ class Patcher(object):
         prefix = "undetected"
         self.user_multi_procs = user_multi_procs
         
-        try:
-            if version_main is not None:
-                if isinstance(version_main, (float, int, str)):
-                    version_main = int(version_main)
-                    self.is_old_chromedriver = version_main <= 114
-                else:
-                    raise ValueError("version_main must be an integer or string")
+        if version_main is not None:
+            if isinstance(version_main, (float, int, str)):
+                version_main = int(version_main)
+                self.is_old_chromedriver = version_main <= 114
             else:
-                version_main = 0
-                self.is_old_chromedriver = False
-        except ValueError:
-            raise
+                raise ValueError("version_main must be an integer or string")
+        else:
+            version_main = 0
+            self.is_old_chromedriver = False
         
         # Needs to be called before self.exe_name is accessed
         self._set_platform_name()
