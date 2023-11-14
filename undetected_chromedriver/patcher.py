@@ -45,7 +45,7 @@ class Patcher(object):
         self,
         executable_path=None,
         force=False,
-        version_main=0,
+        version_main=None,
         user_multi_procs=False,
     ):
         """
@@ -61,15 +61,20 @@ class Patcher(object):
         self._custom_exe_path = False
         prefix = "undetected"
         self.user_multi_procs = user_multi_procs
-
+        
         try:
-            # Check if version_main is not '0' and can be converted to an integer
-            version_main_int = int(version_main)
-            self.is_old_chromedriver = (version_main != 0) and version_main_int <= 114
+            if version_main is not None:
+                if isinstance(version_main, (float, int, str)):
+                    version_main = int(version_main)
+                    self.is_old_chromedriver = version_main <= 114
+                else:
+                    raise ValueError("version_main must be an integer or string")
+            else:
+                version_main = 0
+                self.is_old_chromedriver = False
         except ValueError:
-            print("version_main cannot be converted to an integer")
-            self.is_old_chromedriver = False
-
+            raise
+        
         # Needs to be called before self.exe_name is accessed
         self._set_platform_name()
 
