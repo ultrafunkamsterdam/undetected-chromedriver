@@ -395,7 +395,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         if no_sandbox:
             options.arguments.extend(["--no-sandbox", "--test-type"])
 
-        if headless or options.headless:
+        if headless or (hasattr(options, 'headless') and options.headless):
             #workaround until a better checking is found
             try:
                 if self.patcher.version_main < 108:
@@ -406,6 +406,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 logger.warning("could not detect version_main."
                                "therefore, we are assuming it is chrome 108 or higher")
                 options.add_argument("--headless=new")
+        else:
+            options.headless = False
 
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
@@ -485,7 +487,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         else:
             self._web_element_cls = WebElement
 
-        if options.headless:
+        if hasattr(options, 'headless') and options.headless:
             self._configure_headless()
 
     def _configure_headless(self):
@@ -764,8 +766,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def quit(self):
         try:
             self.service.process.kill()
+            os.waitpid(self.service.process.pid, 0)
             logger.debug("webdriver process ended")
-        except (AttributeError, RuntimeError, OSError):
+        except (AttributeError, ChildProcessError, RuntimeError, OSError):
             pass
         try:
             self.reactor.event.set()
@@ -774,6 +777,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             pass
         try:
             os.kill(self.browser_pid, 15)
+            os.waitpid(self.browser_pid, 0)
             logger.debug("gracefully closed browser")
         except Exception as e:  # noqa
             pass
@@ -795,7 +799,10 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 else:
                     logger.debug("successfully removed %s" % self.user_data_dir)
                     break
-                time.sleep(0.1)
+                try:
+                    time.sleep(1)
+                except OSError:
+                    pass
 
         # dereference patcher, so patcher can start cleaning up as well.
         # this must come last, otherwise it will throw 'in use' errors
@@ -852,6 +859,12 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             and hasattr(self.service.process, "kill")
         ):
             self.service.process.kill()
+            
+            try:
+                # Prevent zombie processes
+                os.waitpid(self.service.process.pid, 0)
+            except ChildProcessError:
+                pass
 
 
 def find_chrome_executable():

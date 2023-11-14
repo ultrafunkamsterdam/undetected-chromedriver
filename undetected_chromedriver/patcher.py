@@ -15,9 +15,9 @@ import string
 import sys
 import time
 from urllib.request import urlopen
-from urllib.request import urlretrieve
 import zipfile
 from multiprocessing import Lock
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class Patcher(object):
         self,
         executable_path=None,
         force=False,
-        version_main: int = 0,
+        version_main=None,
         user_multi_procs=False,
     ):
         """
@@ -61,8 +61,17 @@ class Patcher(object):
         self._custom_exe_path = False
         prefix = "undetected"
         self.user_multi_procs = user_multi_procs
-
-        self.is_old_chromedriver = version_main and version_main <= 114
+        
+        if version_main is not None:
+            if isinstance(version_main, (float, int, str)):
+                version_main = int(version_main)
+                self.is_old_chromedriver = version_main <= 114
+            else:
+                raise ValueError("version_main must be an integer or string")
+        else:
+            version_main = 0
+            self.is_old_chromedriver = False
+        
         # Needs to be called before self.exe_name is accessed
         self._set_platform_name()
 
@@ -129,16 +138,6 @@ class Patcher(object):
         Returns:
 
         """
-        p = pathlib.Path(self.data_path)
-        if self.user_multi_procs:
-            with Lock():
-                files = list(p.rglob("*chromedriver*"))
-                most_recent = max(files, key=lambda f: f.stat().st_mtime)
-                files.remove(most_recent)
-                list(map(lambda f: f.unlink(), files))
-                if self.is_binary_patched(most_recent):
-                    self.executable_path = str(most_recent)
-                    return True
 
         if executable_path:
             self.executable_path = executable_path
@@ -150,6 +149,17 @@ class Patcher(object):
                 return self.patch_exe()
             else:
                 return
+
+        p = pathlib.Path(self.data_path)
+        if self.user_multi_procs:
+            with Lock():
+                files = list(p.rglob("*chromedriver*"))
+                most_recent = max(files, key=lambda f: f.stat().st_mtime)
+                files.remove(most_recent)
+                list(map(lambda f: f.unlink(), files))
+                if self.is_binary_patched(most_recent):
+                    self.executable_path = str(most_recent)
+                    return True
 
         if version_main:
             self.version_main = version_main
@@ -269,6 +279,15 @@ class Patcher(object):
                 if match:
                     return LooseVersion(match[1].decode())
 
+    def download_file(self, url):
+        local_filename = url.split('/')[-1]
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192): 
+                    f.write(chunk)
+        return local_filename
+
     def fetch_package(self):
         """
         Downloads ChromeDriver from source
@@ -283,9 +302,10 @@ class Patcher(object):
             download_url = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%s/%s/%s"
             download_url %= (self.version_full.vstring, self.platform_name, zip_name)
 
-        logger.debug("downloading from %s" % download_url)
-        return urlretrieve(download_url)[0]
-
+        # Download the file with someone more reliable than urlretrieve
+        # https://stackoverflow.com/a/39217788/9263761
+        return self.download_file(download_url)
+    
     def unzip_package(self, fp):
         """
         Does what it says
