@@ -897,3 +897,5 @@ def find_chrome_executable():
         if os.path.exists(candidate) and os.access(candidate, os.X_OK):
             logger.debug('found! using %s' % candidate)
             return os.path.normpath(candidate)
+
+    raise RuntimeError("Could not automatically find the chrome executable. Please install chrome or chromium first, or specify browser_executable_path the options.")
