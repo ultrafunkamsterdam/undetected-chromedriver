@@ -107,6 +107,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         options=None,
         user_data_dir=None,
         driver_executable_path=None,
+        driver_executable_is_patched=False,
         browser_executable_path=None,
         port=0,
         enable_cdp_events=False,
@@ -250,6 +251,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         self.debug = debug
         self.patcher = Patcher(
             executable_path=driver_executable_path,
+            executable_is_patched=driver_executable_is_patched,
             force=patcher_force_close,
             version_main=version_main,
             user_multi_procs=user_multi_procs,

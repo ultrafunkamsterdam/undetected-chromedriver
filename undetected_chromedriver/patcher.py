@@ -44,6 +44,7 @@ class Patcher(object):
     def __init__(
         self,
         executable_path=None,
+        executable_is_patched=False,
         force=False,
         version_main: int = 0,
         user_multi_procs=False,
@@ -52,6 +53,8 @@ class Patcher(object):
         Args:
             executable_path: None = automatic
                              a full file path to the chromedriver executable
+            executable_is_patched: False
+                executable_path is an already patched chromedriver executable
             force: False
                     terminate processes which are holding lock
             version_main: 0 = auto
@@ -86,10 +89,12 @@ class Patcher(object):
                 self.executable_path = os.path.abspath(
                     os.path.join(".", self.executable_path)
                 )
+            self.executable_is_patched = False
 
         if executable_path:
             self._custom_exe_path = True
             self.executable_path = executable_path
+            self.executable_is_patched = executable_is_patched
 
         # Set the correct repository to download the Chromedriver from
         if self.is_old_chromedriver:
@@ -118,11 +123,12 @@ class Patcher(object):
                 self.platform_name = "mac-x64"
             self.exe_name %= ""
 
-    def auto(self, executable_path=None, force=False, version_main=None, _=None):
+    def auto(self, executable_path=None, executable_is_patched=None, force=False, version_main=None, _=None):
         """
 
         Args:
             executable_path:
+            executable_is_patched:
             force:
             version_main:
 
@@ -144,8 +150,11 @@ class Patcher(object):
             self.executable_path = executable_path
             self._custom_exe_path = True
 
+        if executable_is_patched == None:
+            executable_is_patched = self.executable_is_patched
+
         if self._custom_exe_path:
-            ispatched = self.is_binary_patched(self.executable_path)
+            ispatched = executable_is_patched or self.is_binary_patched(self.executable_path)
             if not ispatched:
                 return self.patch_exe()
             else:
