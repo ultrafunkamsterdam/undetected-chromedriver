@@ -408,12 +408,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                                "therefore, we are assuming it is chrome 108 or higher")
                 options.add_argument("--headless=new")
 
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--start-maximized")
-        options.add_argument("--no-sandbox")
-        # fixes "could not connect to chrome" error when running
-        # on linux using privileged user like root (which i don't recommend)
-
         options.add_argument(
             "--log-level=%d" % log_level
             or divmod(logging.getLogger().getEffectiveLevel(), 10)[0]
