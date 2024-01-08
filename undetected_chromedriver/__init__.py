@@ -890,6 +890,7 @@ def find_chrome_executable():
             if item is not None:
                 for subitem in (
                     "Google/Chrome/Application",
+                    "Chromium/Application",
                 ):
                     candidates.add(os.sep.join((item, subitem, "chrome.exe")))
     for candidate in candidates:
