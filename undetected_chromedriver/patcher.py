@@ -94,8 +94,11 @@ class Patcher(object):
         # Set the correct repository to download the Chromedriver from
         if self.is_old_chromedriver:
             self.url_repo = "https://chromedriver.storage.googleapis.com"
+            self.download_url = self.url_repo + "/%s/%s"
+
         else:
             self.url_repo = "https://googlechromelabs.github.io/chrome-for-testing"
+            self.download_url = "https://storage.googleapis.com/chrome-for-testing-public/%s/%s/%s"
 
         self.version_main = version_main
         self.version_full = None
@@ -277,11 +280,11 @@ class Patcher(object):
         """
         zip_name = f"chromedriver_{self.platform_name}.zip"
         if self.is_old_chromedriver:
-            download_url = "%s/%s/%s" % (self.url_repo, self.version_full.vstring, zip_name)
+            url_parts = (self.version_full.vstring, zip_name)
         else:
             zip_name = zip_name.replace("_", "-", 1)
-            download_url = "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%s/%s/%s"
-            download_url %= (self.version_full.vstring, self.platform_name, zip_name)
+            url_parts = (self.version_full.vstring, self.platform_name, zip_name)
+        download_url = self.download_url % url_parts
 
         logger.debug("downloading from %s" % download_url)
         return urlretrieve(download_url)[0]
