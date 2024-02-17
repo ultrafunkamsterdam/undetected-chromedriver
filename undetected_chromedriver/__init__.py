@@ -301,8 +301,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         for arg in options.arguments:
 
             if any([_ in arg for _ in ("--headless", "headless")]):
-                options.arguments.remove(arg)
-                options.headless = True
+                     if not arg.startswith("--user-data-dir="):
+                         options.arguments.remove(arg)
+                         options.headless = True
 
             if "lang" in arg:
                 m = re.search("(?:--)?lang(?:[ =])?(.*)", arg)
