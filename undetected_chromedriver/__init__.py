@@ -458,15 +458,13 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             )
             self.browser_pid = browser.pid
 
-
         service = selenium.webdriver.chromium.service.ChromiumService(
             self.patcher.executable_path
         )
 
         super(Chrome, self).__init__(
             service=service,
-            options=options,
-            keep_alive=keep_alive,
+            options=options
         )
 
         self.reactor = None
