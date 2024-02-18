@@ -2,6 +2,7 @@
 # this module is part of undetected_chromedriver
 
 from distutils.version import LooseVersion
+import secrets
 import io
 import json
 import logging
@@ -59,7 +60,7 @@ class Patcher(object):
         """
         self.force = force
         self._custom_exe_path = False
-        prefix = "undetected"
+        prefix = secrets.token_hex(8) #fixes running multiple instanes at once
         self.user_multi_procs = user_multi_procs
 
         self.is_old_chromedriver = version_main and version_main <= 114
