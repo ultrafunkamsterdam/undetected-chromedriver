@@ -44,6 +44,7 @@ setup(
         "selenium>=4.9.0",
         "requests",
         "websockets",
+        "packaging",
     ],
     package_data={"undetected_chromedriver": [os.path.join("example", "example.py")]},
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
