@@ -25,7 +25,7 @@ pip install git+https://www.github.com/ultrafunkamsterdam/undetected-chromedrive
 
 - - -
 ## Message for all ##
-I will be putting limits on the issue tracker. It has beeen abused too long.  
+I will be putting limits on the issue tracker. It has been abused too long.  
 any good news?  
 Yes, i've opened [Undetected-Discussions](https://github.com/ultrafunkamsterdam/undetected-chromedriver/discussions) which i think will help us better in the long run. 
 - - -
@@ -58,12 +58,12 @@ driver.save_screenshot('nowsecure.png')
 
 
 ## 3.4.5 ##
-- What a week. Had the recent advancedments in Automation-Detection algorithms pwned (so i thought) with 3.4.0, but apparently, for some OS-es this caused an error when    interacting with elements. Had to revert back using a different method, fix bugs, and now eventually was still able to stick to the initial idea (+ fixing bugs)
+- What a week. Had the recent advancements in Automation-Detection algorithms pwned (so i thought) with 3.4.0, but apparently, for some OS-es this caused an error when    interacting with elements. Had to revert back using a different method, fix bugs, and now eventually was still able to stick to the initial idea (+ fixing bugs)
 - Update to chrome 110 caused another surprise, this time for HEADLESS users.
 - although headless is unsupported officially, i did patch it!
 - happy to announce IT IS NOW UNDETECTED AS WELL (but still unsupported ;))
 - special thanks here to [@mdmintz](https://github.com/mdmintz) and [@abdulzain6](https://github.com/abdulzain6)
-- also special thanks to [@sebdelsol](https://github.com/sebdelsol) for his help troughout the issues section completely voluntarily, you must be crazy :)
+- also special thanks to [@sebdelsol](https://github.com/sebdelsol) for his help throughout the issues section completely voluntarily, you must be crazy :)
   
 ### 3.4.0 ###
 **Big update! be careful as it -potentially- could break your code.**
@@ -131,7 +131,7 @@ driver.save_screenshot('nowsecure.png')
   driver = uc.Chrome()
   driver.get('https://nowsecure.nl')
   ```
-  for backwards compatibility, v2 is not removed, but aliassed to the main module.
+  for backwards compatibility, v2 is not removed, but aliased to the main module.
 
 - Fixed "welcome screen" nagging on non-windows OS-es. For those nagfetishists who ❤ welcome screens and feeding google with even more data,
   use Chrome(suppress_welcome=False).
@@ -255,7 +255,7 @@ def mylousyprintfunction(message):
 # for more inspiration checkout the link below
 # https://chromedevtools.github.io/devtools-protocol/1-3/Network/
 
-# and of couse 2 lousy examples
+# and of course 2 lousy examples
 driver.add_cdp_listener('Network.requestWillBeSent', mylousyprintfunction)
 driver.add_cdp_listener('Network.dataReceived', mylousyprintfunction)
 
@@ -1275,7 +1275,7 @@ options.headless = True
 options.add_argument( '--headless' )
 chrome = uc.Chrome( options = options )
 chrome.get( 'https://datadome.co/customers-stories/toppreise-ends-web-scraping-and-content-theft-with-datadome/' )
-chrome.save_screenshot( 'datadome_undetected_webddriver.png' )
+chrome.save_screenshot( 'datadome_undetected_webdriver.png' )
 
 ```
 
