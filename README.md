@@ -25,7 +25,7 @@ pip install git+https://www.github.com/ultrafunkamsterdam/undetected-chromedrive
 
 - - -
 ## Message for all ##
-I will be putting limits on the issue tracker. It has beeen abused too long.  
+I will be putting limits on the issue tracker. It has been abused too long.  
 any good news?  
 Yes, i've opened [Undetected-Discussions](https://github.com/ultrafunkamsterdam/undetected-chromedriver/discussions) which i think will help us better in the long run. 
 - - -
