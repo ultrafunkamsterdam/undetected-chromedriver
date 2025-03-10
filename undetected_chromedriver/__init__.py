@@ -493,6 +493,9 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         logger.info("setting properties for headless")
 
         def get_wrapped(*args, **kwargs):
+            logger.info("patch user-agent string")
+            self._configure_userAgent()
+            
             if self.execute_script("return navigator.webdriver"):
                 logger.info("patch navigator.webdriver")
                 self.execute_cdp_cmd(
@@ -513,16 +516,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                                   }),
                                 });
                     """
-                    },
-                )
-
-                logger.info("patch user-agent string")
-                self.execute_cdp_cmd(
-                    "Network.setUserAgentOverride",
-                    {
-                        "userAgent": self.execute_script(
-                            "return navigator.userAgent"
-                        ).replace("Headless", "")
                     },
                 )
                 self.execute_cdp_cmd(
@@ -630,6 +623,19 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         self.get = get_wrapped
 
+    def _configure_userAgent(self):
+        currentUserAgent = self.execute_script("return navigator.userAgent")
+        try:
+            if currentUserAgent.find("Headless") != -1:
+                self.execute_cdp_cmd(
+                    "Network.setUserAgentOverride",
+                    {
+                        "userAgent": currentUserAgent.replace("Headless", "")
+                    },
+                )
+        except AttributeError as e:
+            logger.error("Failed to fetch user-agent")
+    
     # def _get_cdc_props(self):
     #     return self.execute_script(
     #         """
