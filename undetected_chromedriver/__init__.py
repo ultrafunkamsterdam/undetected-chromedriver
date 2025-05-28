@@ -246,7 +246,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         """
 
-        finalize(self, self._ensure_close, self)
+        self.close_ref = finalize(self, self._ensure_close, self)
         self.debug = debug
         self.patcher = Patcher(
             executable_path=driver_executable_path,
