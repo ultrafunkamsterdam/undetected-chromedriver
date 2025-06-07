@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # this module is part of undetected_chromedriver
 
-from distutils.version import LooseVersion
 import io
 import json
 import logging
@@ -23,6 +22,30 @@ logger = logging.getLogger(__name__)
 
 IS_POSIX = sys.platform.startswith(("darwin", "cygwin", "linux", "linux2"))
 
+def ensure_setuptools():
+    """
+    Check for distutils.version.LooseVersion and ensure it is available.
+
+    Since Python 3.12+ removes 'distutils', setuptools is required for LooseVersion.
+    If LooseVersion is missing, raise an error with instructions to install setuptools.
+    """
+    try:
+        global LooseVersion
+        from distutils.version import LooseVersion
+    except ImportError:
+        error_message = (
+            "Unable to import 'distutils.version.LooseVersion'. "
+            "This is likely because setuptools is not installed. "
+            "Please install it using: pip install setuptools."
+        )
+        if sys.version_info >= (3, 12):
+            error_message += (
+                f"\nNote: Python {sys.version_info.major}.{sys.version_info.minor} removes 'distutils'. "
+                "Consider using Python 3.11 for native 'distutils' support."
+            )
+        raise RuntimeError(error_message)
+
+ensure_setuptools()  # Ensure LooseVersion is available before proceeding
 
 class Patcher(object):
     lock = Lock()
