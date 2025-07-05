@@ -11,7 +11,6 @@ Y88b.    888  888 888    Y88..88P 888  888  888 Y8b.     Y88b 888 888     888  Y
 
 BY ULTRAFUNKAMSTERDAM (https://github.com/ultrafunkamsterdam)"""
 
-import codecs
 import os
 import re
 
@@ -20,7 +19,7 @@ from setuptools import setup
 
 dirname = os.path.abspath(os.path.dirname(__file__))
 
-with codecs.open(
+with open(
     os.path.join(dirname, "undetected_chromedriver", "__init__.py"),
     mode="r",
     encoding="utf-8",
@@ -41,9 +40,10 @@ setup(
     version=version,
     packages=["undetected_chromedriver"],
     install_requires=[
-        "selenium>=4.9.0",
-        "requests",
-        "websockets",
+        "selenium>=4.18.1",  # Updated to latest as of Mar 2024
+        "requests>=2.31.0",  # Updated to latest as of Mar 2024
+        "websockets>=12.0",  # Updated to latest as of Mar 2024
+        "packaging>=23.0", # Specify a recent version
     ],
     package_data={"undetected_chromedriver": [os.path.join("example", "example.py")]},
     url="https://github.com/ultrafunkamsterdam/undetected-chromedriver",
@@ -61,5 +61,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12", # Assuming 3.12 is also supported
+        "Programming Language :: Python :: 3.13",
     ],
 )
