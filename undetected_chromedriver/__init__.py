@@ -296,9 +296,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             options.add_argument("--user-data-dir=%s" % user_data_dir)
 
         language, keep_user_data_dir = None, bool(user_data_dir)
-
+             
+        keep_window_size = None
         # see if a custom user profile is specified in options
         for arg in options.arguments:
+         
 
             if any([_ in arg for _ in ("--headless", "headless")]):
                 options.arguments.remove(arg)
@@ -311,6 +313,17 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 except IndexError:
                     logger.debug("will set the language to en-US,en;q=0.9")
                     language = "en-US,en;q=0.9"
+                  
+            if "--window-size" in arg:
+                m = re.search("(?:--)?window-size(?:[ =])?(.*)", arg)
+                try:
+                    window_size= m[1]
+                    logger.debug(
+                        "window-size found in user argument %s => %s" % (arg, m[1])
+                    )
+                    keep_window_size = True
+                except IndexError:
+                    keep_window_size = False
 
             if "user-data-dir" in arg:
                 m = re.search("(?:--)?user-data-dir(?:[ =])?(.*)", arg)
@@ -407,7 +420,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                                "therefore, we are assuming it is chrome 108 or higher")
                 options.add_argument("--headless=new")
 
-        options.add_argument("--window-size=1920,1080")
+        if not keep_window_size:
+            options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
         options.add_argument("--no-sandbox")
         # fixes "could not connect to chrome" error when running
