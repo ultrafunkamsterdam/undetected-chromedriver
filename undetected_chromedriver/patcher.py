@@ -343,7 +343,7 @@ class Patcher(object):
 
     def patch_exe(self):
         start = time.perf_counter()
-        logger.info("patching driver executable %s" % self.executable_path)
+        # logger.info("patching driver executable %s" % self.executable_path)
         with io.open(self.executable_path, "r+b") as fh:
             content = fh.read()
             # match_injected_codeblock = re.search(rb"{window.*;}", content)
