@@ -793,7 +793,6 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
                 else:
                     logger.debug("successfully removed %s" % self.user_data_dir)
                     break
-                time.sleep(0.1)
 
         # dereference patcher, so patcher can start cleaning up as well.
         # this must come last, otherwise it will throw 'in use' errors
