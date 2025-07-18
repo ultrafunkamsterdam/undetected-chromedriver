@@ -294,6 +294,11 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
 
         if user_data_dir:
             options.add_argument("--user-data-dir=%s" % user_data_dir)
+            singleton_lock_file = f"{user_data_dir}/SingletonLock"
+
+            if headless and os.path.islink(singleton_lock_file):
+                logger.info("Removing SingletonLock %s in order to reuse existing headless profile" % singleton_lock_file)
+                os.remove(singleton_lock_file)
 
         language, keep_user_data_dir = None, bool(user_data_dir)
 
