@@ -762,6 +762,8 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def quit(self):
         try:
             self.service.process.kill()
+            # has to be closed manually, otherwise socket to driver process gets leaked in CLOSE_WAIT
+            self.command_executor.close()
             logger.debug("webdriver process ended")
         except (AttributeError, RuntimeError, OSError):
             pass
@@ -836,6 +838,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
     def __del__(self):
         try:
             self.service.process.kill()
+            self.command_executor.close()
         except:  # noqa
             pass
         self.quit()
