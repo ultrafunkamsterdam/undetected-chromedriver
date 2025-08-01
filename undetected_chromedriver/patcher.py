@@ -130,17 +130,6 @@ class Patcher(object):
         Returns:
 
         """
-        p = pathlib.Path(self.data_path)
-        if self.user_multi_procs:
-            with Lock():
-                files = list(p.rglob("*chromedriver*"))
-                most_recent = max(files, key=lambda f: f.stat().st_mtime)
-                files.remove(most_recent)
-                list(map(lambda f: f.unlink(), files))
-                if self.is_binary_patched(most_recent):
-                    self.executable_path = str(most_recent)
-                    return True
-
         if executable_path:
             self.executable_path = executable_path
             self._custom_exe_path = True
@@ -151,6 +140,17 @@ class Patcher(object):
                 return self.patch_exe()
             else:
                 return
+                
+        p = pathlib.Path(self.data_path)
+        if self.user_multi_procs:
+            with Lock():
+                files = list(p.rglob("*chromedriver*"))
+                most_recent = max(files, key=lambda f: f.stat().st_mtime)
+                files.remove(most_recent)
+                list(map(lambda f: f.unlink(), files))
+                if self.is_binary_patched(most_recent):
+                    self.executable_path = str(most_recent)
+                    return True
 
         if version_main:
             self.version_main = version_main
