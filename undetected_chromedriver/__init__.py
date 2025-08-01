@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import typing
 from weakref import finalize
 
 import selenium.webdriver.chrome.service
@@ -125,6 +126,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
         debug=False,
         no_sandbox=True,
         user_multi_procs: bool = False,
+        data_path: typing.Optional[str] = None,
         **kw,
     ):
         """
@@ -253,6 +255,7 @@ class Chrome(selenium.webdriver.chrome.webdriver.WebDriver):
             force=patcher_force_close,
             version_main=version_main,
             user_multi_procs=user_multi_procs,
+            data_path=data_path,
         )
         # self.patcher.auto(user_multiprocess = user_multi_num_procs)
         self.patcher.auto()
